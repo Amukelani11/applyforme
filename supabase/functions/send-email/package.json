@@ -1,0 +1,11 @@
+{
+  "name": "send-email",
+  "version": "1.0.0",
+  "description": "Supabase Edge Function for sending emails via Resend",
+  "main": "index.ts",
+  "scripts": {
+    "deploy": "supabase functions deploy send-email"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+} 

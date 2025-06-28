@@ -1,0 +1,122 @@
+-- Add sample job postings for testing AI recommendations
+INSERT INTO job_postings (title, company, location, job_type, salary_range, description, requirements, benefits, is_active, recruiter_id) VALUES
+(
+    'Senior Software Developer',
+    'TechCorp Solutions',
+    'Cape Town, South Africa',
+    'full-time',
+    'R80,000 - R120,000',
+    'We are looking for an experienced software developer to join our growing team. You will be responsible for developing and maintaining web applications using modern technologies.',
+    '5+ years experience in software development, proficiency in JavaScript/TypeScript, React, Node.js, experience with databases (PostgreSQL, MongoDB), strong problem-solving skills',
+    'Competitive salary, health insurance, flexible working hours, remote work options, professional development budget',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'Marketing Manager',
+    'Digital Marketing Pro',
+    'Johannesburg, South Africa',
+    'full-time',
+    'R60,000 - R90,000',
+    'Lead our marketing team and develop comprehensive marketing strategies to drive business growth and brand awareness.',
+    '3+ years marketing experience, experience with digital marketing tools, strong analytical skills, excellent communication abilities',
+    'Performance bonuses, health benefits, flexible schedule, career growth opportunities',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'Data Analyst',
+    'Analytics Solutions',
+    'Durban, South Africa',
+    'full-time',
+    'R50,000 - R75,000',
+    'Analyze complex data sets to provide insights that drive business decisions and improve operational efficiency.',
+    '2+ years data analysis experience, proficiency in SQL, Python, Excel, experience with data visualization tools',
+    'Competitive salary, learning opportunities, modern office environment, team events',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'UX/UI Designer',
+    'Creative Design Studio',
+    'Pretoria, South Africa',
+    'full-time',
+    'R55,000 - R85,000',
+    'Create beautiful and functional user interfaces that provide exceptional user experiences across web and mobile platforms.',
+    '3+ years UX/UI design experience, proficiency in Figma, Adobe Creative Suite, strong portfolio, user-centered design approach',
+    'Creative environment, flexible hours, health insurance, professional development',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'Sales Representative',
+    'Global Sales Inc',
+    'Port Elizabeth, South Africa',
+    'full-time',
+    'R40,000 - R70,000',
+    'Build relationships with clients and drive sales growth through effective communication and product knowledge.',
+    '2+ years sales experience, excellent communication skills, target-driven, customer service oriented',
+    'Commission structure, car allowance, health benefits, performance incentives',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'Project Manager',
+    'Project Solutions Ltd',
+    'Bloemfontein, South Africa',
+    'full-time',
+    'R70,000 - R100,000',
+    'Lead project teams and ensure successful delivery of projects within scope, time, and budget constraints.',
+    '5+ years project management experience, PMP certification preferred, strong leadership skills, experience with project management tools',
+    'Competitive salary, health insurance, flexible working, professional development',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'Content Writer',
+    'Content Creation Co',
+    'Remote',
+    'part-time',
+    'R25,000 - R45,000',
+    'Create engaging and informative content for various platforms including blogs, social media, and marketing materials.',
+    '2+ years content writing experience, excellent writing skills, SEO knowledge, ability to meet deadlines',
+    'Flexible schedule, remote work, performance bonuses, creative freedom',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'Customer Support Specialist',
+    'Customer Care Solutions',
+    'East London, South Africa',
+    'full-time',
+    'R30,000 - R50,000',
+    'Provide exceptional customer support and resolve issues efficiently to maintain high customer satisfaction.',
+    '1+ years customer service experience, excellent communication skills, problem-solving abilities, patience and empathy',
+    'Health benefits, performance bonuses, career growth, supportive team environment',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'Financial Analyst',
+    'Finance Partners',
+    'Nelspruit, South Africa',
+    'full-time',
+    'R65,000 - R95,000',
+    'Analyze financial data and prepare reports to support business decision-making and strategic planning.',
+    '3+ years financial analysis experience, accounting degree, proficiency in Excel, financial modeling skills',
+    'Competitive salary, health insurance, professional development, stable work environment',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+),
+(
+    'Human Resources Coordinator',
+    'HR Solutions Group',
+    'Kimberley, South Africa',
+    'full-time',
+    'R45,000 - R65,000',
+    'Support HR operations including recruitment, employee relations, and administrative tasks.',
+    '2+ years HR experience, excellent organizational skills, strong communication, knowledge of labor laws',
+    'Health benefits, professional development, supportive environment, career growth',
+    true,
+    (SELECT id FROM recruiters LIMIT 1)
+); 
