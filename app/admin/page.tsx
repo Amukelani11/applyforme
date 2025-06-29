@@ -159,11 +159,11 @@ export default function AdminPage() {
         setError(null)
 
         // Check if user is authenticated
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError) throw sessionError
-
-        if (!session?.user) {
-          router.push('/signin')
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        if (!session) {
+          router.push('/login')
           return
         }
 
@@ -273,11 +273,11 @@ export default function AdminPage() {
 
     // This is a placeholder for the actual logic to send the CV
     console.log(`Sending CV of ${selectedUser.full_name} for job ${selectedJob} to recruiter ${selectedRecruiter}`)
-    toast({
+      toast({
       title: "CV Sent",
       description: `The CV has been sent to the selected recruiter.`,
-    })
-    setIsSendDialogOpen(false)
+      })
+      setIsSendDialogOpen(false)
   }
 
   const openSendDialog = (user: User) => {
@@ -329,7 +329,7 @@ export default function AdminPage() {
       setLoadingAI(prev => ({ ...prev, [userId]: false }))
     }
   }
-  
+
   const openCvImprovementDialog = (improvement: CVImprovement) => {
     setSelectedImprovement(improvement)
     setAdminNotes(improvement.admin_notes || '')
@@ -358,7 +358,7 @@ export default function AdminPage() {
       toast({ title: "Missing Information", description: "Please select an improvement request and upload the new CV.", variant: 'destructive'})
       return
     }
-    
+
     setSendingImprovement(true)
 
     try {
@@ -370,9 +370,9 @@ export default function AdminPage() {
         .upload(`public/${newCvFileName}`, improvedCvFile)
 
       if (uploadError) throw new Error(`Failed to upload new CV: ${uploadError.message}`)
-      
+
       const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(`public/${newCvFileName}`)
-      
+
       // 2. Create a new document record for the improved CV
       const { data: newDoc, error: docError } = await supabase
         .from('documents')
@@ -397,7 +397,7 @@ export default function AdminPage() {
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedImprovement.id)
-      
+
       if (updateError) throw new Error(`Failed to update improvement record: ${updateError.message}`)
         
       // 4. Send email to user (using your email service)
@@ -468,14 +468,14 @@ export default function AdminPage() {
       <p className="text-gray-500 mb-8">Oversee all platform activities from one central location.</p>
       
       <div className="mb-6">
-        <Input 
+              <Input
           type="search"
           placeholder="Search by name, email, or company..."
           className="max-w-lg mx-auto"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+        </div>
 
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
@@ -485,61 +485,61 @@ export default function AdminPage() {
           <TabsTrigger value="jobs"><UserCheck className="mr-2 h-4 w-4" />Job Postings</TabsTrigger>
           <TabsTrigger value="subscriptions"><CreditCard className="mr-2 h-4 w-4" />Subscriptions</TabsTrigger>
           {/* <TabsTrigger value="cv-improvements"><Star className="mr-2 h-4 w-4" />CV Improvements</TabsTrigger> */}
-        </TabsList>
+          </TabsList>
 
         <TabsContent value="users">
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
               <CardTitle>Platform Users</CardTitle>
               <CardDescription>Browse and manage all registered users.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {filteredUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {filteredUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-4">
-                      <Avatar>
+                        <Avatar>
                         <AvatarFallback>{user.full_name ? user.full_name.charAt(0) : user.email.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
+                        </Avatar>
+                        <div>
                         <p className="font-semibold">{user.full_name || 'N/A'}</p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
-                      </div>
-                    </div>
+                          <p className="text-sm text-gray-500">{user.email}</p>
+                          </div>
+                        </div>
                     <div className="text-right">
                        <Button variant="outline" size="sm" onClick={() => getAIAnalysis(user.id)} disabled={loadingAI[user.id]}>
                         {loadingAI[user.id] ? "Analyzing..." : "AI Qualify"} <Sparkles className="ml-2 h-4 w-4" />
-                      </Button>
+                            </Button>
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/admin/users/${user.id}`}>View Details</Link>
-                      </Button>
+                            </Button>
+                                  </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
         </TabsContent>
 
         <TabsContent value="applications">
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
               <CardTitle>Job Applications</CardTitle>
               <CardDescription>Monitor all applications submitted by users.</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
               {/* Application table or list */}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
         <TabsContent value="recruiters">
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
               <CardTitle>Recruiters</CardTitle>
               <CardDescription>Manage and view all registered recruiters.</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
               <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -568,7 +568,7 @@ export default function AdminPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant={recruiter.is_verified ? 'default' : 'secondary'}>
                             {recruiter.is_verified ? 'Yes' : 'No'}
-                          </Badge>
+                              </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(recruiter.created_at).toLocaleDateString()}
@@ -577,14 +577,14 @@ export default function AdminPage() {
                            <Button variant="ghost" size="sm">Edit</Button>
                         </td>
                       </tr>
-                    ))}
+                  ))}
                   </tbody>
                 </table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-      </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+        </Tabs>
     </div>
   )
 }

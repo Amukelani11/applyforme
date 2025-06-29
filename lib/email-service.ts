@@ -4,12 +4,15 @@ import {
   JobPostingData, 
   ApplicationData, 
   WeeklyReportData,
+  SubscriptionData,
   getJobPostedTemplate,
   getApplicationAlertTemplate,
   getJobExpiryReminderTemplate,
   getJobExpiredTemplate,
   getWeeklyReportTemplate,
-  getCVImprovementTemplate
+  getCVImprovementTemplate,
+  getSubscriptionConfirmationTemplate,
+  getSubscriptionRenewalTemplate
 } from './email-templates'
 
 const supabase = createClient(
@@ -212,6 +215,66 @@ export class EmailService {
     }
   }
 
+  // Send Subscription Confirmation
+  static async sendSubscriptionConfirmation(
+    subscriptionData: SubscriptionData,
+    recipient: EmailRecipient
+  ): Promise<boolean> {
+    try {
+      const template = getSubscriptionConfirmationTemplate(recipient.name, subscriptionData)
+      
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: recipient.email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text
+        }
+      })
+
+      if (error) {
+        console.error('Error sending subscription confirmation email:', error)
+        return false
+      }
+
+      await this.logEmailSent('subscription_confirmation', recipient.email)
+      return true
+    } catch (error) {
+      console.error('Error sending subscription confirmation:', error)
+      return false
+    }
+  }
+
+  // Send Subscription Renewal
+  static async sendSubscriptionRenewal(
+    subscriptionData: SubscriptionData,
+    recipient: EmailRecipient
+  ): Promise<boolean> {
+    try {
+      const template = getSubscriptionRenewalTemplate(recipient.name, subscriptionData)
+      
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: recipient.email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text
+        }
+      })
+
+      if (error) {
+        console.error('Error sending subscription renewal email:', error)
+        return false
+      }
+
+      await this.logEmailSent('subscription_renewal', recipient.email)
+      return true
+    } catch (error) {
+      console.error('Error sending subscription renewal:', error)
+      return false
+    }
+  }
+
   // Log email sent for tracking
   private static async logEmailSent(
     type: string, 
@@ -235,7 +298,7 @@ export class EmailService {
   // Check if user has notifications enabled
   static async shouldSendNotification(
     userId: string, 
-    notificationType: keyof WeeklyReportData
+    notificationType: string
   ): Promise<boolean> {
     try {
       const { data, error } = await supabase
@@ -248,10 +311,10 @@ export class EmailService {
         return true // Default to true if no settings found
       }
 
-      return data[notificationType] as boolean
+      return (data as any)[notificationType] as boolean
     } catch (error) {
       console.error('Error checking notification settings:', error)
-      return true // Default to true on error
+      return false // Default to not sending on error
     }
   }
 
@@ -281,6 +344,39 @@ export class EmailService {
     } catch (error) {
       console.error('Error getting recruiter info:', error)
       return null
+    }
+  }
+
+  // Send a custom email
+  static async sendCustomEmail(
+    recipient: EmailRecipient,
+    subject: string,
+    htmlBody: string,
+    textBody?: string
+  ): Promise<boolean> {
+    try {
+      console.log(`Sending custom email to ${recipient.email} with subject "${subject}"`)
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: recipient.email,
+          subject: subject,
+          html: htmlBody,
+          text: textBody || htmlBody.replace(/<[^>]*>?/gm, ''), // Basic text version
+        },
+      })
+
+      if (error) {
+        console.error('Error sending custom email:', error)
+        throw new Error(`Failed to send email: ${error.message}`)
+      }
+
+      // Log the email sent
+      await this.logEmailSent('custom_admin_email', recipient.email)
+      console.log('Custom email sent successfully.')
+      return true
+    } catch (error) {
+      console.error('Error in sendCustomEmail:', error)
+      return false
     }
   }
 } 

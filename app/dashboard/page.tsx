@@ -74,27 +74,29 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        setLoading(true)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError || !session) {
-          router.push('/signin')
-          return
-        }
+    try {
+      setLoading(true)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/login')
+        return
+      }
 
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
           .select('full_name, subscription_plan')
-          .eq('id', session.user.id)
-          .single()
+        .eq('id', session.user.id)
+        .single()
 
         if (profileError) throw profileError
-        setUser(profile)
+      setUser(profile)
 
         const { data: apps, error: appsError } = await supabase
-          .from('applications')
+        .from('applications')
           .select('id, job_title, company_name, status, applied_date')
-          .eq('user_id', session.user.id)
+        .eq('user_id', session.user.id)
           .order('applied_date', { ascending: false })
 
         if (appsError) throw appsError
@@ -117,13 +119,13 @@ export default function DashboardPage() {
         if (docData && docData.length > 0) strength += 20;
         setProfileStrength(strength)
 
-      } catch (error: any) {
+    } catch (error: any) {
         console.error("Dashboard error:", error)
-        router.push('/signin')
-      } finally {
-        setLoading(false)
-      }
+      router.push('/login')
+    } finally {
+      setLoading(false)
     }
+  }
 
     fetchData()
   }, [router, supabase])
@@ -172,7 +174,7 @@ export default function DashboardPage() {
     )
   }
 
-  return (
+    return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -190,14 +192,14 @@ export default function DashboardPage() {
               Find a Job <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
-        </div>
-      </div>
-
+            </div>
+          </div>
+          
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Applications Sent" value={stats.applicationsSent} icon={<Briefcase className="h-4 w-4 text-muted-foreground" />} description="Total applications submitted." />
         <StatCard title="Applications Viewed" value={stats.applicationsViewed} icon={<Eye className="h-4 w-4 text-muted-foreground" />} description="Requires Premium to view." isPremium={user?.subscription_plan !== 'premium'} />
         <StatCard title="Saved Jobs" value={stats.savedJobs} icon={<Bookmark className="h-4 w-4 text-muted-foreground" />} description="Jobs you are keeping an eye on." />
-        <Card>
+            <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Profile Strength</CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
@@ -205,23 +207,23 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold mb-2">{profileStrength}%</div>
             <Progress value={profileStrength} className="h-2" />
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>Your latest applications and their status.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {applications.length > 0 ? (
+              </CardHeader>
+              <CardContent>
+                {applications.length > 0 ? (
                 <ul className="space-y-4">
                   {applications.slice(0, 5).map(app => (
                     <li key={app.id} className="flex items-center justify-between">
-                      <div>
+                          <div>
                         <p className="font-semibold">{app.job_title}</p>
                         <p className="text-sm text-muted-foreground">{app.company_name}</p>
                       </div>
@@ -234,19 +236,19 @@ export default function DashboardPage() {
                   <p className="text-muted-foreground">You haven't applied to any jobs yet.</p>
                   <Button asChild variant="link" className="mt-2">
                     <Link href="/jobs">Find jobs to apply for</Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                      </Button>
+                    </div>
+                  )}
+              </CardContent>
+            </Card>
+          </div>
         <div>
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
               <CardTitle>Get Started</CardTitle>
               <CardDescription>Your next steps to success.</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
               <ul className="space-y-3">
                 {getChecklistItems().map(item => (
                   <li key={item.text}>
@@ -259,8 +261,8 @@ export default function DashboardPage() {
                   </li>
                 ))}
               </ul>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
         </div>
       </div>
     </div>

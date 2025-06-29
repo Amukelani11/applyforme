@@ -50,7 +50,7 @@ export default function CertificationsPage() {
 
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        router.push('/signin')
+        router.push('/login')
         return
       }
 
@@ -83,7 +83,7 @@ export default function CertificationsPage() {
         }
 
         if (!session?.user) {
-          router.push('/signin')
+          router.push('/login')
           return
         }
 
@@ -123,6 +123,12 @@ export default function CertificationsPage() {
     try {
       setSaving(true)
       setError(null)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
       const { error } = await supabase
         .from('certifications')

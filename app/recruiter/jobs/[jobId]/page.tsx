@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Edit, Trash2, Users, Calendar, MapPin, DollarSign, Briefcase } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
+import { ChartContainer } from '@/components/ui/chart'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 
 interface JobPosting {
   id: number
@@ -96,7 +98,12 @@ export default function JobDetailsPage() {
       if (applicationsError) {
         console.error('Error fetching applications:', applicationsError)
       } else {
-        setApplications(applicationsData || [])
+        // Ensure user is always an object, not an array
+        const mappedApps = (applicationsData || []).map(app => ({
+          ...app,
+          user: Array.isArray(app.user) ? app.user[0] : app.user
+        }))
+        setApplications(mappedApps)
       }
 
     } catch (error) {
@@ -307,6 +314,38 @@ export default function JobDetailsPage() {
 
           {/* Applications Sidebar */}
           <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Application Analytics</CardTitle>
+                <CardDescription>Animated breakdown of application statuses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    pending: { label: 'Pending', color: '#a855f7' },
+                    shortlisted: { label: 'Shortlisted', color: '#f59e42' },
+                    interviewed: { label: 'Interviewed', color: '#38bdf8' },
+                    hired: { label: 'Hired', color: '#22c55e' },
+                    rejected: { label: 'Rejected', color: '#ef4444' },
+                  }}
+                  style={{ width: '100%', height: 220 }}
+                >
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={['pending', 'shortlisted', 'interviewed', 'hired', 'rejected'].map(status => ({
+                      status,
+                      count: applications.filter(a => a.status === status).length
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="status" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Bar dataKey="count" isAnimationActive fill="#a855f7" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">

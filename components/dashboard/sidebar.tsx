@@ -62,6 +62,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const getUser = async () => {
@@ -69,13 +70,14 @@ export function Sidebar() {
       if (data.user) {
         setUser(data.user)
       }
+      setLoading(false)
     }
     getUser()
   }, [])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push("/signin")
+    router.push("/login")
   }
 
   const getInitials = (email: string) => {

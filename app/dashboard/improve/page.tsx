@@ -41,7 +41,7 @@ export default function ImprovePage() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        router.push('/signin')
+        router.push('/login')
         return
       }
       checkImprovementLimits()
@@ -154,7 +154,7 @@ export default function ImprovePage() {
 
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {
-        router.push('/signin')
+        router.push('/login')
         return
       }
 

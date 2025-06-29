@@ -18,7 +18,7 @@ export async function submitPublicApplication(jobId: number, formData: FormData)
     const fileExtension = cvFile.name.split(".").pop();
     const cvFileName = `${nanoid()}.${fileExtension}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("cvs")
+      .from("documents")
       .upload(`public/${cvFileName}`, cvFile);
 
     if (uploadError) {
@@ -26,7 +26,15 @@ export async function submitPublicApplication(jobId: number, formData: FormData)
       return { success: false, error: "Failed to upload CV." };
     }
     
-    const cvUrl = supabase.storage.from("cvs").getPublicUrl(uploadData.path).data.publicUrl;
+    const cvUrl = supabase.storage.from("documents").getPublicUrl(uploadData.path).data.publicUrl;
+
+    // Insert into documents table after CV upload
+    await supabase.from('documents').insert({
+      user_id: email,
+      name: cvFile.name,
+      type: 'cv',
+      url: uploadData.path,
+    });
 
     // 2. Call the atomic function to insert the application
     const { data, error } = await supabase.rpc(

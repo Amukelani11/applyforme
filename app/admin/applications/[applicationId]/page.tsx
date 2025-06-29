@@ -87,8 +87,8 @@ export default function ApplicationPage({ params }: { params: { applicationId: s
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         if (sessionError) throw sessionError
 
-        if (!session?.user) {
-          router.push('/signin')
+        if (!session) {
+          router.push('/login')
           return
         }
 

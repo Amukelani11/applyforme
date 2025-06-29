@@ -1,6 +1,6 @@
 "use server"
 
-import { supabase } from "@/lib/supabaseClient"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { nanoid } from "nanoid"
 
@@ -12,6 +12,7 @@ export async function updateRecruiterProfile(userId: string, formData: FormData)
     return { success: false, error: "User not found" }
   }
 
+  const supabase = await createClient()
   const { error } = await supabase
     .from("recruiters")
     .update({
@@ -42,6 +43,7 @@ export async function updateJob(jobId: string, formData: FormData) {
     public_application_limit,
   } = Object.fromEntries(formData.entries())
 
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from("job_postings")
     .update({
@@ -73,6 +75,7 @@ export async function updateJob(jobId: string, formData: FormData) {
 }
 
 export async function updateJobSharing(jobId: number, allowPublic: boolean) {
+  const supabase = await createClient()
   try {
     let publicShareId: string | null = null;
 
@@ -120,5 +123,66 @@ export async function updateJobSharing(jobId: number, allowPublic: boolean) {
   } catch (error: any) {
     console.error("Error in updateJobSharing:", error)
     return { error: "An unexpected error occurred." }
+  }
+}
+
+export async function bulkUpdateJobStatus(jobIds: number[], isActive: boolean) {
+  'use server'
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data: recruiter, error: recruiterError } = await supabase
+        .from('recruiters')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+    
+    if (recruiterError) throw recruiterError;
+
+    const { data, error } = await supabase
+      .from('job_postings')
+      .update({ is_active: isActive, updated_at: new Date().toISOString() })
+      .in('id', jobIds)
+      .eq('recruiter_id', recruiter.id)
+      .select('id, is_active');
+
+    if (error) throw error;
+    
+    revalidatePath('/recruiter/dashboard');
+    return { data };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function bulkDeleteJobs(jobIds: number[]) {
+    'use server'
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        const { data: recruiter, error: recruiterError } = await supabase
+            .from('recruiters')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+        
+        if (recruiterError) throw recruiterError;
+
+        const { error } = await supabase
+            .from('job_postings')
+            .delete()
+            .in('id', jobIds)
+            .eq('recruiter_id', recruiter.id)
+
+        if (error) throw error;
+        
+        revalidatePath('/recruiter/dashboard');
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
   }
 } 

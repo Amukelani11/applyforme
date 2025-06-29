@@ -12,12 +12,27 @@ CREATE OR REPLACE FUNCTION increment_public_app_count_and_insert_detailed(
 RETURNS void AS $$
 DECLARE
     current_count INT;
+    v_recruiter_id BIGINT;
+    v_plan_id TEXT;
 BEGIN
-    -- Lock the job posting row to prevent race conditions
-    SELECT public_application_count INTO current_count FROM public.job_postings WHERE id = p_job_id FOR UPDATE;
+    -- Lock the job posting row and get count and recruiter_id
+    SELECT public_application_count, recruiter_id 
+    INTO current_count, v_recruiter_id 
+    FROM public.job_postings 
+    WHERE id = p_job_id FOR UPDATE;
 
-    IF current_count >= 5 THEN
-        RAISE EXCEPTION 'Public application limit reached for job %', p_job_id;
+    -- Check if recruiter is on a premium plan
+    SELECT rs.plan_id 
+    INTO v_plan_id
+    FROM public.recruiter_subscriptions rs
+    WHERE rs.recruiter_id = v_recruiter_id AND rs.status = 'active'
+    LIMIT 1;
+
+    -- Only check the limit if the user is not on a premium plan
+    IF v_plan_id IS NULL OR v_plan_id != 'premium' THEN
+        IF current_count >= 5 THEN
+            RAISE EXCEPTION 'Public application limit reached for job %', p_job_id;
+        END IF;
     END IF;
 
     -- Update the count

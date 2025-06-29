@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { motion } from "framer-motion"
+import { createClient } from '@/lib/supabase/client'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -31,6 +32,8 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   UploadCloud,
+  Loader2,
+  X
 } from "lucide-react"
 import { slugify } from "@/lib/utils"
 import Image from "next/image"
@@ -60,10 +63,40 @@ interface NotificationSettings {
   marketing_emails: boolean
 }
 
+const SettingsTabs = ({ tabs, activeTab, setActiveTab }: { tabs: { id: string, label: string, icon: React.ReactNode }[], activeTab: string, setActiveTab: (id: string) => void }) => {
+  return (
+    <div className="flex space-x-8 border-b border-gray-200">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => setActiveTab(tab.id)}
+          className={`${
+            activeTab === tab.id ? 'text-theme-600' : 'text-gray-500 hover:text-gray-700'
+          } relative py-4 px-2 text-sm font-medium transition-colors duration-200 focus:outline-none`}
+        >
+          <span className="flex items-center gap-2">
+            {tab.icon}
+            {tab.label}
+          </span>
+          {activeTab === tab.id && (
+            <motion.div
+              className="absolute bottom-0 left-0 right-0 h-0.5 bg-theme-600"
+              layoutId="underline"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            />
+          )}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 export default function RecruiterSettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -95,6 +128,12 @@ export default function RecruiterSettingsPage() {
     new: "",
     confirm: "",
   })
+
+  const [activeTab, setActiveTab] = useState("profile");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile()
@@ -220,6 +259,22 @@ export default function RecruiterSettingsPage() {
 
     try {
       setSaving(true)
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user || !user.email) {
+        throw new Error("Could not find user. Please sign in again.");
+      }
+
+      // Verify the current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwords.current,
+      });
+
+      if (signInError) {
+        throw new Error("Your current password is not correct.");
+      }
       
       const { error } = await supabase.auth.updateUser({
         password: passwords.new
@@ -401,6 +456,23 @@ export default function RecruiterSettingsPage() {
     }
   }
 
+  // Update image previews when files change
+  useEffect(() => {
+    if (logoFile) {
+      setLogoPreview(URL.createObjectURL(logoFile));
+    } else {
+      setLogoPreview(profile.logo_url || null);
+    }
+  }, [logoFile, profile.logo_url]);
+
+  useEffect(() => {
+    if (coverFile) {
+      setCoverPreview(URL.createObjectURL(coverFile));
+    } else {
+      setCoverPreview(profile.cover_image_url || null);
+    }
+  }, [coverFile, profile.cover_image_url]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -408,6 +480,15 @@ export default function RecruiterSettingsPage() {
       </div>
     )
   }
+
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: <User className="h-4 w-4" /> },
+    { id: 'security', label: 'Security', icon: <Lock className="h-4 w-4" /> },
+    { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
+    { id: 'account', label: 'Account', icon: <Shield className="h-4 w-4" /> },
+  ];
+
+  const inputStyles = "w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md focus:border-theme-500 focus:ring-theme-500 focus:ring-opacity-50 focus:outline-none transition-colors duration-200";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -417,326 +498,259 @@ export default function RecruiterSettingsPage() {
           <p className="text-gray-600 mt-2">Manage your recruiter account and preferences</p>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="profile" className="flex items-center space-x-2">
-              <User className="w-4 h-4" />
-              <span className="hidden sm:inline">Profile</span>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center space-x-2">
-              <Lock className="w-4 h-4" />
-              <span className="hidden sm:inline">Security</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center space-x-2">
-              <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Notifications</span>
-            </TabsTrigger>
-            <TabsTrigger value="danger" className="flex items-center space-x-2">
-              <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">Account</span>
-            </TabsTrigger>
-          </TabsList>
+        <SettingsTabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
+        
+        <motion.div
+          key={activeTab}
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -10, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="bg-white p-8 rounded-lg shadow-sm border border-gray-100"
+        >
+          {activeTab === 'profile' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800">Company Profile</h3>
+                <p className="text-gray-500 text-sm mt-1">Update your company's public information.</p>
+              </div>
 
-          {/* Profile Tab */}
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Public Profile</CardTitle>
-                <CardDescription>This is how your company will appear to candidates.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">Company Name</Label>
-                    <Input id="companyName" value={profile.company_name} onChange={e => setProfile({...profile, company_name: e.target.value})} />
-                  </div>
-                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Your Full Name</Label>
-                    <Input id="fullName" value={profile.full_name} onChange={e => setProfile({...profile, full_name: e.target.value})} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Company Bio</Label>
-                  <Textarea id="bio" value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} placeholder="Tell candidates about your company..." />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="website">Website</Label>
-                    <Input id="website" value={profile.website} onChange={e => setProfile({...profile, website: e.target.value})} placeholder="https://example.com" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Cover Image Upload */}
+                <div className="md:col-span-3">
+                  <label className="text-sm font-medium text-gray-700">Cover Image</label>
+                  <div className="mt-2 flex justify-center items-center w-full h-48 rounded-lg border-2 border-dashed border-gray-300 relative bg-gray-50 overflow-hidden">
+                    {coverPreview ? (
+                      <>
+                        <Image src={coverPreview} alt="Cover preview" layout="fill" objectFit="cover" />
+                        <div className="absolute inset-0 bg-black bg-opacity-25 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <Button variant="outline" className="bg-white text-gray-800 hover:bg-gray-100" onClick={() => document.getElementById('cover-upload')?.click()}>Change</Button>
+                          <Button variant="ghost" size="icon" className="text-white hover:bg-black/50 ml-2" onClick={() => setCoverFile(null)}><X className="h-5 w-5"/></Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-500">No cover image uploaded</p>
+                        <Button variant="link" className="text-theme-600 hover:text-theme-700 mt-1" onClick={() => document.getElementById('cover-upload')?.click()}>Upload an image</Button>
+                      </div>
+                    )}
+                    <input id="cover-upload" type="file" className="hidden" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input id="address" value={profile.address} onChange={e => setProfile({...profile, address: e.target.value})} />
-                </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Company Branding</CardTitle>
-                <CardDescription>Upload your company's logo and cover image.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Company Logo</Label>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-20 w-20">
-                      <AvatarImage src={profile.logo_url} alt="Company Logo" />
-                      <AvatarFallback><Building /></AvatarFallback>
-                    </Avatar>
-                    <div className="flex-grow">
-                      <p className="text-sm text-muted-foreground mb-2">Upload a square image (e.g., 200x200px). JPG, PNG, or SVG.</p>
-                      <Input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="max-w-xs" />
+                {/* Logo Upload */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Company Logo</label>
+                  <div className="mt-2 flex items-center space-x-6">
+                    <div className="flex-shrink-0 h-24 w-24 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden relative">
+                      {logoPreview ? (
+                        <Image src={logoPreview} alt="Logo preview" layout="fill" objectFit="cover" />
+                      ) : (
+                        <ImageIcon className="h-10 w-10 text-gray-400" />
+                      )}
                     </div>
+                    <div>
+                      <Button variant="outline" className="border-theme-300 text-theme-700 hover:bg-theme-50" onClick={() => document.getElementById('logo-upload')?.click()}>Change Logo</Button>
+                      {logoFile && <p className="text-xs text-gray-500 mt-2">{logoFile.name} <button onClick={() => setLogoFile(null)} className="text-red-500 hover:underline">(remove)</button></p>}
+                    </div>
+                    <input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
                   </div>
                 </div>
-                 <Separator />
-                <div className="space-y-2">
-                  <Label>Cover Image</Label>
-                  <div 
-                    className="w-full h-40 bg-gray-100 rounded-md flex items-center justify-center border-2 border-dashed"
-                    style={{ backgroundImage: `url(${profile.cover_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                  >
-                    {!profile.cover_image_url && <p className="text-muted-foreground">No cover image uploaded</p>}
-                  </div>
-                  <Input id="cover-image-upload" type="file" accept="image/*" onChange={handleCoverImageUpload} className="max-w-xs mt-2" />
-                  <p className="text-sm text-muted-foreground">Upload a landscape image for your company profile page (e.g., 1200x400px).</p>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <div className="flex justify-end">
-              <Button onClick={handleProfileUpdate} disabled={saving}>
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                <div>
+                  <label htmlFor="companyName" className="text-sm font-medium text-gray-700 block mb-2">Company Name</label>
+                  <Input id="companyName" value={profile.company_name} onChange={(e) => setProfile({...profile, company_name: e.target.value})} className={inputStyles} />
+                </div>
+                <div>
+                  <label htmlFor="fullName" className="text-sm font-medium text-gray-700 block mb-2">Your Full Name</label>
+                  <Input id="fullName" value={profile.full_name} onChange={(e) => setProfile({...profile, full_name: e.target.value})} className={inputStyles} />
+                </div>
+                <div>
+                  <label htmlFor="website" className="text-sm font-medium text-gray-700 block mb-2">Website</label>
+                  <Input id="website" value={profile.website} onChange={(e) => setProfile({...profile, website: e.target.value})} className={inputStyles} />
+                </div>
+                <div>
+                  <label htmlFor="phone" className="text-sm font-medium text-gray-700 block mb-2">Phone</label>
+                  <Input id="phone" value={profile.phone} onChange={(e) => setProfile({...profile, phone: e.target.value})} className={inputStyles} />
+                </div>
+                <div>
+                  <label htmlFor="address" className="text-sm font-medium text-gray-700 block mb-2">Address</label>
+                  <Input id="address" value={profile.address} onChange={(e) => setProfile({...profile, address: e.target.value})} className={inputStyles} />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="bio" className="text-sm font-medium text-gray-700 block mb-2">Company Bio</label>
+                <Textarea id="bio" value={profile.bio} onChange={(e) => setProfile({...profile, bio: e.target.value})} className={inputStyles} rows={5} />
+              </div>
+
+              <div className="flex justify-end">
+                <Button className="bg-theme-600 hover:bg-theme-700 text-white" disabled={saving} onClick={handleProfileUpdate}>
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save Changes
+                </Button>
+              </div>
             </div>
-          </TabsContent>
+          )}
+          {activeTab === 'security' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800">Security Settings</h3>
+                <p className="text-gray-500 text-sm mt-1">Change your account password.</p>
+              </div>
 
-          {/* Security Tab */}
-          <TabsContent value="security">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Lock className="w-5 h-5" />
-                  <span>Security Settings</span>
-                </CardTitle>
-                <CardDescription>
-                  Update your password and security preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+              <div className="space-y-6 pt-6 border-t border-gray-100">
                 <div className="space-y-2">
-                  <Label htmlFor="new_password">New Password</Label>
+                  <Label htmlFor="currentPassword">Current Password</Label>
                   <div className="relative">
                     <Input
-                      id="new_password"
-                      type={showNewPassword ? "text" : "password"}
+                      id="currentPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      value={passwords.current}
+                      onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                      className={inputStyles}
+                      placeholder="Enter your current password"
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
+                      {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                   <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showNewPassword ? 'text' : 'password'}
                       value={passwords.new}
-                      onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+                      onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                      className={inputStyles}
                       placeholder="Enter new password"
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                    >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
+                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
+                      {showNewPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
+                    </button>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirm_password">Confirm New Password</Label>
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
                   <div className="relative">
                     <Input
-                      id="confirm_password"
-                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
                       value={passwords.confirm}
-                      onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+                      onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                      className={inputStyles}
                       placeholder="Confirm new password"
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
+                     <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
+                      {showConfirmPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
+                    </button>
                   </div>
                 </div>
+              </div>
 
-                <Button 
-                  onClick={handlePasswordChange}
-                  disabled={saving || !passwords.new || !passwords.confirm}
-                  className="bg-[#c084fc] hover:bg-[#a855f7] text-white"
-                >
-                  <Lock className="w-4 h-4 mr-2" />
-                  {saving ? "Updating..." : "Update Password"}
+              <div className="flex justify-end">
+                 <Button onClick={handlePasswordChange} className="bg-theme-600 hover:bg-theme-700 text-white" disabled={saving}>
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Update Password
                 </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </div>
+          )}
 
-          {/* Notifications Tab */}
-          <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bell className="w-5 h-5" />
-                  <span>Notification Preferences</span>
-                </CardTitle>
-                <CardDescription>
-                  Choose how and when you want to be notified
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="email_notifications">Email Notifications</Label>
-                      <p className="text-sm text-gray-500">Receive notifications via email</p>
-                    </div>
-                    <Switch
-                      id="email_notifications"
-                      checked={notifications.email_notifications}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email_notifications: checked }))}
-                    />
+          {activeTab === 'notifications' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800">Notification Settings</h3>
+                <p className="text-gray-500 text-sm mt-1">Control how you receive notifications from us.</p>
+              </div>
+
+              <div className="space-y-6 pt-6 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="application_alerts">Application Alerts</Label>
+                    <p className="text-xs text-gray-500">Get an email for each new application.</p>
                   </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="application_alerts">Application Alerts</Label>
-                      <p className="text-sm text-gray-500">Get notified when candidates apply</p>
-                    </div>
-                    <Switch
-                      id="application_alerts"
-                      checked={notifications.application_alerts}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, application_alerts: checked }))}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="job_expiry_reminders">Job Expiry Reminders</Label>
-                      <p className="text-sm text-gray-500">Reminders before job postings expire</p>
-                    </div>
-                    <Switch
-                      id="job_expiry_reminders"
-                      checked={notifications.job_expiry_reminders}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, job_expiry_reminders: checked }))}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="weekly_reports">Weekly Reports</Label>
-                      <p className="text-sm text-gray-500">Receive weekly performance summaries</p>
-                    </div>
-                    <Switch
-                      id="weekly_reports"
-                      checked={notifications.weekly_reports}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, weekly_reports: checked }))}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="marketing_emails">Marketing Emails</Label>
-                      <p className="text-sm text-gray-500">Receive updates about new features and promotions</p>
-                    </div>
-                    <Switch
-                      id="marketing_emails"
-                      checked={notifications.marketing_emails}
-                      onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, marketing_emails: checked }))}
-                    />
-                  </div>
+                  <Switch id="application_alerts" checked={notifications.application_alerts} onCheckedChange={(checked) => setNotifications({...notifications, application_alerts: checked})} />
                 </div>
-
-                <Button 
-                  onClick={handleNotificationUpdate}
-                  disabled={saving}
-                  className="bg-[#c084fc] hover:bg-[#a855f7] text-white"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saving ? "Saving..." : "Save Preferences"}
+                <div className="flex items-center justify-between">
+                   <div>
+                    <Label htmlFor="job_expiry_reminders">Job Expiry Reminders</Label>
+                    <p className="text-xs text-gray-500">Receive reminders for jobs that are about to expire.</p>
+                  </div>
+                  <Switch id="job_expiry_reminders" checked={notifications.job_expiry_reminders} onCheckedChange={(checked) => setNotifications({...notifications, job_expiry_reminders: checked})} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="weekly_reports">Weekly Reports</Label>
+                    <p className="text-xs text-gray-500">Get a weekly summary of your job activities.</p>
+                  </div>
+                  <Switch id="weekly_reports" checked={notifications.weekly_reports} onCheckedChange={(checked) => setNotifications({...notifications, weekly_reports: checked})} />
+                </div>
+                 <div className="flex items-center justify-between">
+                   <div>
+                    <Label htmlFor="marketing_emails">Marketing Emails</Label>
+                    <p className="text-xs text-gray-500">Receive news, feature updates, and offers from ApplyForMe.</p>
+                  </div>
+                  <Switch id="marketing_emails" checked={notifications.marketing_emails} onCheckedChange={(checked) => setNotifications({...notifications, marketing_emails: checked})} />
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <Button onClick={handleNotificationUpdate} className="bg-theme-600 hover:bg-theme-700 text-white" disabled={saving}>
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save Settings
                 </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </div>
+          )}
 
-          {/* Danger Zone Tab */}
-          <TabsContent value="danger">
-            <Card className="border-red-200">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-red-600">
-                  <AlertTriangle className="w-5 h-5" />
-                  <span>Danger Zone</span>
-                </CardTitle>
-                <CardDescription>
-                  Irreversible and destructive actions
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <h3 className="font-semibold text-red-800 mb-2">Delete Account</h3>
-                  <p className="text-sm text-red-700 mb-4">
-                    Once you delete your account, there is no going back. This will permanently delete:
-                  </p>
-                  <ul className="text-sm text-red-700 space-y-1 mb-4">
-                    <li>• All your job postings</li>
-                    <li>• All candidate applications</li>
-                    <li>• Your profile and settings</li>
-                    <li>• All associated data</li>
-                  </ul>
-                  
+          {activeTab === 'account' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-semibold text-red-600">Danger Zone</h3>
+                <p className="text-gray-500 text-sm mt-1">Manage your account deletion.</p>
+              </div>
+
+              <div className="p-6 border border-red-200 bg-red-50 rounded-lg">
+                <h4 className="font-semibold text-red-700">Delete Your Account</h4>
+                <p className="text-sm text-red-600 mt-2">
+                  Once you delete your account, there is no going back. All of your data, including your profile, job postings, and applications will be permanently removed. Please be certain.
+                </p>
+                <div className="mt-4">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete Account
+                      <Button variant="destructive" disabled={saving}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete My Account
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete your account
-                          and remove all your data from our servers.
+                          This action cannot be undone. This will permanently delete your account and remove your data from our servers.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDeleteAccount}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          {saving ? "Deleting..." : "Delete Account"}
+                        <AlertDialogAction onClick={handleDeleteAccount} className="bg-red-600 hover:bg-red-700">
+                           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          Yes, delete my account
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </div>
+          )}
+        </motion.div>
       </div>
     </div>
   )

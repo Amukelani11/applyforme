@@ -117,11 +117,11 @@ export default function UserProfilePage() {
         setError(null);
 
         // Check if user is admin
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        if (!session?.user) {
-          router.push('/signin');
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        if (!session) {
+          router.push('/login');
           return;
         }
 

@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
 
   console.log('🔒 MIDDLEWARE TRIGGERED:', req.nextUrl.pathname)
   
-  const { supabase, response } = await createClient(req)
+  const { supabase, response } = createClient(req)
 
   // Refresh session if expired - required for Server Components
   // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
@@ -29,7 +29,6 @@ export async function middleware(req: NextRequest) {
     '/privacy',
     '/terms',
     '/signup',
-    '/signin',
     '/login',
     '/jobs',
     '/submit-job'
@@ -86,7 +85,7 @@ export async function middleware(req: NextRequest) {
     
     if (!user) {
       console.log('No session user found')
-      return NextResponse.redirect(new URL('/signin', req.url))
+      return NextResponse.redirect(new URL('/login', req.url))
     }
 
     console.log('User ID:', user.id)
@@ -128,18 +127,29 @@ export async function middleware(req: NextRequest) {
   )
 
   if (isProtectedRoute && !user) {
-    console.log('Protected route accessed without session, redirecting to signin')
+    console.log('Protected route accessed without session, redirecting to login')
     const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/signin'
+    redirectUrl.pathname = '/login'
     return NextResponse.redirect(redirectUrl)
   }
 
   // If user is signed in and trying to access login pages, redirect to dashboard
-  if (user && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signin')) {
-    console.log('User signed in, redirecting to dashboard')
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/dashboard'
-    return NextResponse.redirect(redirectUrl)
+  if (user && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/login')) {
+    console.log('User signed in, checking role for redirection');
+    const { data: userData } = await supabase
+      .from('users')
+      .select('is_recruiter')
+      .eq('id', user.id)
+      .single();
+
+    const redirectUrl = req.nextUrl.clone();
+    if (userData?.is_recruiter) {
+      redirectUrl.pathname = '/recruiter/dashboard';
+    } else {
+      redirectUrl.pathname = '/dashboard';
+    }
+    console.log(`Redirecting to ${redirectUrl.pathname}`);
+    return NextResponse.redirect(redirectUrl);
   }
 
   return response
@@ -153,7 +163,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - jobs/public/apply (public job application forms with file uploads)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|jobs/public/apply).*)',
   ],
 } 

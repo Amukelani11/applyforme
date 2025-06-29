@@ -60,7 +60,21 @@ const config: Config = {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			}
+  			},
+        theme: {
+          DEFAULT: "#c084fc",
+          "50": "#f4e6ff",
+          "100": "#e9d0ff",
+          "200": "#dcb3ff",
+          "300": "#d095ff",
+          "400": "#c478ff",
+          "500": "#c084fc",
+          "600": "#ab67f0",
+          "700": "#964bdd",
+          "800": "#8134c9",
+          "900": "#6c23b2",
+          "950": "#5b19a0",
+        }
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

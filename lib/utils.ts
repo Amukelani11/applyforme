@@ -25,3 +25,14 @@ export function slugify(text: string): string {
     .replace(/[^\w-]+/g, '') // remove all non-word chars
     .replace(/--+/g, '-') // replace multiple - with single -
 }
+
+export function getInitials(name: string): string {
+  if (!name || typeof name !== 'string') return '??';
+  const nameParts = name.trim().split(' ');
+  if (nameParts.length === 1) {
+    return nameParts[0].charAt(0).toUpperCase();
+  }
+  const firstInitial = nameParts[0].charAt(0);
+  const lastInitial = nameParts[nameParts.length - 1].charAt(0);
+  return `${firstInitial}${lastInitial}`.toUpperCase();
+}

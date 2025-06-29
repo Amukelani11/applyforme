@@ -1,270 +1,337 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Briefcase, Users, FileText, Activity, CreditCard, Building, Eye, Star } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Users, Briefcase, UserCheck, Calendar as CalendarIcon, MoreHorizontal, TrendingUp } from "lucide-react"
 import Link from "next/link"
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from "@/components/ui/table"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Progress } from "@/components/ui/progress"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { addDays, format } from "date-fns";
+import type { DateRange } from "react-day-picker";
+import { ApplicationFunnelChart } from "@/components/recruiter/application-funnel-chart";
+import { ApplicationSourcesChart, JobPerformanceChart } from "@/components/recruiter/performance-charts";
+import { ActivityFeed } from "@/components/recruiter/activity-feed";
+import { useToast } from "@/hooks/use-toast"
 
-interface JobPosting {
-  id: number
-  title: string
-  is_active: boolean
-  application_count: { count: number }[]
-}
+type ApplicationStatus = { status: string };
 
-interface CandidateApplication {
-  id: number
-  status: string
-  created_at: string
-  user: {
-    full_name: string
-    email: string
-  }
-  job_posting: {
-    title: string
-  }
-}
-
-export default function RecruiterDashboardPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const supabase = createClientComponentClient()
-  const { toast } = useToast()
-  const [jobPostings, setJobPostings] = useState<JobPosting[]>([])
-  const [applications, setApplications] = useState<CandidateApplication[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [stats, setStats] = useState({
-    activeJobs: 0,
-    newApplications: 0,
-    jobCredits: 0,
-    currentPlan: "Free"
-  })
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "applications")
+// Animated Counter Component
+const AnimatedCounter = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError || !session?.user) {
-          router.push("/recruiter/login")
-          return
+    let startTime: number;
+    let animationId: number;
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      
+      setCount(Math.floor(progress * value));
+      
+      if (progress < 1) {
+        animationId = requestAnimationFrame(animate);
+      }
+    };
+
+    animationId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationId);
+  }, [value, duration]);
+
+  return <span>{count}</span>;
+};
+
+// --- SKELETON COMPONENTS ---
+
+const StatCardSkeleton = () => (
+    <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex flex-col justify-between">
+        <div className="h-5 w-2/3 bg-gray-200 rounded animate-pulse" />
+        <div className="mt-4">
+            <div className="h-8 w-1/2 bg-gray-200 rounded animate-pulse" />
+            <div className="flex items-center gap-2 mt-2">
+                <div className="h-4 w-1/4 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+            </div>
+        </div>
+    </div>
+);
+
+const CreditCardSkeleton = () => (
+    <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex flex-col justify-between">
+        <div className="h-5 w-1/3 bg-gray-200 rounded animate-pulse" />
+        <div className="mt-4">
+            <div className="flex items-end justify-between">
+                <div className="h-8 w-1/3 bg-gray-200 rounded animate-pulse" />
+                <div className="h-6 w-1/4 bg-gray-200 rounded animate-pulse" />
+            </div>
+            <div className="mt-2 h-2 w-full bg-gray-200 rounded-full animate-pulse" />
+        </div>
+    </div>
+);
+
+const ChartSkeleton = () => (
+  <div className="rounded-xl bg-white p-4 shadow-lg border border-gray-100 flex flex-col h-[400px]">
+    <div className="h-6 w-1/3 bg-gray-200 rounded animate-pulse mb-4" />
+    <div className="flex-1 bg-gray-50 rounded-lg animate-pulse" />
+  </div>
+);
+
+// --- DATA COMPONENTS ---
+
+const StatCard = ({ title, value, change, changeType, description, icon: Icon, isLoading }: any) => {
+    if (isLoading) return <StatCardSkeleton />;
+    const isIncrease = changeType === 'increase';
+    const colorClass = isIncrease ? 'text-emerald-600' : 'text-red-600';
+
+    return (
+        <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex flex-col justify-between hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="bg-theme-100 p-2 rounded-lg">
+                        <Icon className="h-6 w-6 text-theme-600" />
+                    </div>
+                    <h3 className="text-md font-medium text-gray-600">{title}</h3>
+                </div>
+            </div>
+            <div className="mt-4">
+                <p className="text-3xl font-bold text-gray-900">{value}</p>
+                <div className="flex items-center gap-2 mt-1 text-sm">
+                    <span className={`flex items-center font-semibold ${colorClass}`}>
+                        <TrendingUp className={`h-4 w-4 mr-1 ${isIncrease ? '' : 'transform -rotate-90'}`} />
+                        {change}
+                    </span>
+                    <p className="text-gray-500">{description}</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const CreditCard = ({ title, value, maxValue, isLoading }: any) => {
+    if (isLoading) return <CreditCardSkeleton />;
+    const percentage = (value / maxValue) * 100;
+    return (
+        <div className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex flex-col justify-between hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <div className="flex items-center justify-between">
+                <h3 className="text-md font-medium text-gray-600">{title}</h3>
+                <Link href="/recruiter/dashboard/billing" className="text-sm font-semibold text-theme-600 hover:underline">Upgrade</Link>
+            </div>
+            <div className="mt-4">
+                <div className="flex items-end justify-between">
+                    <p className="text-3xl font-bold text-gray-900">{value}</p>
+                    <p className="text-gray-500 text-lg font-medium">/ {maxValue}</p>
+                </div>
+                <Progress value={percentage} className="mt-2 h-2 [&>div]:bg-gradient-to-r [&>div]:from-theme-500 [&>div]:to-theme-700"/>
+            </div>
+        </div>
+    );
+};
+
+export default function RecruiterDashboard() {
+  const supabase = createClient();
+  const { toast } = useToast();
+  const [stats, setStats] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchDashboardData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not found.");
+
+        const { data: recruiter, error: recruiterError } = await supabase.from('recruiters').select('id, credits').eq('user_id', user.id).single();
+        if (recruiterError) throw recruiterError;
+
+        const { data: jobs, error: jobsError } = await supabase.from('job_postings').select('id, title, is_active').eq('recruiter_id', recruiter.id);
+        if (jobsError) throw jobsError;
+
+        const jobIds = jobs.map(j => j.id);
+        const openPositions = jobs.filter(j => j.is_active).length;
+
+        let allApplications: any[] = [];
+        let recentApps: any[] = [];
+        let performanceData: any[] = [];
+
+        if (jobIds.length > 0) {
+            const { data: candidateApps, error: candidateAppsError } = await supabase.from('candidate_applications').select('*, user_profiles(full_name, avatar_url), job_postings(title)').in('job_posting_id', jobIds).order('created_at', { ascending: false });
+            if (candidateAppsError) throw candidateAppsError;
+
+            const { data: publicApps, error: publicAppsError } = await supabase.from('public_applications').select('*, job_postings(title)').in('job_id', jobIds).order('created_at', { ascending: false });
+            if (publicAppsError) throw publicAppsError;
+            
+            const formattedPublicApps = publicApps.map(a => ({ ...a, status: 'new', user_profiles: { full_name: a.name } }));
+            allApplications = [...(candidateApps || []), ...formattedPublicApps];
+            allApplications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            recentApps = allApplications.slice(0, 5);
+
+            performanceData = jobs.map(job => {
+                const appCount = allApplications.filter(app => app.job_posting_id === job.id || app.job_id === job.id).length;
+                return { name: job.title, applications: appCount, views: Math.floor(appCount * (3 + Math.random() * 7)) }; // Mock views for now
+            });
         }
 
-        const { data: recruiterData, error: recruiterError } = await supabase
-          .from("recruiters")
-          .select("id, job_credits")
-          .eq("user_id", session.user.id)
-          .single()
-
-        if (recruiterError) throw recruiterError
+        const totalApplications = allApplications.length;
+        const shortlisted = allApplications.filter(a => a.status === 'shortlisted').length;
         
-        const { data: subscription, error: subError } = await supabase
-            .from('recruiter_subscriptions')
-            .select('plan_id')
-            .eq('recruiter_id', recruiterData.id)
-            .eq('status', 'active')
-            .single()
-
-        const currentPlan = subscription?.plan_id ? subscription.plan_id.charAt(0).toUpperCase() + subscription.plan_id.slice(1) : "Free";
-
-        const { data: jobsData, error: jobsError } = await supabase
-          .from("job_postings")
-          .select("id, title, is_active, application_count:candidate_applications(count)")
-          .eq("recruiter_id", recruiterData.id)
-          .order("created_at", { ascending: false })
-
-        if (jobsError) throw jobsError
-        setJobPostings(jobsData || [])
-        
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        const { count: newApplicationsCount, error: newApplicationsError } = await supabase
-            .from('candidate_applications')
-            .select('*', { count: 'exact', head: true })
-            .in('job_posting_id', jobsData.map(j => j.id))
-            .gte('created_at', sevenDaysAgo)
-        
-        if (newApplicationsError) throw newApplicationsError;
+        const funnelData = [
+            { name: 'Applied', value: totalApplications, color: '#a78bfa' },
+            { name: 'Reviewed', value: allApplications.filter(a => ['reviewed', 'shortlisted', 'interviewing', 'offer', 'hired'].includes(a.status)).length, color: '#9370db' },
+            { name: 'Assessment', value: allApplications.filter(a => ['assessment', 'interviewing', 'offer', 'hired'].includes(a.status)).length, color: '#805ad5' },
+            { name: 'Interview', value: allApplications.filter(a => ['interviewing', 'offer', 'hired'].includes(a.status)).length, color: '#6b46c1' },
+            { name: 'Offer', value: allApplications.filter(a => ['offer', 'hired'].includes(a.status)).length, color: '#553c9a' },
+            { name: 'Hired', value: allApplications.filter(a => a.status === 'hired').length, color: '#44337a' }
+        ];
 
         setStats({
-          activeJobs: jobsData.filter(job => job.is_active).length,
-          newApplications: newApplicationsCount || 0,
-          jobCredits: recruiterData.job_credits,
-          currentPlan: currentPlan
-        })
+            totalApplications,
+            shortlisted,
+            openPositions,
+            credits: recruiter.credits,
+            funnelData,
+            performanceData,
+            activityFeedData: recentApps,
+        });
 
-        if (jobsData.length > 0) {
-          const { data: applicationsData, error: applicationsError } = await supabase
-            .from("candidate_applications")
-            .select(`*, user:users(full_name, email), job_posting:job_postings(title)`)
-            .in("job_posting_id", jobsData.map((job) => job.id))
-            .order("created_at", { ascending: false })
-            .limit(10)
-
-          if (applicationsError) throw applicationsError
-          setApplications(applicationsData || [])
-        }
-      } catch (error: any) {
-        toast({ title: "Error", description: error.message, variant: "destructive" })
-      } finally {
-        setIsLoading(false)
-      }
+    } catch (error: any) {
+        toast({ title: "Error fetching dashboard data", description: error.message, variant: "destructive" });
+    } finally {
+        setIsLoading(false);
     }
-    fetchData()
-  }, [router, supabase, toast])
+  }, [supabase, toast]);
 
-  const StatCard = ({ title, value, icon, description }: { title: string, value: string | number, icon: React.ReactNode, description: string }) => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  )
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'viewed': return <Badge variant="outline" className="text-blue-600 border-blue-600 bg-blue-50">Viewed</Badge>
-      case 'shortlisted': return <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200">Shortlisted</Badge>
-      case 'rejected': return <Badge variant="destructive">Rejected</Badge>
-      default: return <Badge className="bg-purple-100 text-purple-800 border border-purple-200">New</Badge>
-    }
-  }
-
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   return (
-    <div className="space-y-6">
+    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 bg-gray-50/50">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">A quick overview of your recruitment activity.</p>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-800">
+            Dashboard
+          </h1>
+          <p className="text-gray-500">
+            Here's a high-level overview of your recruitment activity.
+          </p>
         </div>
-        <Button asChild className="bg-purple-600 hover:bg-purple-700">
-          <Link href="/recruiter/jobs/new">
-            <Plus className="mr-2 h-4 w-4" /> Post a New Job
-          </Link>
+        <DateRangePicker />
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+        {/* Stat Cards */}
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:col-span-3">
+          <StatCard
+            title="Total Applications"
+            value={stats.totalApplications}
+            change="+15.2%"
+            changeType="increase"
+            description="vs. previous 30 days"
+            icon={Users}
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="Shortlisted"
+            value={stats.shortlisted}
+            change="-2.8%"
+            changeType="decrease"
+            description="vs. previous 30 days"
+            icon={UserCheck}
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="Open Positions"
+            value={stats.openPositions}
+            change="+5"
+            changeType="increase"
+            description="New this month"
+            icon={Briefcase}
+            isLoading={isLoading}
+          />
+          <CreditCard
+            title="AI Credits"
+            value={stats.credits}
+            maxValue={100}
+            isLoading={isLoading}
+          />
+        </div>
+
+        {/* Charts */}
+        <div className="rounded-xl bg-white p-4 shadow-lg border border-gray-100 flex flex-col xl:col-span-2">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Application Funnel</h3>
+            {isLoading ? <div className="flex-1 bg-gray-50 rounded-lg animate-pulse" /> : <ApplicationFunnelChart funnelData={stats.funnelData} />}
+        </div>
+
+        <div className="rounded-xl bg-white p-4 shadow-lg border border-gray-100 flex flex-col">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Application Sources</h3>
+            <ApplicationSourcesChart />
+        </div>
+
+        <div className="rounded-xl bg-white p-4 shadow-lg border border-gray-100 flex flex-col xl:col-span-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Job Performance</h3>
+            <JobPerformanceChart data={stats.performanceData} isLoading={isLoading} />
+        </div>
+        
+        <div className="rounded-xl bg-white p-4 shadow-lg border border-gray-100 flex flex-col xl:col-span-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Activity</h3>
+            <ActivityFeed applications={stats.activityFeedData} isLoading={isLoading} />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function DateRangePicker() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  });
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          id="date"
+          variant={"outline"}
+          className="w-[300px] justify-start text-left font-normal"
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {dateRange?.from ? (
+            dateRange.to ? (
+              <>
+                {format(dateRange.from, "LLL dd, y")} -{" "}
+                {format(dateRange.to, "LLL dd, y")}
+              </>
+            ) : (
+              format(dateRange.from, "LLL dd, y")
+            )
+          ) : (
+            <span>Pick a date</span>
+          )}
         </Button>
-      </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="end">
+        <Calendar
+          initialFocus
+          mode="range"
+          defaultMonth={dateRange?.from}
+          selected={dateRange}
+          onSelect={setDateRange}
+          numberOfMonths={2}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Active Jobs" value={stats.activeJobs} icon={<Briefcase className="h-4 w-4 text-purple-600" />} description="Total number of live job postings." />
-        <StatCard title="New Applications" value={stats.newApplications} icon={<Users className="h-4 w-4 text-purple-600" />} description="Received in the last 7 days." />
-        <StatCard title="Job Credits" value={stats.jobCredits} icon={<CreditCard className="h-4 w-4 text-purple-600" />} description="Remaining credits for job posts." />
-        <StatCard title="Current Plan" value={stats.currentPlan} icon={<Star className="h-4 w-4 text-purple-600" />} description="Your active subscription plan." />
-      </div>
-
-      <Tabs 
-        value={activeTab} 
-        onValueChange={setActiveTab} 
-        className="w-full"
-      >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="applications">Recent Applications</TabsTrigger>
-          <TabsTrigger value="jobs">Active Jobs</TabsTrigger>
-        </TabsList>
-        <TabsContent value="applications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Applications</CardTitle>
-              <CardDescription>The 10 most recent candidates who have applied to your jobs.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Candidate</TableHead>
-                    <TableHead>Applying For</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {applications.length > 0 ? applications.map((app) => (
-                    <TableRow key={app.id}>
-                      <TableCell>
-                        <div className="font-medium">{app.user.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{app.user.email}</div>
-                      </TableCell>
-                      <TableCell>{app.job_posting.title}</TableCell>
-                      <TableCell>{getStatusBadge(app.status)}</TableCell>
-                      <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm">
-                          <Eye className="mr-2 h-4 w-4" /> View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )) : (
-                     <TableRow>
-                       <TableCell colSpan={5} className="h-24 text-center">No recent applications.</TableCell>
-                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="jobs">
-           <Card>
-            <CardHeader>
-              <CardTitle>Active Jobs</CardTitle>
-              <CardDescription>A list of your current live job postings.</CardDescription>
-            </CardHeader>
-            <CardContent>
-               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Job Title</TableHead>
-                    <TableHead>Applications</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobPostings.filter(j => j.is_active).length > 0 ? jobPostings.filter(j => j.is_active).map((job) => (
-                    <TableRow key={job.id}>
-                      <TableCell className="font-medium">{job.title}</TableCell>
-                      <TableCell>{job.application_count[0]?.count || 0}</TableCell>
-                      <TableCell><Badge variant="outline" className="text-green-600 border-green-600">Active</Badge></TableCell>
-                       <TableCell>
-                        <Button variant="outline" size="sm">
-                          <Link href={`/recruiter/jobs/${job.id}`}>View Details</Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )) : (
-                     <TableRow>
-                       <TableCell colSpan={4} className="h-24 text-center">No active jobs.</TableCell>
-                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  )
+// Helper to get public CV URL
+function getCVUrl(path: string) {
+  if (path.startsWith('http')) return path
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/documents/${path}`
 } 

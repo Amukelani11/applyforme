@@ -30,6 +30,7 @@ export async function createCheckoutSession(productId: string, amount?: number) 
     const supabase = await createClient();
     const headersList = await headers();
     const origin = headersList.get('origin');
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -49,9 +50,9 @@ export async function createCheckoutSession(productId: string, amount?: number) 
     const paymentData: { [key: string]: any } = {
         merchant_id: process.env.PAYFAST_MERCHANT_ID!,
         merchant_key: process.env.PAYFAST_MERCHANT_KEY!,
-        return_url: `${origin}/recruiter/dashboard/billing?status=success`,
-        cancel_url: `${origin}/recruiter/dashboard/billing?status=canceled`,
-        notify_url: `${origin}/api/payfast/webhook`,
+        return_url: `${appUrl}/recruiter/dashboard/billing?status=success`,
+        cancel_url: `${appUrl}/recruiter/dashboard/billing?status=canceled`,
+        notify_url: `${appUrl}/api/payfast/webhook`,
         m_payment_id: m_payment_id,
         amount: product.price.toFixed(2),
         item_name: product.name,
@@ -74,4 +75,40 @@ export async function createCheckoutSession(productId: string, amount?: number) 
     const redirectUrl = getPayFastRedirectUrl(paymentData);
     
     redirect(redirectUrl);
+}
+
+export async function cancelSubscription() {
+    const supabase = await createClient();
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        throw new Error('You must be logged in to manage your subscription.');
+    }
+
+    const { data: recruiter, error: recruiterError } = await supabase
+        .from('recruiters')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+    if (recruiterError || !recruiter) {
+        throw new Error('Could not find your recruiter profile.');
+    }
+
+    // In a real app, you would use the subscription token to call the PayFast API
+    // and request cancellation. For this simulation, we'll just update our DB.
+
+    const { data: subscription, error: updateError } = await supabase
+        .from('recruiter_subscriptions')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('recruiter_id', recruiter.id)
+        .eq('status', 'active')
+        .select()
+        .single();
+    
+    if (updateError || !subscription) {
+        throw new Error('Could not find an active subscription to cancel or failed to update.');
+    }
+
+    return { success: true, cancelled_at: subscription.updated_at };
 } 

@@ -37,6 +37,13 @@ export interface WeeklyReportData {
   date_range: string
 }
 
+export interface SubscriptionData {
+  planName: string;
+  amount: string;
+  nextBillingDate: string;
+  transactionId: string;
+}
+
 // Job Posted Confirmation Email
 export function getJobPostedTemplate(jobData: JobPostingData, recruiterName: string): EmailTemplate {
   return {
@@ -617,6 +624,90 @@ We're confident that your enhanced CV will help you make a stronger impression o
 
 Best regards,
 The ApplyForMe Team
+    `
+  }
+}
+
+export function getSubscriptionConfirmationTemplate(
+  userName: string,
+  subscriptionData: SubscriptionData
+): EmailTemplate {
+  const { planName, amount, nextBillingDate, transactionId } = subscriptionData;
+  const subject = `Your Subscription to ${planName} is Confirmed!`;
+
+  return {
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Welcome to ${planName}!</h2>
+        <p>Hi ${userName},</p>
+        <p>Thank you for subscribing! Your payment has been processed successfully and your ${planName} plan is now active.</p>
+        <h3>Invoice Details:</h3>
+        <ul>
+          <li><strong>Plan:</strong> ${planName}</li>
+          <li><strong>Amount:</strong> R${amount}</li>
+          <li><strong>Transaction ID:</strong> ${transactionId}</li>
+          <li><strong>Date:</strong> ${new Date().toLocaleDateString()}</li>
+        </ul>
+        <p>Your next billing date is <strong>${new Date(nextBillingDate).toLocaleDateString()}</strong>.</p>
+        <p>You can manage your subscription from your dashboard at any time.</p>
+        <p>Thanks,<br>The ApplyForMe Team</p>
+      </div>
+    `,
+    text: `
+      Welcome to ${planName}!\n\n
+      Hi ${userName},\n\n
+      Thank you for subscribing! Your payment has been processed successfully and your ${planName} plan is now active.\n\n
+      Invoice Details:\n
+      - Plan: ${planName}\n
+      - Amount: R${amount}\n
+      - Transaction ID: ${transactionId}\n
+      - Date: ${new Date().toLocaleDateString()}\n\n
+      Your next billing date is ${new Date(nextBillingDate).toLocaleDateString()}.\n\n
+      You can manage your subscription from your dashboard at any time.\n\n
+      Thanks,\nThe ApplyForMe Team
+    `
+  }
+}
+
+export function getSubscriptionRenewalTemplate(
+  userName: string,
+  subscriptionData: SubscriptionData
+): EmailTemplate {
+  const { planName, amount, nextBillingDate, transactionId } = subscriptionData;
+  const subject = `Your ${planName} Subscription Has Been Renewed`;
+
+  return {
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Subscription Renewed</h2>
+        <p>Hi ${userName},</p>
+        <p>This is a confirmation that your ${planName} subscription has been successfully renewed.</p>
+        <h3>Billing Details:</h3>
+        <ul>
+          <li><strong>Plan:</strong> ${planName}</li>
+          <li><strong>Amount:</strong> R${amount}</li>
+          <li><strong>Transaction ID:</strong> ${transactionId}</li>
+          <li><strong>Date:</strong> ${new Date().toLocaleDateString()}</li>
+        </ul>
+        <p>Your subscription will continue to be active, and your next billing date is now <strong>${new Date(nextBillingDate).toLocaleDateString()}</strong>.</p>
+        <p>Thank you for your continued support!</p>
+        <p>Thanks,<br>The ApplyForMe Team</p>
+      </div>
+    `,
+    text: `
+      Subscription Renewed\n\n
+      Hi ${userName},\n\n
+      This is a confirmation that your ${planName} subscription has been successfully renewed.\n\n
+      Billing Details:\n
+      - Plan: ${planName}\n
+      - Amount: R${amount}\n
+      - Transaction ID: ${transactionId}\n
+      - Date: ${new Date().toLocaleDateString()}\n\n
+      Your subscription will continue to be active, and your next billing date is now ${new Date(nextBillingDate).toLocaleDateString()}.\n\n
+      Thank you for your continued support!\n\n
+      Thanks,\nThe ApplyForMe Team
     `
   }
 } 

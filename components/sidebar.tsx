@@ -12,7 +12,7 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push('/signin')
+    router.push('/login')
   }
 
   return (

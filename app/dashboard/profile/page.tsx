@@ -72,14 +72,10 @@ export default function ProfilePage() {
         setLoading(true)
         setError(null)
         
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        const { data: { user } } = await supabase.auth.getUser()
         
-        if (sessionError) {
-          throw sessionError
-        }
-
-        if (!session?.user) {
-          router.push('/signin')
+        if (!user) {
+          router.push('/login')
           return
         }
 
@@ -87,7 +83,7 @@ export default function ProfilePage() {
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .single()
 
         if (userError) throw userError
@@ -103,7 +99,7 @@ export default function ProfilePage() {
         const { data: workData, error: workError } = await supabase
           .from('work_experience')
           .select('*')
-          .eq('user_id', session.user.id)
+          .eq('user_id', user.id)
 
         if (workError) throw workError
         setFormData(prev => ({
@@ -115,7 +111,7 @@ export default function ProfilePage() {
         const { data: educationData, error: educationError } = await supabase
           .from('education')
           .select('*')
-          .eq('user_id', session.user.id)
+          .eq('user_id', user.id)
 
         if (educationError) throw educationError
         setFormData(prev => ({

@@ -111,7 +111,9 @@ export function ShareJobDialog({ job, isOpen, onOpenChange, onUpdate, currentPla
                   <div className='space-y-0.5'>
                       <Label htmlFor="allow_public">Enable Public Applications</Label>
                       <p className='text-xs text-muted-foreground'>
-                          Allows up to 5 applications from non-users.
+                         {currentPlan === 'premium' 
+                            ? 'Allows unlimited applications from non-users.' 
+                            : 'Allows up to 5 applications from non-users.'}
                       </p>
                   </div>
                   <Switch
@@ -133,9 +135,11 @@ export function ShareJobDialog({ job, isOpen, onOpenChange, onUpdate, currentPla
                              {isCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                           </Button>
                       </div>
+                      {currentPlan !== 'premium' && (
                        <p className="text-sm text-gray-600 mt-2">
                           {job.public_application_count || 0}/5 public applications used.
                         </p>
+                      )}
                   </div>
               )}
           </div>
