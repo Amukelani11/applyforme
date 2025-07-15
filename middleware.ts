@@ -133,8 +133,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // If user is signed in and trying to access login pages, redirect to dashboard
-  if (user && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/login')) {
+  // If user is signed in and trying to access login/signup pages, redirect to dashboard
+  if (user && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup')) {
     console.log('User signed in, checking role for redirection');
     const { data: userData } = await supabase
       .from('users')

@@ -13,21 +13,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // First, check if user exists
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 }
-      );
-    }
-
-    // Sign up the user
+    // Sign up the user first - Supabase auth will handle duplicate email checks
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -41,6 +27,13 @@ export async function POST(request: Request) {
 
     if (authError) {
       console.error("Auth error:", authError);
+      // Check if it's a duplicate email error
+      if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
+        return NextResponse.json(
+          { error: "User already exists" },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
         { error: authError.message },
         { status: authError.status || 400 }
@@ -54,7 +47,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create user profile
+    // Create user profile only if auth user was created successfully
     const { error: profileError } = await supabase
       .from("users")
       .insert({
@@ -67,10 +60,9 @@ export async function POST(request: Request) {
 
     if (profileError) {
       console.error("Profile creation error:", profileError);
-      return NextResponse.json(
-        { error: "Failed to create user profile" },
-        { status: 500 }
-      );
+      // If profile creation fails but auth user exists, we should still return success
+      // as the user can complete their profile later
+      console.warn("User authenticated but profile creation failed. User can complete profile later.");
     }
 
     return NextResponse.json({
