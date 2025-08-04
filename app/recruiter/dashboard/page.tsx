@@ -1,633 +1,474 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, Briefcase, UserCheck, Calendar as CalendarIcon, MoreHorizontal, TrendingUp } from "lucide-react"
-import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { addDays, format } from "date-fns";
-import type { DateRange } from "react-day-picker";
-import { ApplicationFunnelChart } from "@/components/recruiter/application-funnel-chart";
-import { ApplicationSourcesChart, JobPerformanceChart } from "@/components/recruiter/performance-charts";
-import { ActivityFeed } from "@/components/recruiter/activity-feed";
-import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
+import { 
+  Users, 
+  Briefcase, 
+  TrendingUp, 
+  Eye, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle,
+  Plus,
+  Search,
+  Filter,
+  Calendar,
+  BarChart3,
+  MessageSquare,
+  Star
+} from "lucide-react"
+import { motion } from "framer-motion"
 
-type ApplicationStatus = { status: string };
-
-// Animated Counter Component
-const AnimatedCounter = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let startTime: number;
-    let animationId: number;
-
-    const animate = (currentTime: number) => {
-      if (!startTime) startTime = currentTime;
-      const progress = Math.min((currentTime - startTime) / duration, 1);
-      
-      setCount(Math.floor(progress * value));
-      
-      if (progress < 1) {
-        animationId = requestAnimationFrame(animate);
-      }
-    };
-
-    animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
-  }, [value, duration]);
-
-  return <span>{count}</span>;
-};
-
-// --- SKELETON COMPONENTS ---
-
-const StatCardSkeleton = () => (
-    <div className="bg-white p-8 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col justify-between">
-        <div className="h-6 w-2/3 bg-gray-200 rounded animate-pulse" />
-        <div className="mt-6">
-            <div className="h-10 w-1/2 bg-gray-200 rounded animate-pulse" />
-            <div className="flex items-center gap-3 mt-3">
-                <div className="h-5 w-1/4 bg-gray-200 rounded animate-pulse" />
-                <div className="h-5 w-1/2 bg-gray-200 rounded animate-pulse" />
-            </div>
-        </div>
-    </div>
-);
-
-const CreditCardSkeleton = () => (
-    <div className="bg-white p-8 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col justify-between">
-        <div className="h-6 w-1/3 bg-gray-200 rounded animate-pulse" />
-        <div className="mt-6">
-            <div className="flex items-end justify-between">
-                <div className="h-10 w-1/3 bg-gray-200 rounded animate-pulse" />
-                <div className="h-7 w-1/4 bg-gray-200 rounded animate-pulse" />
-            </div>
-            <div className="mt-3 h-3 w-full bg-gray-200 rounded-full animate-pulse" />
-        </div>
-    </div>
-);
-
-const ChartSkeleton = () => (
-  <div className="rounded-2xl bg-white p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col h-[400px]">
-    <div className="h-7 w-1/3 bg-gray-200 rounded animate-pulse mb-6" />
-    <div className="flex-1 bg-gray-50 rounded-xl animate-pulse" />
-  </div>
-);
-
-// --- DATA COMPONENTS ---
-
-const StatCard = ({ title, value, change, changeType, description, icon: Icon, isLoading, index }: any) => {
-    if (isLoading) return <StatCardSkeleton />;
-    const isIncrease = changeType === 'increase';
-    const colorClass = isIncrease ? 'text-emerald-600' : 'text-red-600';
-
-    return (
-        <div 
-            className={cn(
-                "bg-white p-8 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col justify-between",
-                "hover:shadow-[0_10px_25px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] hover:-translate-y-1",
-                "transition-all duration-300 ease-out cursor-pointer"
-            )}
-            style={{
-                animationDelay: `${index * 100}ms`,
-                animationFillMode: "both"
-            }}
-        >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="bg-purple-50 p-3 rounded-xl">
-                        <Icon className="h-7 w-7 text-purple-600" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-700">{title}</h3>
-                </div>
-            </div>
-            <div className="mt-6">
-                <p className="text-4xl font-bold text-gray-900 tracking-tight">{value}</p>
-                <div className="flex items-center gap-3 mt-2 text-sm">
-                    <span className={`flex items-center font-semibold ${colorClass}`}>
-                        <TrendingUp className={`h-4 w-4 mr-1 transition-transform duration-200 ${isIncrease ? '' : 'transform -rotate-90'}`} />
-                        {change}
-                    </span>
-                    <p className="text-gray-500 font-medium">{description}</p>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-const CreditCard = ({ title, value, maxValue, isLoading, isPremium, index }: any) => {
-    if (isLoading) return <CreditCardSkeleton />;
-    
-    if (isPremium) {
-        return (
-            <div 
-                className={cn(
-                    "bg-white p-8 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col justify-between",
-                    "hover:shadow-[0_10px_25px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] hover:-translate-y-1",
-                    "transition-all duration-300 ease-out"
-                )}
-                style={{
-                    animationDelay: `${index * 100}ms`,
-                    animationFillMode: "both"
-                }}
-            >
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-700">Job Postings</h3>
-                    <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-semibold text-green-600">Premium</span>
-                    </div>
-                </div>
-                <div className="mt-6">
-                    <div className="flex items-end justify-between">
-                        <p className="text-4xl font-bold text-gray-900 tracking-tight">∞</p>
-                        <p className="text-gray-500 text-xl font-medium">Unlimited</p>
-                    </div>
-                    <div className="mt-3 h-3 bg-green-100 rounded-full overflow-hidden">
-                        <div className="h-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full w-full animate-pulse"></div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-    
-    const percentage = (value / maxValue) * 100;
-    return (
-        <div 
-            className={cn(
-                "bg-white p-8 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col justify-between",
-                "hover:shadow-[0_10px_25px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] hover:-translate-y-1",
-                "transition-all duration-300 ease-out"
-            )}
-            style={{
-                animationDelay: `${index * 100}ms`,
-                animationFillMode: "both"
-            }}
-        >
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-700">{title}</h3>
-                <Link 
-                    href="/recruiter/dashboard/billing" 
-                    className="text-sm font-semibold text-purple-600 hover:text-purple-700 hover:underline transition-colors duration-200"
-                >
-                    Upgrade
-                </Link>
-            </div>
-            <div className="mt-6">
-                <div className="flex items-end justify-between">
-                    <p className="text-4xl font-bold text-gray-900 tracking-tight">{value}</p>
-                    <p className="text-gray-500 text-xl font-medium">/ {maxValue}</p>
-                </div>
-                <Progress 
-                    value={percentage} 
-                    className="mt-3 h-3 [&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-purple-700"
-                />
-            </div>
-        </div>
-    );
-};
-
-export default function RecruiterDashboard() {
-  const supabase = createClient();
-  const { toast } = useToast();
-  const [stats, setStats] = useState<any>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const fetchDashboardData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not found.");
-
-        const { data: recruiter, error: recruiterError } = await supabase.from('recruiters').select('id, job_credits').eq('user_id', user.id).single();
-        if (recruiterError) throw recruiterError;
-
-        // Check if user has premium subscription
-        const { data: subscription } = await supabase
-          .from('recruiter_subscriptions')
-          .select('*')
-          .eq('recruiter_id', recruiter.id)
-          .eq('status', 'active')
-          .single();
-
-        const isPremium = subscription?.plan_id === 'premium';
-
-        // Fetch job postings with error handling
-        let jobs: any[] = [];
-        let openPositions = 0;
-        
-        try {
-          const { data: jobsData, error: jobsError } = await supabase
-            .from('job_postings')
-            .select('id, title, created_at')
-            .eq('recruiter_id', recruiter.id);
-          
-          if (jobsError) {
-            console.error('Jobs fetch error:', jobsError);
-            // Continue with empty jobs array
-          } else {
-            jobs = jobsData || [];
-            // Try to get active jobs, fallback to all jobs if is_active doesn't exist
-            try {
-              const { data: activeJobs } = await supabase
-                .from('job_postings')
-                .select('id')
-                .eq('recruiter_id', recruiter.id)
-                .eq('is_active', true);
-              openPositions = activeJobs?.length || 0;
-            } catch {
-              // If is_active column doesn't exist, assume all jobs are active
-              openPositions = jobs.length;
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching jobs:', error);
-        }
-
-        const jobIds = jobs?.map(j => j.id) || [];
-
-        let allApplications: any[] = [];
-        let recentApps: any[] = [];
-        let performanceData: any[] = [];
-
-        if (jobIds.length > 0) {
-            // Fetch candidate applications
-            try {
-              const { data: candidateApps, error: candidateAppsError } = await supabase
-                .from('candidate_applications')
-                .select(`
-                  *,
-                  user:users(full_name, avatar_url),
-                  job_postings(title)
-                `)
-                .in('job_posting_id', jobIds)
-                .order('created_at', { ascending: false });
-              
-              if (candidateAppsError) {
-                console.error('Candidate apps fetch error:', candidateAppsError);
-              } else {
-                allApplications = [...(candidateApps || [])];
-              }
-            } catch (error) {
-              console.error('Error fetching candidate applications:', error);
-            }
-
-            // Fetch public applications
-            try {
-              const { data: publicApps, error: publicAppsError } = await supabase
-                .from('public_applications')
-                .select(`
-                  *,
-                  job_postings(title)
-                `)
-                .in('job_id', jobIds)
-                .order('created_at', { ascending: false });
-              
-              if (publicAppsError) {
-                console.error('Public apps fetch error:', publicAppsError);
-              } else {
-                // Format public applications to match candidate application structure
-                const formattedPublicApps = (publicApps || []).map((app: any) => ({
-                  ...app,
-                  id: `public-${app.id}`,
-                  status: 'new',
-                  user: { 
-                    full_name: app.full_name || app.name,
-                    avatar_url: null
-                  },
-                  is_public: true,
-                  job_posting_id: app.job_id,
-                  created_at: app.created_at
-                }));
-                allApplications = [...allApplications, ...formattedPublicApps];
-              }
-            } catch (error) {
-              console.error('Error fetching public applications:', error);
-            }
-
-            allApplications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-            recentApps = allApplications.slice(0, 5);
-
-            // Create performance data for each job
-            performanceData = (jobs || []).map(job => {
-                const appCount = allApplications.filter(app => 
-                  app.job_posting_id === job.id || app.job_id === job.id
-                ).length;
-                return { 
-                  name: job.title, 
-                  applications: appCount, 
-                  views: Math.floor(appCount * (3 + Math.random() * 7)) // Mock views for now
-                };
-            });
-        }
-
-        const totalApplications = allApplications.length;
-        const shortlisted = allApplications.filter(a => a.status === 'shortlisted').length;
-        
-        const funnelData = [
-            { name: 'Applied', value: totalApplications, color: '#a78bfa' },
-            { name: 'Reviewed', value: allApplications.filter(a => ['reviewed', 'shortlisted', 'interviewing', 'offer', 'hired'].includes(a.status)).length, color: '#9370db' },
-            { name: 'Assessment', value: allApplications.filter(a => ['assessment', 'interviewing', 'offer', 'hired'].includes(a.status)).length, color: '#805ad5' },
-            { name: 'Interview', value: allApplications.filter(a => ['interviewing', 'offer', 'hired'].includes(a.status)).length, color: '#6b46c1' },
-            { name: 'Offer', value: allApplications.filter(a => ['offer', 'hired'].includes(a.status)).length, color: '#553c9a' },
-            { name: 'Hired', value: allApplications.filter(a => a.status === 'hired').length, color: '#44337a' }
-        ];
-
-        setStats({
-            totalApplications,
-            shortlisted,
-            openPositions,
-            credits: recruiter.job_credits || 0,
-            isPremium,
-            funnelData,
-            performanceData,
-            activityFeedData: recentApps,
-        });
-
-    } catch (error: any) {
-        console.error('Dashboard data fetch error:', error);
-        toast({ 
-          title: "Error fetching dashboard data", 
-          description: error.message || "Failed to load dashboard data", 
-          variant: "destructive" 
-        });
-        
-        // Set fallback data with realistic mock data for screenshots
-        setStats({
-            totalApplications: 247,
-            shortlisted: 23,
-            openPositions: 8,
-            credits: 85,
-            isPremium: true,
-            funnelData: [
-                { name: 'Applied', value: 247, color: '#a78bfa' },
-                { name: 'Reviewed', value: 156, color: '#9370db' },
-                { name: 'Assessment', value: 89, color: '#805ad5' },
-                { name: 'Interview', value: 45, color: '#6b46c1' },
-                { name: 'Offer', value: 12, color: '#553c9a' },
-                { name: 'Hired', value: 8, color: '#44337a' }
-            ],
-            performanceData: [
-                { name: 'Senior Software Engineer', applications: 45, views: 234 },
-                { name: 'Product Manager', applications: 32, views: 189 },
-                { name: 'UX Designer', applications: 28, views: 156 },
-                { name: 'Data Analyst', applications: 23, views: 134 },
-                { name: 'Marketing Specialist', applications: 19, views: 98 }
-            ],
-            activityFeedData: [
-                {
-                    id: '1',
-                    full_name: 'Sarah Johnson',
-                    avatar_url: null,
-                    status: 'shortlisted',
-                    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                    job_postings: { title: 'Senior Software Engineer' },
-                    is_public: false
-                },
-                {
-                    id: '2',
-                    full_name: 'Michael Chen',
-                    avatar_url: null,
-                    status: 'interviewing',
-                    created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-                    job_postings: { title: 'Product Manager' },
-                    is_public: false
-                },
-                {
-                    id: '3',
-                    full_name: 'Lisa Mokoena',
-                    avatar_url: null,
-                    status: 'new',
-                    created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-                    job_postings: { title: 'UX Designer' },
-                    is_public: false
-                },
-                {
-                    id: '4',
-                    full_name: 'David Smith',
-                    avatar_url: null,
-                    status: 'reviewed',
-                    created_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-                    job_postings: { title: 'Data Analyst' },
-                    is_public: false
-                },
-                {
-                    id: '5',
-                    full_name: 'Amanda Patel',
-                    avatar_url: null,
-                    status: 'assessment',
-                    created_at: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
-                    job_postings: { title: 'Marketing Specialist' },
-                    is_public: false
-                }
-            ],
-        });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [supabase, toast]);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
-  return (
-    <main className="flex flex-1 flex-col gap-8 p-4 md:gap-12 md:p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-      {/* Header Section with Enhanced Spacing */}
-      <div 
-        className={cn(
-          "flex items-center justify-between mb-8",
-          mounted ? "animate-in fade-in slide-in-from-bottom-4" : "opacity-0"
-        )}
-        style={{
-          animationDelay: "100ms",
-          animationFillMode: "both"
-        }}
-      >
-        <div className="flex flex-col">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Dashboard
-          </h1>
-          <p className="text-xl text-gray-600 font-medium mt-2">
-            Here's a high-level overview of your recruitment activity.
-          </p>
-        </div>
-        <DateRangePicker />
-      </div>
-
-      {/* Main Grid with Enhanced Spacing */}
-      <div className="grid gap-6 md:gap-8 lg:gap-12 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 w-full">
-        {/* Stat Cards with Staggered Animation */}
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:col-span-3">
-          <StatCard
-            title="Total Applications"
-            value={stats.totalApplications}
-            change="+15.2%"
-            changeType="increase"
-            description="vs. previous 30 days"
-            icon={Users}
-            isLoading={isLoading}
-            index={0}
-          />
-          <StatCard
-            title="Shortlisted"
-            value={stats.shortlisted}
-            change="-2.8%"
-            changeType="decrease"
-            description="vs. previous 30 days"
-            icon={UserCheck}
-            isLoading={isLoading}
-            index={1}
-          />
-          <StatCard
-            title="Open Positions"
-            value={stats.openPositions}
-            change="+5"
-            changeType="increase"
-            description="New this month"
-            icon={Briefcase}
-            isLoading={isLoading}
-            index={2}
-          />
-          <CreditCard
-            title="AI Credits"
-            value={stats.credits}
-            maxValue={100}
-            isLoading={isLoading}
-            isPremium={stats.isPremium}
-            index={3}
-          />
-        </div>
-
-        {/* Charts with Enhanced Styling */}
-        <div 
-          className={cn(
-            "rounded-2xl bg-white p-6 md:p-8 shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col lg:col-span-2",
-            "hover:shadow-[0_10px_25px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition-all duration-300 ease-out",
-            mounted ? "animate-in fade-in slide-in-from-bottom-4" : "opacity-0"
-          )}
-          style={{
-            animationDelay: "500ms",
-            animationFillMode: "both"
-          }}
-        >
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Application Funnel</h3>
-            {isLoading ? <div className="flex-1 bg-gray-50 rounded-xl animate-pulse" /> : <ApplicationFunnelChart funnelData={stats.funnelData} />}
-        </div>
-
-        <div 
-          className={cn(
-            "rounded-2xl bg-white p-6 md:p-8 shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col",
-            "hover:shadow-[0_10px_25px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition-all duration-300 ease-out",
-            mounted ? "animate-in fade-in slide-in-from-bottom-4" : "opacity-0"
-          )}
-          style={{
-            animationDelay: "600ms",
-            animationFillMode: "both"
-          }}
-        >
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Application Sources</h3>
-            <ApplicationSourcesChart />
-        </div>
-
-        <div 
-          className={cn(
-            "rounded-2xl bg-white p-6 md:p-8 shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col xl:col-span-3",
-            "hover:shadow-[0_10px_25px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition-all duration-300 ease-out",
-            mounted ? "animate-in fade-in slide-in-from-bottom-4" : "opacity-0"
-          )}
-          style={{
-            animationDelay: "700ms",
-            animationFillMode: "both"
-          }}
-        >
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Job Performance</h3>
-            <JobPerformanceChart data={stats.performanceData} isLoading={isLoading} />
-        </div>
-        
-        <div 
-          className={cn(
-            "rounded-2xl bg-white p-6 md:p-8 shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_0_rgba(0,0,0,0.06)] border border-gray-50 flex flex-col xl:col-span-3",
-            "hover:shadow-[0_10px_25px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition-all duration-300 ease-out",
-            mounted ? "animate-in fade-in slide-in-from-bottom-4" : "opacity-0"
-          )}
-          style={{
-            animationDelay: "800ms",
-            animationFillMode: "both"
-          }}
-        >
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Quick Activity</h3>
-            <ActivityFeed applications={stats.activityFeedData} isLoading={isLoading} />
-        </div>
-      </div>
-    </main>
-  );
-}
-
-function DateRangePicker() {
+function RecruiterDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: addDays(new Date(), -7),
-    to: new Date(),
-  });
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    totalJobs: 0,
+    activeJobs: 0,
+    totalApplications: 0,
+    newApplications: 0,
+    shortlisted: 0,
+    interviews: 0,
+    hired: 0,
+    conversionRate: 0
+  })
+  const [recentApplications, setRecentApplications] = useState([])
+  const [topJobs, setTopJobs] = useState([])
+
+  const supabase = createClient()
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/recruiter/login')
+          return
+        }
+
+        // Fetch recruiter data
+        const { data: recruiter } = await supabase
+          .from('recruiters')
+          .select('id, company_name')
+          .eq('user_id', user.id)
+          .single()
+
+        if (!recruiter) {
+          router.push('/recruiter/login')
+          return
+        }
+
+        // Fetch job statistics
+        const { data: jobs } = await supabase
+          .from('job_postings')
+          .select('id, status')
+          .eq('recruiter_id', recruiter.id)
+
+        const totalJobs = jobs?.length || 0
+        const activeJobs = jobs?.filter(job => job.status === 'active').length || 0
+
+        // Fetch application statistics
+        const { data: applications } = await supabase
+          .from('candidate_applications')
+          .select('id, status, created_at')
+          .in('job_posting_id', jobs?.map(j => j.id) || [])
+
+        const totalApplications = applications?.length || 0
+        const newApplications = applications?.filter(app => app.status === 'new').length || 0
+        const shortlisted = applications?.filter(app => app.status === 'shortlisted').length || 0
+        const interviews = applications?.filter(app => app.status === 'interview').length || 0
+        const hired = applications?.filter(app => app.status === 'hired').length || 0
+
+        const conversionRate = totalApplications > 0 ? Math.round((hired / totalApplications) * 100) : 0
+
+        setStats({
+          totalJobs,
+          activeJobs,
+          totalApplications,
+          newApplications,
+          shortlisted,
+          interviews,
+          hired,
+          conversionRate
+        })
+
+        // Mock recent applications
+        setRecentApplications([
+          {
+            id: 1,
+            candidate_name: "Sarah Johnson",
+            job_title: "Senior Frontend Developer",
+            status: "new",
+            applied_date: "2 hours ago",
+            ai_score: 85
+          },
+          {
+            id: 2,
+            candidate_name: "Michael Chen",
+            job_title: "Full Stack Engineer",
+            status: "shortlisted",
+            applied_date: "1 day ago",
+            ai_score: 92
+          },
+          {
+            id: 3,
+            candidate_name: "Emily Rodriguez",
+            job_title: "DevOps Engineer",
+            status: "interview",
+            applied_date: "2 days ago",
+            ai_score: 78
+          }
+        ])
+
+        // Mock top jobs
+        setTopJobs([
+          {
+            id: 1,
+            title: "Senior Frontend Developer",
+            applications: 24,
+            views: 156,
+            status: "active"
+          },
+          {
+            id: 2,
+            title: "Full Stack Engineer",
+            applications: 18,
+            views: 98,
+            status: "active"
+          },
+          {
+            id: 3,
+            title: "DevOps Engineer",
+            applications: 12,
+            views: 67,
+            status: "active"
+          }
+        ])
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [supabase, router])
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'new': return 'bg-blue-100 text-blue-700'
+      case 'shortlisted': return 'bg-green-100 text-green-700'
+      case 'interview': return 'bg-purple-100 text-purple-700'
+      case 'hired': return 'bg-emerald-100 text-emerald-700'
+      default: return 'bg-gray-100 text-gray-700'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'new': return <Clock className="h-4 w-4" />
+      case 'shortlisted': return <CheckCircle className="h-4 w-4" />
+      case 'interview': return <Calendar className="h-4 w-4" />
+      case 'hired': return <Star className="h-4 w-4" />
+      default: return <AlertCircle className="h-4 w-4" />
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded w-16"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          id="date"
-          variant={"outline"}
-          className={cn(
-            "w-[320px] justify-start text-left font-medium border-gray-200",
-            "hover:border-purple-300 hover:bg-purple-50/50 transition-all duration-200",
-            "focus:ring-2 focus:ring-purple-200 focus:ring-offset-2"
-          )}
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back!</h1>
+        <p className="text-gray-600">Here's what's happening with your job postings today.</p>
+      </motion.div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <CalendarIcon className="mr-3 h-5 w-5 text-purple-600" />
-          {dateRange?.from ? (
-            dateRange.to ? (
-              <>
-                {format(dateRange.from, "LLL dd, y")} -{" "}
-                {format(dateRange.to, "LLL dd, y")}
-              </>
-            ) : (
-              format(dateRange.from, "LLL dd, y")
-            )
-          ) : (
-            <span className="text-gray-500">Pick a date range</span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 shadow-[0_10px_25px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] border-gray-200" align="end">
-        <Calendar
-          initialFocus
-          mode="range"
-          defaultMonth={dateRange?.from}
-          selected={dateRange}
-          onSelect={setDateRange}
-          numberOfMonths={2}
-          className="rounded-lg"
-        />
-      </PopoverContent>
-    </Popover>
-  );
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Jobs</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalJobs}</p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <Briefcase className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Active Jobs</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.activeJobs}</p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-full">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Applications</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalApplications}</p>
+                </div>
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <Users className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.conversionRate}%</p>
+                </div>
+                <div className="p-3 bg-orange-100 rounded-full">
+                  <BarChart3 className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Application Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="lg:col-span-2"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Application Status</CardTitle>
+              <CardDescription>Overview of your application pipeline</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">New Applications</span>
+                  <span className="text-sm text-gray-600">{stats.newApplications}</span>
+                </div>
+                <Progress value={(stats.newApplications / Math.max(stats.totalApplications, 1)) * 100} className="h-2" />
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Shortlisted</span>
+                  <span className="text-sm text-gray-600">{stats.shortlisted}</span>
+                </div>
+                <Progress value={(stats.shortlisted / Math.max(stats.totalApplications, 1)) * 100} className="h-2" />
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Interviews</span>
+                  <span className="text-sm text-gray-600">{stats.interviews}</span>
+                </div>
+                <Progress value={(stats.interviews / Math.max(stats.totalApplications, 1)) * 100} className="h-2" />
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Hired</span>
+                  <span className="text-sm text-gray-600">{stats.hired}</span>
+                </div>
+                <Progress value={(stats.hired / Math.max(stats.totalApplications, 1)) * 100} className="h-2" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button className="w-full justify-start" onClick={() => router.push('/recruiter/jobs/new')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Post New Job
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/recruiter/applications')}>
+                <Search className="h-4 w-4 mr-2" />
+                View Applications
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/recruiter/insights')}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View Analytics
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/recruiter/messages')}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Messages
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Recent Applications */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Applications</CardTitle>
+            <CardDescription>Latest applications from candidates</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentApplications.map((application: any) => (
+                <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                      <Users className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{application.candidate_name}</p>
+                      <p className="text-sm text-gray-600">{application.job_title}</p>
+                      <p className="text-xs text-gray-500">{application.applied_date}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge className={getStatusColor(application.status)}>
+                      {getStatusIcon(application.status)}
+                      <span className="ml-1 capitalize">{application.status}</span>
+                    </Badge>
+                    <div className="text-sm text-gray-600">
+                      AI Score: {application.ai_score}%
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4">
+              <Button variant="outline" className="w-full" onClick={() => router.push('/recruiter/applications')}>
+                View All Applications
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Top Performing Jobs */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Performing Jobs</CardTitle>
+            <CardDescription>Jobs with the most applications and views</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topJobs.map((job: any) => (
+                <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{job.title}</p>
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <span className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        {job.applications} applications
+                      </span>
+                      <span className="flex items-center">
+                        <Eye className="h-4 w-4 mr-1" />
+                        {job.views} views
+                      </span>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="capitalize">
+                    {job.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  )
 }
 
-// Helper to get public CV URL
-function getCVUrl(path: string) {
-  if (path.startsWith('http')) return path
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/documents/${path}`
+export default function RecruiterDashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6">
+        <div className="h-8 bg-gray-200 rounded w-64 animate-pulse"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded w-16"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    }>
+      <RecruiterDashboardContent />
+    </Suspense>
+  )
 } 

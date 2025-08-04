@@ -4,25 +4,22 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
+  Home,
   Users,
-  FileText,
-  Building2,
-  Sparkles,
   Briefcase,
+  FileText,
   Settings,
   LogOut,
-  Home,
-  CreditCard,
   BarChart3,
+  CreditCard,
   MessageSquare,
-  FileEdit,
-  Bot,
   Shield,
-  Activity,
+  UserCheck,
+  Database,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, Suspense } from "react"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
@@ -33,65 +30,50 @@ const navigation = [
     icon: Home
   },
   {
-    name: "User Management",
+    name: "Users",
     href: "/admin/users",
     icon: Users
   },
   {
-    name: "Recruiter Management",
-    href: "/admin/recruiters",
-    icon: Building2
-  },
-  {
-    name: "Job Post Management",
-    href: "/admin/jobs",
+    name: "Applications",
+    href: "/admin/applications",
     icon: Briefcase
   },
   {
-    name: "Application Oversight",
-    href: "/admin/applications",
+    name: "Jobs",
+    href: "/admin/jobs",
     icon: FileText
   },
   {
-    name: "Subscription Management",
-    href: "/admin/subscriptions",
-    icon: CreditCard
-  },
-  {
-    name: "Analytics & Insights",
+    name: "Analytics",
     href: "/admin/analytics",
     icon: BarChart3
   },
   {
-    name: "Support & Communication",
+    name: "Subscriptions",
+    href: "/admin/subscriptions",
+    icon: CreditCard
+  },
+  {
+    name: "Support",
     href: "/admin/support",
     icon: MessageSquare
   },
   {
-    name: "Content & Settings",
-    href: "/admin/content",
-    icon: FileEdit
-  },
-  {
-    name: "AI Usage Monitoring",
-    href: "/admin/ai-monitoring",
-    icon: Bot
-  },
-  {
     name: "CV Improvements",
     href: "/admin/cv-improvements",
-    icon: Sparkles
+    icon: UserCheck
   },
   {
-    name: "Security & Moderation",
-    href: "/admin/security",
+    name: "Recruiters",
+    href: "/admin/recruiters",
     icon: Shield
   },
   {
-    name: "Activity Logs",
-    href: "/admin/activity",
-    icon: Activity
-  },
+    name: "Setup",
+    href: "/admin/setup",
+    icon: Database
+  }
 ]
 
 const bottomNavigation = [
@@ -102,7 +84,7 @@ const bottomNavigation = [
   }
 ]
 
-export function AdminSidebar() {
+function AdminSidebarContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -245,5 +227,33 @@ export function AdminSidebar() {
         </Button>
       </div>
     </div>
+  )
+}
+
+export function AdminSidebar() {
+  return (
+    <Suspense fallback={
+      <div className="fixed z-30 flex h-full w-72 flex-col bg-white border-r border-gray-100">
+        <div className="p-6 border-b border-gray-50">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+              <div className="h-3 bg-gray-200 rounded w-32 mt-2 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 p-6 space-y-2">
+          {navigation.map((item, index) => (
+            <div key={item.name} className="flex items-center space-x-3 px-3 py-3">
+              <div className="w-5 h-5 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    }>
+      <AdminSidebarContent />
+    </Suspense>
   )
 } 

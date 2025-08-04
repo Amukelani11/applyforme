@@ -1,258 +1,368 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { createBrowserClient } from '@supabase/ssr'
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { CheckCircle, ArrowLeft } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "@/hooks/use-toast"
+import { ArrowRight, User, Briefcase, MapPin, GraduationCap, Award, FileText } from "lucide-react"
 
-const PLANS = {
-  basic: {
-    name: "Basic Plan",
-    price: 49,
-    oldPrice: 99,
-    isFreeTrial: true,
-    features: [
-      "20 job applications per month",
-      "Application tips and reminders",
-      "Friendly support",
-      "Progress tracking dashboard",
-    ],
-  },
-  plus: {
-    name: "Plus",
-    price: 99,
-    oldPrice: 249,
-    isFreeTrial: false,
-    features: [
-      "Unlimited job applications",
-      "Personalized feedback",
-      "24/7 support",
-      "Custom cover letters",
-      "Interview tips",
-    ],
-  },
-  pro: {
-    name: "Pro",
-    price: 149,
-    oldPrice: 249,
-    isFreeTrial: false,
-    features: [
-      "Unlimited job applications",
-      "Top priority support",
-      "Advanced analytics",
-      "Early access to new features",
-      "Monthly performance report",
-    ],
-  },
-}
-
-export default function OnboardingPage() {
-  const [step, setStep] = useState(1)
-  const [selectedPlan, setSelectedPlan] = useState<keyof typeof PLANS | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+function OnboardingForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const [currentStep, setCurrentStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    full_name: "",
+    phone: "",
+    location: "",
+    job_title: "",
+    experience_level: "",
+    education: "",
+    skills: "",
+    bio: "",
+    linkedin_url: "",
+    portfolio_url: "",
+    resume: null as File | null,
+    cover_letter: null as File | null,
+    job_preferences: {
+      remote_work: false,
+      relocation: false,
+      salary_min: "",
+      industries: [] as string[],
+      job_types: [] as string[]
+    }
+  })
+
+  const supabase = createClient()
 
   useEffect(() => {
-    const plan = searchParams.get("plan")
-    if (plan && PLANS[plan as keyof typeof PLANS]) {
-      setSelectedPlan(plan as keyof typeof PLANS)
-      setStep(2)
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        
+        if (profile) {
+          setFormData(prev => ({
+            ...prev,
+            full_name: profile.full_name || "",
+            phone: profile.phone || "",
+            location: profile.location || "",
+            job_title: profile.job_title || "",
+            experience_level: profile.experience_level || "",
+            education: profile.education || "",
+            skills: profile.skills || "",
+            bio: profile.bio || "",
+            linkedin_url: profile.linkedin_url || "",
+            portfolio_url: profile.portfolio_url || ""
+          }))
+        }
+      }
     }
-  }, [searchParams])
+    fetchUserData()
+  }, [supabase])
 
-  const handleFinishOnboarding = async () => {
+  const handleNext = () => {
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleSubmit = async () => {
     setLoading(true)
-    setError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("No user found")
 
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (user && selectedPlan) {
+      // Update user profile
       const { error } = await supabase
         .from('users')
         .update({
-          onboarding_completed: true,
-          subscription_status: PLANS[selectedPlan].isFreeTrial ? 'trial' : 'active',
+          full_name: formData.full_name,
+          phone: formData.phone,
+          location: formData.location,
+          job_title: formData.job_title,
+          experience_level: formData.experience_level,
+          education: formData.education,
+          skills: formData.skills,
+          bio: formData.bio,
+          linkedin_url: formData.linkedin_url,
+          portfolio_url: formData.portfolio_url,
+          onboarding_completed: true
         })
         .eq('id', user.id)
 
-      if (error) {
-        setError("Failed to update your profile. Please try again.")
-        setLoading(false)
-      } else {
-        router.push("/dashboard")
-      }
-    } else {
-        setError("You must be logged in to select a plan.")
-        setLoading(false)
+      if (error) throw error
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated!",
+      })
+
+      router.push('/dashboard')
+    } catch (error: any) {
+      console.error('Error updating profile:', error)
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="full_name">Full Name *</Label>
+              <Input
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Enter your phone number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="City, Country"
+              />
+            </div>
+          </div>
+        )
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="job_title">Current/Desired Job Title *</Label>
+              <Input
+                id="job_title"
+                value={formData.job_title}
+                onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                placeholder="e.g., Senior Software Engineer"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="experience_level">Experience Level</Label>
+              <Select value={formData.experience_level} onValueChange={(value) => setFormData({ ...formData, experience_level: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select experience level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="entry">Entry Level (0-2 years)</SelectItem>
+                  <SelectItem value="mid">Mid Level (3-5 years)</SelectItem>
+                  <SelectItem value="senior">Senior Level (6-10 years)</SelectItem>
+                  <SelectItem value="lead">Lead/Manager (10+ years)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="education">Education</Label>
+              <Input
+                id="education"
+                value={formData.education}
+                onChange={(e) => setFormData({ ...formData, education: e.target.value })}
+                placeholder="e.g., Bachelor's in Computer Science"
+              />
+            </div>
+          </div>
+        )
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="skills">Skills *</Label>
+              <Textarea
+                id="skills"
+                value={formData.skills}
+                onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
+                placeholder="List your key skills (e.g., JavaScript, React, Python, AWS)"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="bio">Professional Bio</Label>
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                placeholder="Tell us about your professional background and goals"
+              />
+            </div>
+            <div>
+              <Label htmlFor="linkedin_url">LinkedIn Profile</Label>
+              <Input
+                id="linkedin_url"
+                value={formData.linkedin_url}
+                onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
+                placeholder="https://linkedin.com/in/yourprofile"
+              />
+            </div>
+          </div>
+        )
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label>Job Preferences</Label>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remote_work"
+                    checked={formData.job_preferences.remote_work}
+                    onCheckedChange={(checked) => setFormData({
+                      ...formData,
+                      job_preferences: { ...formData.job_preferences, remote_work: checked as boolean }
+                    })}
+                  />
+                  <Label htmlFor="remote_work">Open to remote work</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="relocation"
+                    checked={formData.job_preferences.relocation}
+                    onCheckedChange={(checked) => setFormData({
+                      ...formData,
+                      job_preferences: { ...formData.job_preferences, relocation: checked as boolean }
+                    })}
+                  />
+                  <Label htmlFor="relocation">Open to relocation</Label>
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="salary_min">Minimum Salary (Annual)</Label>
+              <Input
+                id="salary_min"
+                value={formData.job_preferences.salary_min}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  job_preferences: { ...formData.job_preferences, salary_min: e.target.value }
+                })}
+                placeholder="e.g., 50000"
+              />
+            </div>
+          </div>
+        )
+      default:
+        return null
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome! Complete your setup</h1>
-          <p className="text-gray-600">Step {step} of 3</p>
-        </div>
-        <Card>
-          {step === 1 && (
-            <>
-              <CardHeader>
-                <CardTitle>Select your plan</CardTitle>
-                <CardDescription>Choose the plan that fits your needs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(PLANS).map(([key, plan]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`rounded-2xl border-2 p-4 text-left transition-all relative ${
-                        selectedPlan === key
-                          ? plan.isFreeTrial
-                            ? "border-green-500 bg-green-50"
-                            : "border-[#c084fc] bg-[#f3e8ff]"
-                          : plan.isFreeTrial
-                            ? "border-green-300 bg-white hover:border-green-500"
-                            : "border-gray-200 bg-white hover:border-[#c084fc]"
-                      }`}
-                      onClick={() => setSelectedPlan(key as keyof typeof PLANS)}
-                      aria-pressed={selectedPlan === key}
-                    >
-                      {plan.isFreeTrial && (
-                        <div className="absolute -top-2 -right-2">
-                          <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                            Free Trial
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex flex-col mb-2">
-                        <span className="text-xl font-semibold text-gray-900">{plan.name}</span>
-                        {plan.isFreeTrial && (
-                          <span className="block text-2xl font-extrabold text-green-600 mt-1 mb-1">2 MONTHS FREE</span>
-                        )}
-                        <span className={`text-lg font-bold ${plan.isFreeTrial ? 'text-green-600' : 'text-[#c084fc]'}`}>R{plan.price}/mo</span>
-                        {plan.isFreeTrial && (
-                          <span className="text-sm text-green-600 font-medium">after 2 months</span>
-                        )}
-                      </div>
-                      <ul className="space-y-2 mb-2">
-                        {plan.features.slice(0, 3).map((feature, i) => (
-                          <li key={i} className="flex items-center text-sm text-gray-700">
-                            <CheckCircle className={`h-4 w-4 mr-2 ${plan.isFreeTrial ? 'text-green-500' : 'text-[#c084fc]'}`} />
-                            {feature}
-                          </li>
-                        ))}
-                        {plan.features.length > 3 && (
-                          <li className="text-xs text-gray-400">+{plan.features.length - 3} more</li>
-                        )}
-                      </ul>
-                      {selectedPlan === key && (
-                        <div className={`text-xs font-medium ${plan.isFreeTrial ? 'text-green-600' : 'text-[#a855f7]'}`}>
-                          Selected
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2">
-                <Button
-                  disabled={!selectedPlan}
-                  onClick={() => setStep(2)}
-                  className="bg-[#c084fc] hover:bg-[#a855f7] text-white rounded-xl"
-                >
-                  Next
-                </Button>
-              </CardFooter>
-            </>
-          )}
-
-          {step === 2 && selectedPlan && (
-            <>
-              <CardHeader>
-                <CardTitle>Review your plan</CardTitle>
-                <CardDescription>Confirm your selection before checkout</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6 text-center">
-                  <span className={`inline-block px-4 py-1 rounded-full text-sm font-medium mb-2 ${
-                    PLANS[selectedPlan].isFreeTrial
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-[#c084fc]/10 text-[#c084fc]'
+    <div className="min-h-screen bg-gradient-to-br from-[#f3e8ff] via-[#f8fafc] to-[#e0e7ff] py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
+        <Card className="shadow-xl border-0">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold text-gray-900">Complete Your Profile</CardTitle>
+            <CardDescription className="text-lg text-gray-600">
+              Let's get to know you better to find the perfect job opportunities
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-8">
+            {/* Progress Steps */}
+            <div className="flex justify-between mb-8">
+              {[1, 2, 3, 4].map((step) => (
+                <div key={step} className="flex items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    step <= currentStep ? 'bg-[#c084fc] text-white' : 'bg-gray-200 text-gray-600'
                   }`}>
-                    {PLANS[selectedPlan].name}
-                    {PLANS[selectedPlan].isFreeTrial && ' - Free Trial'}
-                  </span>
-                  <div className="flex items-baseline justify-center gap-2 mb-2">
-                    <span className="text-4xl font-bold text-gray-900">R{PLANS[selectedPlan].price}</span>
-                    <span className="text-gray-500 ml-1">/month</span>
-                    {PLANS[selectedPlan].isFreeTrial ? (
-                      <span className="text-sm text-green-600 font-medium ml-2">after 2 months</span>
-                    ) : (
-                      <span className="text-sm text-gray-400 line-through ml-2">R{PLANS[selectedPlan].oldPrice}</span>
-                    )}
+                    {step}
                   </div>
-                  {PLANS[selectedPlan].isFreeTrial && (
-                    <p className="text-sm text-green-600 font-medium mb-4">
-                      2 MONTHS FREE, then R{PLANS[selectedPlan].price}/month
-                    </p>
+                  {step < 4 && (
+                    <div className={`w-16 h-1 mx-2 ${
+                      step < currentStep ? 'bg-[#c084fc]' : 'bg-gray-200'
+                    }`} />
                   )}
-                  <ul className="space-y-2 max-w-xs mx-auto">
-                    {PLANS[selectedPlan].features.map((feature, i) => (
-                      <li key={i} className="flex items-center text-gray-700">
-                        <CheckCircle className={`h-4 w-4 mr-2 ${PLANS[selectedPlan].isFreeTrial ? 'text-green-500' : 'text-[#c084fc]'}`} />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(1)} className="rounded-xl">Back</Button>
-                <Button className="bg-[#c084fc] hover:bg-[#a855f7] text-white rounded-xl" onClick={() => setStep(3)}>
-                  Continue to checkout
-                </Button>
-              </CardFooter>
-            </>
-          )}
+              ))}
+            </div>
 
-          {step === 3 && selectedPlan && (
-            <>
-              <CardHeader className="text-center">
-                <CardTitle>Final Step!</CardTitle>
-                <CardDescription>
-                  Click the button below to confirm your plan and complete your setup.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                  <p className="text-lg font-semibold">You've selected the <span className="text-[#c084fc]">{PLANS[selectedPlan].name}</span> plan.</p>
-                   {error && <p className="text-red-500 mt-4">{error}</p>}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-4">
+            {renderStep()}
+
+            <div className="flex justify-between mt-8">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={currentStep === 1}
+              >
+                Back
+              </Button>
+              {currentStep < 4 ? (
+                <Button onClick={handleNext} className="bg-[#c084fc] hover:bg-[#a855f7]">
+                  Next <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
                 <Button
-                  className="w-full bg-[#c084fc] hover:bg-[#a855f7] text-white rounded-xl py-3"
-                  onClick={handleFinishOnboarding}
+                  onClick={handleSubmit}
                   disabled={loading}
+                  className="bg-[#c084fc] hover:bg-[#a855f7]"
                 >
-                  {loading ? 'Processing...' : 'Complete Setup & Go to Dashboard'}
+                  {loading ? "Saving..." : "Complete Profile"}
                 </Button>
-                <Button variant="ghost" onClick={() => setStep(2)} className="text-gray-600">
-                    <ArrowLeft className="h-4 w-4 mr-2" /> Back to plan review
-                </Button>
-              </CardFooter>
-            </>
-          )}
+              )}
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-[#f3e8ff] via-[#f8fafc] to-[#e0e7ff] py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-xl p-8">
+            <div className="space-y-4">
+              <div className="h-8 bg-gray-200 rounded w-64 mx-auto animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-96 mx-auto animate-pulse"></div>
+              <div className="space-y-3">
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <OnboardingForm />
+    </Suspense>
   )
 } 

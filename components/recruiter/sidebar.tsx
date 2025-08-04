@@ -4,26 +4,26 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
+  Home,
   Briefcase,
   Users,
-  CreditCard,
   Settings,
   LogOut,
   Search,
-  Home,
+  MessageSquare,
   Calendar,
-  Lightbulb,
-  Wand2, // Use Wand2 for Tools
-  Database,
-  Shield,
-  MessageSquare
+  BarChart3,
+  FileText,
+  UserPlus,
+  Wrench,
+  Bell,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, Suspense } from "react"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 
 const navigation = [
   {
@@ -32,7 +32,7 @@ const navigation = [
     icon: Home
   },
   {
-    name: "Job Postings",
+    name: "Jobs",
     href: "/recruiter/jobs",
     icon: Briefcase
   },
@@ -42,19 +42,14 @@ const navigation = [
     icon: Users
   },
   {
+    name: "Talent Pools",
+    href: "/recruiter/talent-pools",
+    icon: UserPlus
+  },
+  {
     name: "Messages",
     href: "/recruiter/messages",
     icon: MessageSquare
-  },
-  {
-    name: "Talent Pools",
-    href: "/recruiter/talent-pools",
-    icon: Database
-  },
-  {
-    name: "Tools",
-    href: "/recruiter/tools",
-    icon: Wand2
   },
   {
     name: "Calendar",
@@ -62,18 +57,21 @@ const navigation = [
     icon: Calendar
   },
   {
-    name: "Team Management",
-    href: "/recruiter/team",
-    icon: Shield
+    name: "Insights",
+    href: "/recruiter/insights",
+    icon: BarChart3
   },
   {
-    name: "Billing",
-    href: "/recruiter/dashboard/billing",
-    icon: CreditCard
+    name: "Tools",
+    href: "/recruiter/tools",
+    icon: Wrench
   },
+  {
+    name: "Team",
+    href: "/recruiter/team",
+    icon: Users
+  }
 ]
-
-// Remove the separate tools section and all individual tool links.
 
 const bottomNavigation = [
   {
@@ -83,7 +81,7 @@ const bottomNavigation = [
   }
 ]
 
-export function RecruiterSidebar() {
+function RecruiterSidebarContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -184,70 +182,39 @@ export function RecruiterSidebar() {
 
   const getInitials = (email: string) => {
     if (!email) return 'R'
-    return email.charAt(0).toUpperCase()
+    return email.split('@')[0].substring(0, 2).toUpperCase()
   }
 
   return (
     <div className="fixed z-30 flex h-full w-72 flex-col bg-white border-r border-gray-100">
-      {/* User Profile Section - Refined */}
+      {/* User Profile Section */}
       <div className="p-6 border-b border-gray-50">
         <div className="flex items-center space-x-3">
           <Avatar className="w-10 h-10 ring-2 ring-gray-100">
-            <AvatarImage src="" alt={recruiter?.company_name} />
+            <AvatarImage src={recruiter?.avatar_url} alt={recruiter?.company_name} />
             <AvatarFallback className="bg-theme-100 text-theme-700 font-semibold">
-              {user ? getInitials(recruiter?.company_name || user.email!) : 'R'}
+              {user ? getInitials(user.email!) : 'R'}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="font-semibold text-gray-900">
               {recruiter?.company_name || 'Recruiter'}
             </div>
-            <div className="text-sm text-gray-500">Recruiter</div>
+            <div className="text-sm text-gray-500">
+              {user?.email}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Search Bar - Sleek Design */}
-      <div className="p-6 border-b border-gray-50">
-        <div className="relative">
-          {searchExpanded ? (
-            <div className="flex items-center space-x-2 animate-fade-in">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input 
-                  placeholder="Search jobs..." 
-                  className="pl-9 border-0 border-b border-gray-200 rounded-none bg-transparent focus:border-theme-500 focus:ring-0 transition-colors duration-200"
-                  autoFocus
-                  onBlur={() => setSearchExpanded(false)}
-                />
-              </div>
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSearchExpanded(true)}
-              className="w-full justify-start text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200"
-            >
-              <Search className="h-4 w-4 mr-2" />
-              Search Jobs
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Navigation - Minimalist Design */}
+      {/* Navigation */}
       <nav ref={navRef} className="flex-1 p-6 space-y-2 relative">
-        {/* Active state indicator - Animated */}
         <div 
           className="absolute left-0 w-1 bg-theme-600 rounded-full transition-all duration-500 ease-in-out"
           style={activeIndicatorStyle}
         />
-
         {navigation.map((item, index) => {
-          const isActive = pathname.startsWith(item.href) && (item.href !== '/recruiter/dashboard' || pathname === item.href);
-          const isApplicationsPage = item.name === "Applications";
-          
+          const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}
@@ -256,7 +223,7 @@ export function RecruiterSidebar() {
               className={cn(
                 "group relative flex items-center space-x-3 px-3 py-3 text-sm font-medium transition-all duration-200 rounded-lg z-10",
                 isActive
-                  ? "text-theme-600" // No background for active, just text color
+                  ? "text-theme-600"
                   : "text-gray-600 hover:text-gray-900 hover:bg-theme-50"
               )}
               style={{ animationDelay: `${index * 50}ms` }}
@@ -265,25 +232,18 @@ export function RecruiterSidebar() {
                 "h-5 w-5 transition-all duration-200",
                 isActive ? "text-theme-600" : "text-gray-400 group-hover:text-gray-600"
               )} />
-              <span className="transition-all duration-200 flex-1">{item.name}</span>
-              {isApplicationsPage && unreadCount > 0 && (
-                <div className="relative">
-                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
-                    <span className="text-xs font-semibold text-white">
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  </div>
-                </div>
+              <span className="transition-all duration-200">{item.name}</span>
+              {item.name === "Applications" && unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-auto text-xs">
+                  {unreadCount}
+                </Badge>
               )}
             </Link>
           )
         })}
       </nav>
 
-      {/* Tools Section */}
-      {/* The separate tools section and all individual tool links are removed. */}
-
-      {/* Bottom Navigation - Refined */}
+      {/* Bottom Navigation & Sign Out */}
       <div className="p-6 border-t border-gray-50 space-y-2">
         {bottomNavigation.map((item) => {
           const isActive = pathname.startsWith(item.href)
@@ -298,10 +258,6 @@ export function RecruiterSidebar() {
                   : "text-gray-600 hover:text-gray-900 hover:bg-theme-50"
               )}
             >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-theme-600 rounded-full animate-fade-in" />
-              )}
-              
               <item.icon className={cn(
                 "h-5 w-5 transition-all duration-200",
                 isActive ? "text-theme-600" : "text-gray-400 group-hover:text-gray-600"
@@ -310,7 +266,6 @@ export function RecruiterSidebar() {
             </Link>
           )
         })}
-        
         <Button
           variant="ghost"
           onClick={handleSignOut}
@@ -321,5 +276,33 @@ export function RecruiterSidebar() {
         </Button>
       </div>
     </div>
+  )
+}
+
+export function RecruiterSidebar() {
+  return (
+    <Suspense fallback={
+      <div className="fixed z-30 flex h-full w-72 flex-col bg-white border-r border-gray-100">
+        <div className="p-6 border-b border-gray-50">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+              <div className="h-3 bg-gray-200 rounded w-32 mt-2 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 p-6 space-y-2">
+          {navigation.map((item, index) => (
+            <div key={item.name} className="flex items-center space-x-3 px-3 py-3">
+              <div className="w-5 h-5 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    }>
+      <RecruiterSidebarContent />
+    </Suspense>
   )
 } 

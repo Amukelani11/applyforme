@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, Suspense } from "react"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Database } from "@/types/supabase"
@@ -34,7 +34,7 @@ const bottomNavigation = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings }
 ]
 
-export function Sidebar() {
+function SidebarContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -176,5 +176,33 @@ export function Sidebar() {
         </Button>
       </div>
     </div>
+  )
+}
+
+export function Sidebar() {
+  return (
+    <Suspense fallback={
+      <div className="fixed z-30 flex h-full w-72 flex-col bg-white border-r border-gray-100">
+        <div className="p-6 border-b border-gray-50">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+              <div className="h-3 bg-gray-200 rounded w-32 mt-2 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 p-6 space-y-2">
+          {navigation.map((item, index) => (
+            <div key={item.name} className="flex items-center space-x-3 px-3 py-3">
+              <div className="w-5 h-5 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    }>
+      <SidebarContent />
+    </Suspense>
   )
 } 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { MailIcon, LockIcon, UserIcon } from "lucide-react"
 import Link from "next/link"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -113,13 +113,13 @@ export default function LoginPage() {
                   <Input
                     id="email"
                     type="email"
+                    required
                     value={formData.email}
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
                     className="pl-10 h-12 border-gray-300 focus:border-[#c084fc] focus:ring-[#c084fc] rounded-xl"
                     placeholder="Enter your email"
-                    required
                   />
                 </div>
               </div>
@@ -133,48 +133,77 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type="password"
+                    required
                     value={formData.password}
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
                     className="pl-10 h-12 border-gray-300 focus:border-[#c084fc] focus:ring-[#c084fc] rounded-xl"
                     placeholder="Enter your password"
-                    required
                   />
                 </div>
               </div>
               
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-xl font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Signing in...
-                    </div>
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-xl font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-200"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Signing in...
+                  </div>
+                ) : (
+                  "Sign In"
+                )}
+              </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex justify-center pb-8">
-            <p className="text-gray-600">
-              Don't have an account?{" "}
-              <Link
-                href="/signup"
-                className="text-[#c084fc] hover:text-[#a855f7] font-medium transition-colors"
-              >
-                Sign up here
-              </Link>
-            </p>
+          <CardFooter className="p-8 pt-0">
+            <div className="text-center pt-4 w-full">
+              <p className="text-gray-600">
+                Don't have an account?{" "}
+                <Link
+                  href="/signup"
+                  className="text-[#c084fc] hover:text-[#a855f7] font-medium transition-colors"
+                >
+                  Sign up here
+                </Link>
+              </p>
+            </div>
           </CardFooter>
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-[#f3e8ff] via-[#f8fafc] to-[#e0e7ff] py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
+            <div className="h-8 bg-gray-200 rounded w-48 mx-auto mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-64 mx-auto animate-pulse"></div>
+          </div>
+          <div className="bg-white rounded-lg shadow-xl p-6">
+            <div className="space-y-4">
+              <div className="h-6 bg-gray-200 rounded w-32 mx-auto animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-48 mx-auto animate-pulse"></div>
+              <div className="space-y-3">
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }

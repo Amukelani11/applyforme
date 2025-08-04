@@ -2,8 +2,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import Script from 'next/script';
+import { Suspense } from 'react';
 
-export default function McpEditScript() {
+function McpEditScriptContent() {
   const searchParams = useSearchParams();
   const editMode = searchParams.get('mcp-edit-mode');
 
@@ -12,4 +13,12 @@ export default function McpEditScript() {
   }
 
   return null;
+}
+
+export default function McpEditScript() {
+  return (
+    <Suspense fallback={null}>
+      <McpEditScriptContent />
+    </Suspense>
+  );
 }

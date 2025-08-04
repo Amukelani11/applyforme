@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,7 +22,7 @@ interface FormData {
   notes: string
 }
 
-export default function SubmitJobPage() {
+function SubmitJobForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const userId = searchParams.get("userId")
@@ -311,5 +311,38 @@ export default function SubmitJobPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function SubmitJobPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <Link href="/admin" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Admin
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900">Submit New Job</h1>
+            <p className="text-gray-600 mt-2">Loading...</p>
+          </div>
+          <div className="animate-pulse">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-6"></div>
+              <div className="space-y-4">
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-32 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <SubmitJobForm />
+    </Suspense>
   )
 }
