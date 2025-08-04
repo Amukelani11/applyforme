@@ -63,7 +63,7 @@ export async function PATCH(
       .filter((id: string) => id.startsWith('public-'))
       .map((id: string) => id.replace('public-', ''));
 
-    let updateResults = [];
+    let updateResults: any[] = [];
 
     // Update candidate applications
     if (candidateIds.length > 0) {

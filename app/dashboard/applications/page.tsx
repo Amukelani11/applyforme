@@ -88,7 +88,10 @@ export default function MyApplicationsPage() {
       if (error) {
         console.error("Error fetching applications:", error)
       } else {
-        setApplications(data as Application[] || [])
+        setApplications((data || []).map((item: any) => ({
+          ...item,
+          jobs: Array.isArray(item.jobs) ? item.jobs[0] : item.jobs
+        })) as Application[])
       }
       setLoading(false)
     }

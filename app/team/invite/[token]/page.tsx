@@ -33,6 +33,7 @@ interface TeamInvitation {
   accepted_at?: string
   created_at: string
   recruiter: {
+    id: string
     company_name: string
     user: {
       full_name: string
@@ -40,6 +41,7 @@ interface TeamInvitation {
     }
   }
   invited_by: {
+    id: string
     full_name: string
     email: string
   }
@@ -157,7 +159,9 @@ export default function TeamInvitePage() {
       }
 
       // Accept the invitation
-      await acceptInvitation(user.id)
+      if (user) {
+        await acceptInvitation(user.id)
+      }
     } catch (error) {
       console.error('Error accepting invitation with existing account:', error)
       toast({

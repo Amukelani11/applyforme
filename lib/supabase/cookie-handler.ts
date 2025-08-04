@@ -62,7 +62,7 @@ export function createCookieHandler() {
             cookieStore.set(cookie)
           } catch (cookieError) {
             // Only log the error if it's not the expected "Server Action or Route Handler" error
-            if (!cookieError.message?.includes('Server Action or Route Handler')) {
+            if (cookieError instanceof Error && !cookieError.message?.includes('Server Action or Route Handler')) {
               console.error('Error setting individual cookie:', cookieError)
             }
           }
@@ -71,7 +71,7 @@ export function createCookieHandler() {
         // The `setAll` method was called from a Server Component.
         // This can be ignored if you have middleware refreshing
         // user sessions.
-        if (!error.message?.includes('Server Action or Route Handler')) {
+        if (error instanceof Error && !error.message?.includes('Server Action or Route Handler')) {
           console.error('Error setting cookies:', error)
         }
       }

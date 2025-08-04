@@ -105,7 +105,7 @@ export default function SubmitJobPage() {
 
     try {
       setIsSubmitting(true)
-      let jobSpecUrl = null
+      let jobSpecUrl: string | null = null
 
       // If there's a file, upload it first
       if (formData.jobSpecFile) {

@@ -640,7 +640,7 @@ const ApplicationReviewPage = () => {
   const getAIHighlights = () => {
     if (!ai_analysis) return [];
     
-    const highlights = [];
+    const highlights: string[] = [];
     
     // Add matched skills as highlights
     if (ai_analysis.skills_match?.matched_skills) {

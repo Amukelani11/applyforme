@@ -90,7 +90,7 @@ export default function ApplyPage({ params }: { params: { jobId: string } }) {
       if (!user) throw new Error("You must be logged in to apply")
 
       // Upload CV if provided
-      let cvUrl = null
+      let cvUrl: string | null = null
       if (formData.cvFile) {
         const fileExt = formData.cvFile.name.split(".").pop()
         const fileName = `${user.id}/${Date.now()}.${fileExt}`
