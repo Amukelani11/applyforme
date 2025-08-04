@@ -13,7 +13,7 @@ import {
   Home
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState, useRef } from "react"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -54,7 +54,7 @@ export function RecruiterSidebar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [recruiter, setRecruiter] = useState<any>(null)
   const [searchExpanded, setSearchExpanded] = useState(false)

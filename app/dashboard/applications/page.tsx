@@ -13,7 +13,7 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Eye, X, MessageSquare, Calendar } from "lucide-react"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from "next/navigation"
 import { Worker } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
@@ -44,7 +44,7 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isProfileComplete, setIsProfileComplete] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   // Initialize the default layout plugin
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
