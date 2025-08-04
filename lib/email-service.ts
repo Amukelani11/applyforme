@@ -445,4 +445,42 @@ export class EmailService {
       return false
     }
   }
+  
+  // Send a generic email with optional attachments
+  async sendEmail(params: {
+    to: string;
+    subject: string;
+    text?: string;
+    html?: string;
+    attachments?: Array<{
+      filename: string;
+      content: Buffer;
+      contentType: string;
+    }>;
+  }): Promise<boolean> {
+    try {
+      console.log(`Sending email to ${params.to} with subject "${params.subject}"`)
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: params.to,
+          subject: params.subject,
+          html: params.html || params.text,
+          text: params.text || params.html?.replace(/<[^>]*>/g, ''),
+          attachments: params.attachments
+        }
+      })
+
+      if (error) {
+        throw new Error(`Failed to send email: ${error.message}`)
+      }
+
+      // Log the email sent
+      await EmailService.logEmailSent('custom_email', params.to)
+      console.log('Email sent successfully.')
+      return true
+    } catch (error) {
+      console.error('Error in sendEmail:', error)
+      return false
+    }
+  }
 } 

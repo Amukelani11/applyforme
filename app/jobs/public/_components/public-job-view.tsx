@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from '@/lib/supabase/client';
 import { Badge } from "@/components/ui/badge"
 import { Briefcase, Clock, MapPin, DollarSign, Calendar, CheckCircle, FileText, Star, Zap, UserCheck, User, LogIn, UserPlus, ArrowRight, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -236,7 +236,7 @@ export function PublicJobView({ job, userProfile, companySlug }: PublicJobViewPr
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   useEffect(() => {
     const trackView = async () => {

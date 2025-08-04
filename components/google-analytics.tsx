@@ -5,7 +5,11 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { pageview, GA_TRACKING_ID } from '@/lib/gtag'
 
-export default function GoogleAnalytics() {
+interface GoogleAnalyticsProps {
+  gaId?: string
+}
+
+export default function GoogleAnalytics({ gaId }: GoogleAnalyticsProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
