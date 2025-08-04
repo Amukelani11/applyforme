@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -74,7 +74,7 @@ export default function ApplicationPage({ params }: { params: { applicationId: s
   const [selectedRecruiter, setSelectedRecruiter] = useState<string>('')
   const [selectedJob, setSelectedJob] = useState<string>('')
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const { toast } = useToast()
 
   useEffect(() => {

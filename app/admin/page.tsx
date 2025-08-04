@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Users, FileText, Clock, CheckCircle, Search, Download, Send, CreditCard, Building2, UserCheck, Eye, Sparkles, Star, FileUp, Mail, Edit3, CheckSquare } from "lucide-react"
 import Link from 'next/link'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Database } from '@/types/supabase'
@@ -148,7 +148,7 @@ export default function AdminPage() {
   const [improvedCvFile, setImprovedCvFile] = useState<File | null>(null)
   const [sendingImprovement, setSendingImprovement] = useState(false)
   
-  const supabase = createClientComponentClient<Database>()
+  const supabase = createClient()
 
   const { toast } = useToast()
 
@@ -363,7 +363,7 @@ export default function AdminPage() {
 
     try {
       // 1. Upload new CV to Supabase Storage
-      const supabase = createClientComponentClient()
+      const supabase = createClient()
       const newCvFileName = `improved_${selectedImprovement.user_id}_${Date.now()}.pdf`
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')

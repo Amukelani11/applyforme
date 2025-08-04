@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { Calendar, Briefcase, FileText, Lightbulb, Clock, Star, BookmarkPlus, Plus, Trash2, Upload, Award, Sparkles, Eye, Bookmark, User, ArrowRight, CheckCircle, Lock } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/supabase'
 import Link from "next/link"
 import { Separator } from "@/components/ui/separator"
@@ -70,7 +70,7 @@ export default function DashboardPage() {
   })
   const [profileStrength, setProfileStrength] = useState(0)
 
-  const supabase = createClientComponentClient<Database>()
+  const supabase = createClient()
 
   useEffect(() => {
     const fetchData = async () => {

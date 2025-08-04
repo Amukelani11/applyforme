@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -26,10 +26,12 @@ interface EmailTest {
   id: string
   type: string
   recipient: string
+  recipient_email: string
   subject: string
   status: 'pending' | 'sent' | 'failed'
   sent_at: string
   error_message?: string
+  related_id?: string
 }
 
 interface EmailTemplate {
@@ -42,7 +44,7 @@ interface EmailTemplate {
 
 export default function EmailTestPage() {
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
   const [testEmail, setTestEmail] = useState({
