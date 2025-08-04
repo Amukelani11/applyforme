@@ -4,6 +4,11 @@ export function createCookieHandler() {
   return {
     async get(name: string) {
       try {
+        // Check if we're in a static generation context
+        if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+          return undefined
+        }
+        
         const cookieStore = await cookies()
         const cookie = cookieStore.get(name)
         if (!cookie?.value) return undefined
@@ -12,15 +17,28 @@ export function createCookieHandler() {
         
         return cookie.value
       } catch (error) {
+        // Silently return undefined during static generation
+        if (error instanceof Error && error.message?.includes('Dynamic server usage')) {
+          return undefined
+        }
         console.error('Error getting cookie:', name, error)
         return undefined
       }
     },
     async set(name: string, value: string, options: any) {
       try {
+        // Check if we're in a static generation context
+        if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+          return
+        }
+        
         const cookieStore = await cookies()
         cookieStore.set(name, value, options)
       } catch (error) {
+        // Silently ignore during static generation
+        if (error instanceof Error && error.message?.includes('Dynamic server usage')) {
+          return
+        }
         console.error('Error setting cookie:', name, error)
       }
     },
@@ -34,6 +52,11 @@ export function createCookieHandler() {
     },
     async getAll() {
       try {
+        // Check if we're in a static generation context
+        if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+          return []
+        }
+        
         const cookieStore = await cookies()
         const allCookies = cookieStore.getAll()
 
@@ -44,6 +67,10 @@ export function createCookieHandler() {
 
         return validCookies
       } catch (error) {
+        // Silently return empty array during static generation
+        if (error instanceof Error && error.message?.includes('Dynamic server usage')) {
+          return []
+        }
         console.error('Error getting cookies:', error)
         return []
       }
