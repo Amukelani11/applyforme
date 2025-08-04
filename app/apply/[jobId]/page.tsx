@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,7 +23,7 @@ interface FormData {
 
 export default function ApplyPage({ params }: { params: { jobId: string } }) {
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const { toast } = useToast()
   const [job, setJob] = useState<JobPosting | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -90,7 +90,7 @@ export default function ApplyPage({ params }: { params: { jobId: string } }) {
       if (!user) throw new Error("You must be logged in to apply")
 
       // Upload CV if provided
-      let cvUrl = null
+      let cvUrl: string | null = null
       if (formData.cvFile) {
         const fileExt = formData.cvFile.name.split(".").pop()
         const fileName = `${user.id}/${Date.now()}.${fileExt}`

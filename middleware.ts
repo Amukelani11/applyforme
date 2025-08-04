@@ -89,8 +89,8 @@ export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
     const isRecruiterPath = pathname.startsWith('/recruiter')
 
-    let user = null
-    let userData = null
+      let user: any = null
+  let userData: any = null
 
     try {
       const { data, error } = await supabase.auth.getUser()

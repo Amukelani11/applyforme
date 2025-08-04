@@ -14,7 +14,7 @@ import {
   Search,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useRef, Suspense } from "react"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
@@ -38,7 +38,7 @@ function SidebarContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const supabase = createClientComponentClient<Database>()
+  const supabase = createClient()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
   

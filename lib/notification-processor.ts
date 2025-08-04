@@ -217,6 +217,7 @@ export class NotificationProcessor {
       .select(`
         id,
         title,
+        created_at,
         candidate_applications(id, created_at)
       `)
       .eq('recruiter_id', userData.id)

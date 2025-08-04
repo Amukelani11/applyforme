@@ -137,7 +137,7 @@ class AIService {
     
     // For now, return structured responses based on the prompt
     if (prompt.includes('plan')) {
-      return this.generateResearchPlan(prompt);
+      return this.generateBasicResearchPlan(prompt);
     } else if (prompt.includes('research')) {
       return this.generateResearchResults(prompt);
     }
@@ -145,7 +145,7 @@ class AIService {
     return "I'm here to help with your South African market research. Please provide a specific query.";
   }
 
-  private generateResearchPlan(query: string): string {
+  private generateBasicResearchPlan(query: string): string {
     const sector = this.extractSector(query);
     const industry = this.extractIndustry(query);
     
@@ -409,7 +409,7 @@ class AIService {
     ];
   }
 
-  async generateResearchPlan(query: string): Promise<ResearchPlan> {
+  public async generateResearchPlan(query: string): Promise<ResearchPlan> {
     const prompt = `Generate a comprehensive research plan for: ${query}
 
 Please provide a structured research plan that includes:

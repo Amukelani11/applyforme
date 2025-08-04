@@ -33,6 +33,7 @@ interface CandidateAssignment {
     email: string
   }
   assigned_to: {
+    id: string
     full_name: string
     email: string
   }
@@ -84,10 +85,16 @@ export function CandidateAssignment({ applicationId, applicationType }: Candidat
   })
   const [loading, setLoading] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<string | null>(null)
-  const [editData, setEditData] = useState({
+  const [editData, setEditData] = useState<{
+    assigned_to: string
+    assignment_type: 'screening' | 'interview' | 'reference_check' | 'offer_negotiation' | 'onboarding'
+    status: 'pending' | 'in_progress' | 'completed' | 'reassigned'
+    due_date: string
+    notes: string
+  }>({
     assigned_to: '',
-    assignment_type: 'screening' as const,
-    status: 'pending' as const,
+    assignment_type: 'screening',
+    status: 'pending',
     due_date: '',
     notes: ''
   })

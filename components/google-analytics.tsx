@@ -5,7 +5,11 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, Suspense } from 'react'
 import { pageview, GA_TRACKING_ID } from '@/lib/gtag'
 
-function GoogleAnalyticsContent() {
+interface GoogleAnalyticsProps {
+  gaId?: string
+}
+
+function GoogleAnalyticsContent({ gaId }: GoogleAnalyticsProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -46,10 +50,10 @@ function GoogleAnalyticsContent() {
   )
 }
 
-export default function GoogleAnalytics() {
+export default function GoogleAnalytics({ gaId }: GoogleAnalyticsProps) {
   return (
     <Suspense fallback={null}>
-      <GoogleAnalyticsContent />
+      <GoogleAnalyticsContent gaId={gaId} />
     </Suspense>
   )
 } 

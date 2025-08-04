@@ -14,13 +14,13 @@ import {
   ArrowForwardIcon,
   CheckmarkIcon
 } from "@/components/ui/custom-icons"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from "react"
 
 export default function HomePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   const handleGetStarted = async () => {
     setIsLoading(true)

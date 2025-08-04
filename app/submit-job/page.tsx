@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,7 +38,7 @@ function SubmitJobForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -105,7 +105,7 @@ function SubmitJobForm() {
 
     try {
       setIsSubmitting(true)
-      let jobSpecUrl = null
+      let jobSpecUrl: string | null = null
 
       // If there's a file, upload it first
       if (formData.jobSpecFile) {

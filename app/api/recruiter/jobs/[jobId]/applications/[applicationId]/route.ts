@@ -549,7 +549,7 @@ export async function GET(
 
       // Create CV URL from cv_path if available
       // For public applications, we can use the regular client since storage policies allow access
-      let cvUrl = null;
+      let cvUrl: string | null = null;
       if (application.cv_path) {
         try {
           const { data: signedUrl } = await supabase.storage
