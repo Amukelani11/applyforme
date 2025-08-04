@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 
 export async function GET(request: Request) {
+  const supabase = createClient()
   try {
     const { data, error } = await supabase
       .from("applications")
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const supabase = createClient()
   try {
     const body = await request.json();
     const { data, error } = await supabase
@@ -28,6 +30,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const supabase = createClient()
   try {
     const body = await request.json();
     const { id, ...updateData } = body;
@@ -44,6 +47,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const supabase = createClient()
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

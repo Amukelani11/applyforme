@@ -2,8 +2,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getInitials } from "@/lib/utils"
 import Link from 'next/link'
-import { FileText } from 'lucide-react';
+import { FileText, Circle } from 'lucide-react';
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils"
 
 function timeAgo(date: string) {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
@@ -52,26 +53,61 @@ export function ActivityFeed({ applications, isLoading }: { applications?: any[]
 
   return (
     <div className="space-y-4">
-      {applications.map((app, index) => (
-        <motion.div 
-            key={app.id} 
-            className="flex items-center gap-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-        >
-          <Avatar className="h-10 w-10 border">
-            <AvatarImage src={app.user_profiles?.avatar_url} alt={app.user_profiles?.full_name} />
-            <AvatarFallback>{getInitials(app.user_profiles?.full_name || app.name || 'A')}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-gray-800">
-                <span className="font-bold">{app.user_profiles?.full_name || app.name}</span> applied for <Link href={`/recruiter/jobs/${app.job_posting_id || app.job_id}/applications/${app.id}`} className="font-bold text-theme-600 hover:underline">{app.job_postings?.title || 'a job'}</Link>.
-            </p>
-            <p className="text-xs text-gray-500">{timeAgo(app.created_at)}</p>
-          </div>
-        </motion.div>
-      ))}
+      {applications.map((app, index) => {
+        const isUnread = app.is_read === false;
+        const userName = app.user?.full_name || app.user_profiles?.full_name || app.name || 'Unknown Candidate';
+        const userAvatar = app.user?.avatar_url || app.user_profiles?.avatar_url;
+        
+        return (
+          <motion.div 
+              key={app.id} 
+              className={cn(
+                "flex items-center gap-4 p-3 rounded-lg transition-all duration-200",
+                isUnread ? "bg-blue-50 border border-blue-100" : "hover:bg-gray-50"
+              )}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+          >
+            <div className="relative">
+              <Avatar className="h-10 w-10 border">
+                <AvatarImage src={userAvatar} alt={userName} />
+                <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+              </Avatar>
+              {isUnread && (
+                <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse" />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className={cn(
+                  "text-sm font-medium",
+                  isUnread ? "text-blue-900" : "text-gray-800"
+                )}>
+                    <span className={cn("font-bold", isUnread && "text-blue-700")}>
+                      {userName}
+                    </span> applied for{" "}
+                    <Link 
+                      href={`/recruiter/jobs/${app.job_posting_id || app.job_id}/applications/${app.id}${app.is_public ? '?public=true' : ''}`} 
+                      className={cn(
+                        "font-bold hover:underline",
+                        isUnread ? "text-blue-600" : "text-theme-600"
+                      )}
+                    >
+                      {app.job_postings?.title || 'a job'}
+                    </Link>.
+                </p>
+                {isUnread && (
+                  <Circle className="h-2 w-2 fill-blue-500 text-blue-500" />
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {timeAgo(app.created_at)}
+              </p>
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
-  )
+  );
 } 

@@ -1,5 +1,5 @@
 import { config } from './config'
-import { supabase } from './supabaseClient'
+import { createClient } from './supabase/client'
 
 // Initialize Google Cloud client with API key
 const GOOGLE_CLOUD_API_KEY = config.googleCloud.apiKey
@@ -25,6 +25,7 @@ interface ImprovementResult {
 
 // CV Analysis and Improvement Functions
 export async function analyzeCV(fileData: string, fileName: string, fileType: string): Promise<AnalysisResult> {
+  const supabase = createClient()
   try {
     const { data, error } = await supabase.functions.invoke('analyze-cv', {
       body: { 
@@ -49,6 +50,7 @@ export async function analyzeCV(fileData: string, fileName: string, fileType: st
 }
 
 export async function improveCV(originalText: string, analysis: string): Promise<ImprovementResult> {
+  const supabase = createClient()
   try {
     const { data, error } = await supabase.functions.invoke('analyze-cv', {
       body: { 

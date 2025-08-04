@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createBrowserClient } from '@supabase/ssr'
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, ArrowLeft } from "lucide-react"
 
 const PLANS = {
   basic: {
@@ -51,8 +52,13 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [selectedPlan, setSelectedPlan] = useState<keyof typeof PLANS | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   useEffect(() => {
     const plan = searchParams.get("plan")
@@ -62,13 +68,31 @@ export default function OnboardingPage() {
     }
   }, [searchParams])
 
-  // Simulate payment gateway
-  const handleCheckout = async () => {
+  const handleFinishOnboarding = async () => {
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      router.push("/dashboard")
-    }, 2000)
+    setError(null)
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user && selectedPlan) {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          onboarding_completed: true,
+          subscription_status: PLANS[selectedPlan].isFreeTrial ? 'trial' : 'active',
+        })
+        .eq('id', user.id)
+
+      if (error) {
+        setError("Failed to update your profile. Please try again.")
+        setLoading(false)
+      } else {
+        router.push("/dashboard")
+      }
+    } else {
+        setError("You must be logged in to select a plan.")
+        setLoading(false)
+    }
   }
 
   return (
@@ -92,9 +116,9 @@ export default function OnboardingPage() {
                       key={key}
                       type="button"
                       className={`rounded-2xl border-2 p-4 text-left transition-all relative ${
-                        selectedPlan === key 
-                          ? plan.isFreeTrial 
-                            ? "border-green-500 bg-green-50" 
+                        selectedPlan === key
+                          ? plan.isFreeTrial
+                            ? "border-green-500 bg-green-50"
                             : "border-[#c084fc] bg-[#f3e8ff]"
                           : plan.isFreeTrial
                             ? "border-green-300 bg-white hover:border-green-500"
@@ -161,8 +185,8 @@ export default function OnboardingPage() {
               <CardContent>
                 <div className="mb-6 text-center">
                   <span className={`inline-block px-4 py-1 rounded-full text-sm font-medium mb-2 ${
-                    PLANS[selectedPlan].isFreeTrial 
-                      ? 'bg-green-100 text-green-700' 
+                    PLANS[selectedPlan].isFreeTrial
+                      ? 'bg-green-100 text-green-700'
                       : 'bg-[#c084fc]/10 text-[#c084fc]'
                   }`}>
                     {PLANS[selectedPlan].name}
@@ -203,72 +227,26 @@ export default function OnboardingPage() {
 
           {step === 3 && selectedPlan && (
             <>
-              <CardHeader>
-                <CardTitle>{PLANS[selectedPlan].isFreeTrial ? 'Start Free Trial' : 'Checkout'}</CardTitle>
+              <CardHeader className="text-center">
+                <CardTitle>Final Step!</CardTitle>
                 <CardDescription>
-                  {PLANS[selectedPlan].isFreeTrial 
-                    ? '2 MONTHS FREE, then R49/month' 
-                    : 'Pay securely to activate your plan'
-                  }
+                  Click the button below to confirm your plan and complete your setup.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="mb-6 text-center">
-                  <span className={`inline-block px-4 py-1 rounded-full text-sm font-medium mb-2 ${
-                    PLANS[selectedPlan].isFreeTrial 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-[#c084fc]/10 text-[#c084fc]'
-                  }`}>
-                    {PLANS[selectedPlan].name}
-                    {PLANS[selectedPlan].isFreeTrial && ' - Free Trial'}
-                  </span>
-                  <div className="flex items-baseline justify-center gap-2 mb-2">
-                    <span className="text-4xl font-bold text-gray-900">R{PLANS[selectedPlan].price}</span>
-                    <span className="text-gray-500 ml-1">/month</span>
-                    {PLANS[selectedPlan].isFreeTrial ? (
-                      <span className="text-sm text-green-600 font-medium ml-2">after 2 months</span>
-                    ) : (
-                      <span className="text-sm text-gray-400 line-through ml-2">R{PLANS[selectedPlan].oldPrice}</span>
-                    )}
-                  </div>
-                  {PLANS[selectedPlan].isFreeTrial && (
-                    <p className="text-sm text-green-600 font-medium mb-4">
-                      2 MONTHS FREE, then R{PLANS[selectedPlan].price}/month
-                    </p>
-                  )}
-                  <ul className="space-y-2 max-w-xs mx-auto">
-                    {PLANS[selectedPlan].features.map((feature, i) => (
-                      <li key={i} className="flex items-center text-gray-700">
-                        <CheckCircle className={`h-4 w-4 mr-2 ${PLANS[selectedPlan].isFreeTrial ? 'text-green-500' : 'text-[#c084fc]'}`} />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="bg-muted p-4 rounded-lg text-sm text-muted-foreground mb-4">
-                  {PLANS[selectedPlan].isFreeTrial 
-                    ? "You'll start with a 2-month free trial. No charges during the trial period. Cancel anytime."
-                    : "You will be redirected to the payment gateway to complete your purchase securely."
-                  }
-                </div>
+              <CardContent className="text-center">
+                  <p className="text-lg font-semibold">You've selected the <span className="text-[#c084fc]">{PLANS[selectedPlan].name}</span> plan.</p>
+                   {error && <p className="text-red-500 mt-4">{error}</p>}
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(2)} className="rounded-xl">Back</Button>
+              <CardFooter className="flex flex-col gap-4">
                 <Button
-                  className={`rounded-xl ${
-                    PLANS[selectedPlan].isFreeTrial 
-                      ? 'bg-green-500 hover:bg-green-600 text-white' 
-                      : 'bg-[#c084fc] hover:bg-[#a855f7] text-white'
-                  }`}
-                  onClick={handleCheckout}
+                  className="w-full bg-[#c084fc] hover:bg-[#a855f7] text-white rounded-xl py-3"
+                  onClick={handleFinishOnboarding}
                   disabled={loading}
                 >
-                  {loading 
-                    ? "Processing..." 
-                    : PLANS[selectedPlan].isFreeTrial 
-                      ? "Start Free Trial" 
-                      : "Pay & Subscribe"
-                  }
+                  {loading ? 'Processing...' : 'Complete Setup & Go to Dashboard'}
+                </Button>
+                <Button variant="ghost" onClick={() => setStep(2)} className="text-gray-600">
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Back to plan review
                 </Button>
               </CardFooter>
             </>

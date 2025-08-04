@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (action === 'qualifications') {
       try {
         // Get user qualification summary
-        const summary = await AIAnalysisService.analyzeUserQualifications(userId)
+        const summary = await AIAnalysisService.analyzeUserQualifications(userId, supabase)
         console.log('AI analysis completed successfully for user:', userId)
         return NextResponse.json({ summary })
       } catch (analysisError) {
@@ -59,12 +59,57 @@ export async function GET(request: NextRequest) {
       try {
         // Get job recommendations
         const limit = parseInt(searchParams.get('limit') || '10')
-        const recommendations = await AIAnalysisService.getJobRecommendations(userId, limit)
+        const recommendations = await AIAnalysisService.getJobRecommendations(userId, supabase, limit)
         return NextResponse.json({ recommendations })
       } catch (recommendationError) {
         console.error('Error in job recommendations:', recommendationError)
         return NextResponse.json(
           { error: `Job recommendations failed: ${recommendationError instanceof Error ? recommendationError.message : 'Unknown error'}` },
+          { status: 500 }
+        )
+      }
+    } else if (action === 'application') {
+      try {
+        // Get application ID from query params
+        const applicationId = searchParams.get('applicationId')
+        if (!applicationId) {
+          return NextResponse.json({ error: 'Application ID is required' }, { status: 400 })
+        }
+
+        // Analyze application
+        const analysis = await AIAnalysisService.analyzeApplicationWithCustomFields(applicationId, supabase)
+        return NextResponse.json({ analysis })
+      } catch (analysisError) {
+        console.error('Error in application analysis:', analysisError)
+        return NextResponse.json(
+          { error: `Application analysis failed: ${analysisError instanceof Error ? analysisError.message : 'Unknown error'}` },
+          { status: 500 }
+        )
+      }
+    } else if (action === 'enhance') {
+      try {
+        // Get application ID and existing analysis from query params
+        const applicationId = searchParams.get('applicationId')
+        const existingAnalysis = searchParams.get('existingAnalysis')
+        
+        if (!applicationId) {
+          return NextResponse.json({ error: 'Application ID is required' }, { status: 400 })
+        }
+
+        if (!existingAnalysis) {
+          return NextResponse.json({ error: 'Existing analysis is required' }, { status: 400 })
+        }
+
+        // Parse existing analysis
+        const parsedAnalysis = JSON.parse(existingAnalysis)
+
+        // Enhance existing analysis with custom fields
+        const enhancedAnalysis = await AIAnalysisService.enhanceExistingAnalysis(applicationId, parsedAnalysis, supabase)
+        return NextResponse.json({ enhancedAnalysis })
+      } catch (enhancementError) {
+        console.error('Error in analysis enhancement:', enhancementError)
+        return NextResponse.json(
+          { error: `Analysis enhancement failed: ${enhancementError instanceof Error ? enhancementError.message : 'Unknown error'}` },
           { status: 500 }
         )
       }
@@ -99,7 +144,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Submit job application
-    const success = await AIAnalysisService.submitJobApplication(user.id, jobId)
+    const success = await AIAnalysisService.submitJobApplication(user.id, jobId, supabase)
     
     if (success) {
       return NextResponse.json({ success: true, message: 'Application submitted successfully' })

@@ -8,8 +8,9 @@ export default function RootClientLayout({ children }: { children: React.ReactNo
   const pathname = usePathname()
 
   const isRecruiterRoute = pathname.startsWith('/recruiter')
+  const isAdRoute = pathname.startsWith('/ad')
 
-  if (isRecruiterRoute) {
+  if (isRecruiterRoute || isAdRoute) {
     return <>{children}</>
   }
 

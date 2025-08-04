@@ -1,4 +1,6 @@
-import { supabase } from './supabaseClient'
+import { SupabaseClient } from '@supabase/supabase-js'
+
+type SupabaseClientType = any
 
 interface UserProfile {
   id: string
@@ -13,6 +15,28 @@ interface Document {
   file_url: string
   type: string
   created_at: string
+  title?: string
+  description?: string
+}
+
+interface CustomFieldResponse {
+  id: number
+  field_id: number
+  field_value: string
+  file_url?: string
+  custom_field: {
+    field_label: string
+    field_type: string
+    field_required: boolean
+    field_options?: string[]
+  }
+}
+
+interface ApplicationAnalysis {
+  customFields: CustomFieldResponse[]
+  documents: Document[]
+  applicationId: string
+  jobId: number
 }
 
 interface WorkExperience {
@@ -76,10 +100,10 @@ interface JobRecommendation {
 }
 
 export class AIAnalysisService {
-  static async analyzeUserQualifications(userId: string): Promise<QualificationSummary> {
+  static async analyzeUserQualifications(userId: string, supabase: SupabaseClientType): Promise<QualificationSummary> {
     try {
       // First, try to get or create user profile
-      let userData = await this.getOrCreateUser(userId)
+      let userData = await this.getOrCreateUser(userId, supabase)
 
       // Fetch user's documents (CV) - don't throw error if no CV
       const { data: documents, error: documentsError } = await supabase
@@ -146,7 +170,7 @@ export class AIAnalysisService {
     }
   }
 
-  private static async getOrCreateUser(userId: string): Promise<any> {
+  private static async getOrCreateUser(userId: string, supabase: SupabaseClientType): Promise<any> {
     try {
       // Try to get existing user
       const { data: userData, error: userError } = await supabase
@@ -226,10 +250,10 @@ export class AIAnalysisService {
     }
   }
 
-  static async getJobRecommendations(userId: string, limit: number = 10): Promise<JobRecommendation[]> {
+  static async getJobRecommendations(userId: string, supabase: SupabaseClientType, limit: number = 10): Promise<JobRecommendation[]> {
     try {
       // Get user qualification summary
-      const qualificationSummary = await this.analyzeUserQualifications(userId)
+      const qualificationSummary = await this.analyzeUserQualifications(userId, supabase)
 
       // Fetch active job postings
       const { data: jobPostings, error: jobError } = await supabase
@@ -458,7 +482,7 @@ export class AIAnalysisService {
     return `R${baseSalary.toLocaleString()} - R${(baseSalary * 1.3).toLocaleString()}`
   }
 
-  static async submitJobApplication(userId: string, jobId: number): Promise<boolean> {
+  static async submitJobApplication(userId: string, jobId: number, supabase: SupabaseClientType): Promise<boolean> {
     try {
       // Get user's CV
       const { data: documents, error: documentsError } = await supabase
@@ -508,6 +532,345 @@ export class AIAnalysisService {
     } catch (error) {
       console.error('Error submitting job application:', error)
       throw error
+    }
+  }
+
+  static async analyzeApplicationWithCustomFields(applicationId: string, supabase: SupabaseClientType): Promise<any> {
+    try {
+      // Fetch custom field responses
+      const { data: customFieldResponses, error: customFieldsError } = await supabase
+        .from('custom_field_responses')
+        .select(`
+          id,
+          field_id,
+          field_value,
+          file_url,
+          custom_field:job_custom_fields(
+            field_label,
+            field_type,
+            field_required,
+            field_options
+          )
+        `)
+        .eq('application_id', applicationId)
+        .order('id')
+
+      if (customFieldsError) {
+        console.error('Error fetching custom field responses:', customFieldsError)
+        throw customFieldsError
+      }
+
+      // Fetch application details to get job ID
+      const { data: application, error: applicationError } = await supabase
+        .from('public_applications')
+        .select('id, job_id, full_name, email')
+        .eq('id', applicationId)
+        .single()
+
+      if (applicationError) {
+        console.error('Error fetching application:', applicationError)
+        throw applicationError
+      }
+
+      // Fetch job details
+      const { data: job, error: jobError } = await supabase
+        .from('job_postings')
+        .select('id, title, company, description, requirements')
+        .eq('id', application.job_id)
+        .single()
+
+      if (jobError) {
+        console.error('Error fetching job:', jobError)
+        throw jobError
+      }
+
+      // Process custom field responses to match expected type
+      const processedResponses = (customFieldResponses || []).map((response: any) => ({
+        id: response.id,
+        field_id: response.field_id,
+        field_value: response.field_value,
+        file_url: response.file_url,
+        custom_field: Array.isArray(response.custom_field) ? response.custom_field[0] : response.custom_field
+      }))
+
+      // Analyze custom fields
+      const customFieldsAnalysis = await this.analyzeCustomFields(processedResponses, job)
+
+      // Analyze uploaded documents
+      const documentsAnalysis = await this.analyzeUploadedDocuments(processedResponses, job)
+
+      return {
+        applicationId,
+        jobId: application.job_id,
+        candidateName: application.full_name,
+        candidateEmail: application.email,
+        jobTitle: job.title,
+        company: job.company,
+        customFieldsAnalysis,
+        documentsAnalysis,
+        overallAssessment: await this.generateOverallAssessment(
+          customFieldsAnalysis,
+          documentsAnalysis,
+          job
+        )
+      }
+
+    } catch (error) {
+      console.error('Error analyzing application:', error)
+      throw error
+    }
+  }
+
+  private static async analyzeCustomFields(
+    customFieldResponses: CustomFieldResponse[],
+    job: any
+  ): Promise<any> {
+    const analysis = {
+      relevantSkills: [] as string[],
+      experienceLevel: '',
+      culturalFit: '',
+      technicalSkills: [] as string[],
+      softSkills: [] as string[],
+      summary: ''
+    }
+
+    for (const response of customFieldResponses) {
+      const { field_value, custom_field } = response
+      const fieldType = custom_field.field_type
+      const fieldLabel = custom_field.field_label.toLowerCase()
+
+      // Analyze text-based responses
+      if (['text', 'textarea'].includes(fieldType) && field_value) {
+        const value = field_value.toLowerCase()
+        
+        // Extract skills from responses
+        if (fieldLabel.includes('experience') || fieldLabel.includes('skills')) {
+          if (value.includes('javascript') || value.includes('js')) analysis.technicalSkills.push('JavaScript')
+          if (value.includes('python')) analysis.technicalSkills.push('Python')
+          if (value.includes('react')) analysis.technicalSkills.push('React')
+          if (value.includes('node')) analysis.technicalSkills.push('Node.js')
+          if (value.includes('sql')) analysis.technicalSkills.push('SQL')
+          if (value.includes('aws') || value.includes('amazon')) analysis.technicalSkills.push('AWS')
+          if (value.includes('docker')) analysis.technicalSkills.push('Docker')
+          if (value.includes('kubernetes')) analysis.technicalSkills.push('Kubernetes')
+          if (value.includes('git')) analysis.technicalSkills.push('Git')
+          if (value.includes('agile')) analysis.softSkills.push('Agile')
+          if (value.includes('leadership')) analysis.softSkills.push('Leadership')
+          if (value.includes('communication')) analysis.softSkills.push('Communication')
+          if (value.includes('teamwork')) analysis.softSkills.push('Teamwork')
+          if (value.includes('problem solving')) analysis.softSkills.push('Problem Solving')
+        }
+
+        // Analyze experience level
+        if (fieldLabel.includes('years') || fieldLabel.includes('experience')) {
+          const yearsMatch = value.match(/(\d+)\s*(?:years?|yrs?)/i)
+          if (yearsMatch) {
+            const years = parseInt(yearsMatch[1])
+            if (years >= 5) analysis.experienceLevel = 'Senior'
+            else if (years >= 2) analysis.experienceLevel = 'Mid-Level'
+            else analysis.experienceLevel = 'Junior'
+          }
+        }
+
+        // Analyze cultural fit
+        if (fieldLabel.includes('motivation') || fieldLabel.includes('values') || fieldLabel.includes('culture')) {
+          if (value.includes('growth') || value.includes('learning') || value.includes('development')) {
+            analysis.culturalFit = 'High - Shows growth mindset'
+          } else if (value.includes('team') || value.includes('collaboration')) {
+            analysis.culturalFit = 'Good - Team-oriented'
+          } else {
+            analysis.culturalFit = 'Standard - Professional approach'
+          }
+        }
+      }
+
+      // Analyze selection-based responses
+      if (['select', 'radio', 'multiselect'].includes(fieldType) && field_value) {
+        const value = field_value.toLowerCase()
+        
+        if (fieldLabel.includes('experience') || fieldLabel.includes('level')) {
+          if (value.includes('senior') || value.includes('lead')) analysis.experienceLevel = 'Senior'
+          else if (value.includes('mid') || value.includes('intermediate')) analysis.experienceLevel = 'Mid-Level'
+          else if (value.includes('junior') || value.includes('entry')) analysis.experienceLevel = 'Junior'
+        }
+      }
+    }
+
+    // Generate summary
+    analysis.summary = `Candidate demonstrates ${analysis.technicalSkills.length} technical skills and ${analysis.softSkills.length} soft skills. `
+    if (analysis.experienceLevel) {
+      analysis.summary += `Experience level: ${analysis.experienceLevel}. `
+    }
+    if (analysis.culturalFit) {
+      analysis.summary += analysis.culturalFit
+    }
+
+    return analysis
+  }
+
+  private static async analyzeUploadedDocuments(
+    customFieldResponses: CustomFieldResponse[],
+    job: any
+  ): Promise<any> {
+    const analysis = {
+      documentsFound: [] as string[],
+      documentTypes: [] as string[],
+      summary: ''
+    }
+
+    // Find file upload responses
+    const fileResponses = customFieldResponses.filter(
+      response => response.custom_field.field_type === 'file' && response.file_url
+    )
+
+    for (const response of fileResponses) {
+      const fieldLabel = response.custom_field.field_label
+      const fileName = (response.file_url || '').split('/').pop() || 'Unknown'
+      
+      analysis.documentsFound.push(`${fieldLabel}: ${fileName}`)
+      
+      // Determine document type from file extension
+      const extension = fileName.split('.').pop()?.toLowerCase()
+      if (extension === 'pdf') analysis.documentTypes.push('PDF')
+      else if (extension === 'doc' || extension === 'docx') analysis.documentTypes.push('Word Document')
+      else if (extension === 'jpg' || extension === 'jpeg' || extension === 'png') analysis.documentTypes.push('Image')
+      else analysis.documentTypes.push('Other')
+    }
+
+    // Generate summary
+    if (analysis.documentsFound.length > 0) {
+      analysis.summary = `Candidate uploaded ${analysis.documentsFound.length} document(s): ${analysis.documentsFound.join(', ')}. `
+      analysis.summary += `Document types: ${analysis.documentTypes.join(', ')}.`
+    } else {
+      analysis.summary = 'No documents were uploaded by the candidate.'
+    }
+
+    return analysis
+  }
+
+  private static async generateOverallAssessment(
+    customFieldsAnalysis: any,
+    documentsAnalysis: any,
+    job: any
+  ): Promise<string> {
+    let assessment = `Overall Assessment for ${job.title} position at ${job.company}:\n\n`
+
+    // Technical skills assessment
+    if (customFieldsAnalysis.technicalSkills.length > 0) {
+      assessment += `✅ Technical Skills: ${customFieldsAnalysis.technicalSkills.join(', ')}\n`
+    } else {
+      assessment += `⚠️ Limited technical skills mentioned in custom fields\n`
+    }
+
+    // Experience level
+    if (customFieldsAnalysis.experienceLevel) {
+      assessment += `📊 Experience Level: ${customFieldsAnalysis.experienceLevel}\n`
+    }
+
+    // Soft skills
+    if (customFieldsAnalysis.softSkills.length > 0) {
+      assessment += `🤝 Soft Skills: ${customFieldsAnalysis.softSkills.join(', ')}\n`
+    }
+
+    // Cultural fit
+    if (customFieldsAnalysis.culturalFit) {
+      assessment += `🎯 Cultural Fit: ${customFieldsAnalysis.culturalFit}\n`
+    }
+
+    // Documents
+    if (documentsAnalysis.documentsFound.length > 0) {
+      assessment += `📄 Documents: ${documentsAnalysis.documentsFound.length} document(s) uploaded\n`
+    } else {
+      assessment += `📄 Documents: No additional documents provided\n`
+    }
+
+    // Recommendations
+    assessment += `\n💡 Recommendations:\n`
+    if (customFieldsAnalysis.technicalSkills.length >= 3) {
+      assessment += `• Strong technical background - Consider for technical interview\n`
+    }
+    if (customFieldsAnalysis.experienceLevel === 'Senior') {
+      assessment += `• Senior-level experience - May be suitable for leadership roles\n`
+    }
+    if (customFieldsAnalysis.culturalFit.includes('High')) {
+      assessment += `• Excellent cultural fit - Strong growth mindset\n`
+    }
+    if (documentsAnalysis.documentsFound.length === 0) {
+      assessment += `• Consider requesting additional supporting documents\n`
+    }
+
+    return assessment
+  }
+
+  static async enhanceExistingAnalysis(applicationId: string, existingAnalysis: any, supabase: SupabaseClientType): Promise<any> {
+    try {
+      // Fetch custom field responses
+      const { data: customFieldResponses, error: customFieldsError } = await supabase
+        .from('custom_field_responses')
+        .select(`
+          id,
+          field_id,
+          field_value,
+          file_url,
+          custom_field:job_custom_fields(
+            field_label,
+            field_type,
+            field_required,
+            field_options
+          )
+        `)
+        .eq('application_id', applicationId)
+        .order('id')
+
+      if (customFieldsError) {
+        console.error('Error fetching custom field responses:', customFieldsError)
+        return existingAnalysis // Return existing analysis if custom fields fail
+      }
+
+      // Process custom field responses to match expected type
+      const processedResponses = (customFieldResponses || []).map((response: any) => ({
+        id: response.id,
+        field_id: response.field_id,
+        field_value: response.field_value,
+        file_url: response.file_url,
+        custom_field: Array.isArray(response.custom_field) ? response.custom_field[0] : response.custom_field
+      }))
+
+      // Analyze custom fields
+      const customFieldsAnalysis = await this.analyzeCustomFields(processedResponses, { title: 'Job Position' })
+
+      // Analyze uploaded documents
+      const documentsAnalysis = await this.analyzeUploadedDocuments(processedResponses, { title: 'Job Position' })
+
+      // Enhance existing analysis with custom fields insights
+      const enhancedAnalysis = {
+        ...existingAnalysis,
+        custom_fields_insights: {
+          technicalSkills: customFieldsAnalysis.technicalSkills,
+          softSkills: customFieldsAnalysis.softSkills,
+          experienceLevel: customFieldsAnalysis.experienceLevel,
+          culturalFit: customFieldsAnalysis.culturalFit,
+          summary: customFieldsAnalysis.summary
+        },
+        documents_insights: {
+          documentsFound: documentsAnalysis.documentsFound,
+          documentTypes: documentsAnalysis.documentTypes,
+          summary: documentsAnalysis.summary
+        },
+        enhanced_recommendations: [
+          ...(existingAnalysis.next_steps || []),
+          ...(customFieldsAnalysis.technicalSkills.length >= 3 ? ['Consider technical interview due to strong technical background'] : []),
+          ...(customFieldsAnalysis.experienceLevel === 'Senior' ? ['May be suitable for leadership roles'] : []),
+          ...(customFieldsAnalysis.culturalFit.includes('High') ? ['Excellent cultural fit - strong growth mindset'] : []),
+          ...(documentsAnalysis.documentsFound.length === 0 ? ['Consider requesting additional supporting documents'] : [])
+        ]
+      }
+
+      return enhancedAnalysis
+
+    } catch (error) {
+      console.error('Error enhancing analysis with custom fields:', error)
+      return existingAnalysis // Return existing analysis if enhancement fails
     }
   }
 }

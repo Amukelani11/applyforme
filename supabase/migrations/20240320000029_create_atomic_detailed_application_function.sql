@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION increment_public_app_count_and_insert_detailed(
 RETURNS void AS $$
 DECLARE
     current_count INT;
-    v_recruiter_id BIGINT;
+    v_recruiter_id UUID;
     v_plan_id TEXT;
 BEGIN
     -- Lock the job posting row and get count and recruiter_id

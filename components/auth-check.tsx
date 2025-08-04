@@ -2,9 +2,10 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabaseClient"
+import { createClient } from "@/lib/supabase/client"
 
 export function AuthCheck({ children }: { children: React.ReactNode }) {
+  const supabase = createClient()
   const router = useRouter()
 
   useEffect(() => {

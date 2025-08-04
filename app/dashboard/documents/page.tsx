@@ -1,15 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { createBrowserClient } from "@supabase/ssr"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Trash2, Eye, Upload } from "lucide-react"
-import { toast } from "sonner"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import { 
+  Trash2, 
+  Eye, 
+  UploadCloud, 
+  FileText, 
+  File, 
+  Loader2,
+  FileImage,
+  FileJson,
+} from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { format } from "date-fns"
 
 interface Document {
   id: string
@@ -20,216 +33,291 @@ interface Document {
   user_id: string
 }
 
+const FileTypeIcon = ({ type, className }: { type: string, className?: string }) => {
+  const defaultClass = "h-6 w-6 text-gray-400"
+  switch (type) {
+    case 'cv':
+    case 'pdf':
+    case 'docx':
+    case 'txt':
+      return <FileText className={className || defaultClass} />;
+    case 'cover_letter':
+      return <FileJson className={className || defaultClass} />;
+    case 'certificate':
+      return <FileImage className={className || defaultClass} />;
+    default:
+      return <File className={className || defaultClass} />;
+  }
+}
+
 export default function DocumentsPage() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const { toast } = useToast()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  
   const [deleting, setDeleting] = useState<string | null>(null)
+  
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [documentName, setDocumentName] = useState("")
   const [documentType, setDocumentType] = useState("cv")
+  const [isDragOver, setIsDragOver] = useState(false)
 
-  useEffect(() => {
-    fetchDocuments()
-  }, [])
-
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null);
       
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      
-      if (sessionError) {
-        throw sessionError
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return;
       }
 
-      if (!session?.user) {
-        // Don't redirect here - let middleware handle it
-        setError('Authentication required')
-        setLoading(false)
-        return
-      }
-
-      const { data: documentsData, error: documentsError } = await supabase
+      const { data, error } = await supabase
         .from('documents')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
-      if (documentsError) throw documentsError
-      setDocuments(documentsData || [])
+      if (error) throw error
+      setDocuments(data || [])
     } catch (err: any) {
-      console.error('Error fetching documents:', err)
       setError(err.message || 'Failed to load documents')
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase, router])
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  useEffect(() => {
+    fetchDocuments()
+  }, [fetchDocuments])
+
+  const handleFileSelect = (files: FileList | null) => {
+    const file = files?.[0]
     if (file) {
       setSelectedFile(file)
-      // Auto-set document name from filename if not already set
       if (!documentName) {
-        setDocumentName(file.name.replace(/\.[^/.]+$/, "")) // Remove extension
+        setDocumentName(file.name.replace(/\.[^/.]+$/, ""))
       }
     }
   }
 
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+  
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    handleFileSelect(e.dataTransfer.files);
+  };
+
   const handleUpload = async () => {
     if (!selectedFile || !documentName) {
-      toast.error('Please select a file and enter a document name')
+      toast({ variant: "destructive", title: 'Please select a file and enter a document name' })
       return
     }
 
     try {
       setUploading(true)
+      setUploadProgress(0)
       
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      
-      if (sessionError || !session?.user) {
-        throw new Error('Not authenticated')
-      }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) throw new Error('Not authenticated')
 
-      // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop()
       const fileName = `${session.user.id}/${Date.now()}.${fileExt}`
       
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage
+      const { error: uploadError } = await supabase.storage
         .from('documents')
-        .upload(fileName, selectedFile)
+        .upload(fileName, selectedFile, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError
+      
+      // Fake progress for demo
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 20;
+        setUploadProgress(progress);
+        if (progress >= 100) clearInterval(interval);
+      }, 100);
 
-      // Get public URL
-      const { data: urlData } = supabase
-        .storage
-        .from('documents')
-        .getPublicUrl(fileName)
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName)
 
-      // Save document record to database
-      const { error: dbError } = await supabase
-        .from('documents')
-        .insert({
-          name: documentName,
-          type: documentType,
-          url: urlData.publicUrl,
-          user_id: session.user.id
-        })
+      const { error: dbError } = await supabase.from('documents').insert({
+        name: documentName,
+        type: documentType,
+        url: publicUrl,
+        user_id: session.user.id
+      })
 
       if (dbError) throw dbError
 
-      toast.success('Document uploaded successfully')
+      toast({ title: 'Success!', description: 'Document uploaded successfully' })
       
-      // Reset form
       setSelectedFile(null)
       setDocumentName("")
       setDocumentType("cv")
       
-      // Refresh documents list
-      fetchDocuments()
+      await fetchDocuments()
     } catch (err: any) {
-      console.error('Error uploading document:', err)
-      toast.error('Failed to upload document')
+      toast({ variant: "destructive", title: 'Upload failed', description: err.message || 'Please try again.'})
     } finally {
       setUploading(false)
+      setUploadProgress(0)
     }
   }
 
-  const handleDelete = async (documentId: string) => {
+  const handleDelete = async (documentId: string, documentUrl: string) => {
     try {
       setDeleting(documentId)
       
-      const { error } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', documentId)
+      // Delete from storage
+      const fileName = documentUrl.split('/').pop()
+      if(fileName) {
+        await supabase.storage.from('documents').remove([`${(await supabase.auth.getUser()).data.user?.id}/${fileName}`])
+      }
+      
+      // Delete from database
+      const { error } = await supabase.from('documents').delete().eq('id', documentId)
 
       if (error) throw error
 
-      toast.success('Document deleted successfully')
-      fetchDocuments()
+      toast({ title: 'Document deleted successfully' })
+      setDocuments(documents.filter(doc => doc.id !== documentId))
     } catch (err: any) {
-      console.error('Error deleting document:', err)
-      toast.error('Failed to delete document')
+      toast({ variant: "destructive", title: 'Failed to delete document', description: err.message })
     } finally {
       setDeleting(null)
     }
   }
 
-  if (loading) {
+  if (loading && !documents.length) {
     return (
-      <div className="space-y-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-gray-900">Documents</h1>
-          <p className="text-gray-600">Loading your documents...</p>
-        </div>
+      <div className="flex items-center justify-center h-full p-8">
+        <Loader2 className="h-12 w-12 animate-spin text-theme-500" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-gray-900">Documents</h1>
-          <p className="text-red-600">Error: {error}</p>
-          <p className="text-gray-600">Please try refreshing the page or contact support if the problem persists.</p>
-        </div>
+      <div className="space-y-4 p-8 bg-red-50 border-l-4 border-red-400">
+        <h2 className="font-bold text-red-800">An Error Occurred</h2>
+        <p className="text-red-700">{error}</p>
+        <Button onClick={() => window.location.reload()}>Try Again</Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-gray-900">Documents</h1>
-        <p className="text-gray-600">
-          Upload and manage your CV and other important documents
+    <motion.div 
+      className="p-4 sm:p-6 lg:p-8 space-y-8"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Documents</h1>
+        <p className="mt-2 text-lg text-gray-600">
+          Upload and manage your CV, cover letters, and other important documents for your applications.
         </p>
       </div>
+      
+      <Separator />
 
+      {/* Upload Section */}
       <div className="grid gap-6">
-        {/* Upload Section */}
-        <Card className="border border-gray-200 rounded-xl shadow-sm">
+        <Card className="border-0 shadow-none bg-gray-50/50 p-0">
           <CardHeader>
-            <CardTitle className="text-gray-900">Upload Document</CardTitle>
-            <CardDescription>
-              Upload your CV or other important documents. CV is required for job applications.
-            </CardDescription>
+            <CardTitle className="text-xl font-semibold text-gray-800">Upload a New Document</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4">
-              <div>
-                <Label htmlFor="file-input">Select File</Label>
-                <Input
-                  id="file-input"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={handleFileSelect}
-                  className="mt-1"
-                />
+          <CardContent className="space-y-6">
+            <div 
+              className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-200 
+                ${isDragOver ? 'border-theme-500 bg-theme-50' : 'border-gray-300 hover:border-theme-400'}`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+            >
+              <input
+                id="file-input"
+                type="file"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                accept=".pdf,.doc,.docx,.txt,.jpg,.png"
+                onChange={(e) => handleFileSelect(e.target.files)}
+                disabled={uploading}
+              />
+              <div className="flex flex-col items-center text-center">
+                <UploadCloud className="h-12 w-12 text-gray-400 mb-4" />
+                <p className="font-semibold text-gray-700">
+                  <span className="text-theme-600">Click to upload</span> or drag and drop
+                </p>
+                <p className="text-sm text-gray-500 mt-1">PDF, DOCX, TXT, JPG, PNG (max 5MB)</p>
               </div>
+            </div>
 
+            {selectedFile && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="p-4 border rounded-lg bg-white space-y-4"
+              >
+                <div className="flex items-center space-x-3">
+                  <FileTypeIcon type={selectedFile.type} />
+                  <div className="flex-grow">
+                    <p className="font-medium text-sm text-gray-800">{selectedFile.name}</p>
+                    <p className="text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedFile(null)}>
+                    <Trash2 className="h-4 w-4 text-gray-500" />
+                  </Button>
+                </div>
+                
+                {uploading && <Progress value={uploadProgress} className="w-full h-2" />}
+
+              </motion.div>
+            )}
+
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="document-name">Document Name</Label>
+                <Label htmlFor="document-name" className="font-medium">Document Name</Label>
                 <Input
                   id="document-name"
                   value={documentName}
                   onChange={(e) => setDocumentName(e.target.value)}
-                  placeholder="Enter document name"
+                  placeholder="e.g., My Resume"
                   className="mt-1"
+                  disabled={uploading}
                 />
               </div>
 
               <div>
-                <Label htmlFor="document-type">Document Type</Label>
-                <Select value={documentType} onValueChange={setDocumentType}>
+                <Label htmlFor="document-type" className="font-medium">Document Type</Label>
+                <Select value={documentType} onValueChange={setDocumentType} disabled={uploading}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
@@ -241,87 +329,87 @@ export default function DocumentsPage() {
                   </SelectContent>
                 </Select>
               </div>
-
-              <Button 
-                onClick={handleUpload} 
-                disabled={uploading || !selectedFile || !documentName}
-                className="w-full bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Document
-                  </>
-                )}
-              </Button>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Documents List */}
-        <Card className="border border-gray-200 rounded-xl shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-900">Your Documents</CardTitle>
-            <CardDescription>
-              Manage your uploaded documents
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {documents.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No documents uploaded yet. Upload your CV to get started with job applications.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{doc.name}</h3>
-                      <p className="text-sm text-gray-600 capitalize">
-                        {doc.type.replace('_', ' ')} • Uploaded {new Date(doc.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(doc.url, '_blank')}
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(doc.id)}
-                        disabled={deleting === doc.id}
-                      >
-                        {deleting === doc.id ? (
-                          <>
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                            Deleting...
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Button 
+              onClick={handleUpload} 
+              disabled={uploading || !selectedFile || !documentName}
+              className="w-full sm:w-auto bg-theme-600 hover:bg-theme-700 text-white font-semibold"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : 'Upload Document'}
+            </Button>
           </CardContent>
         </Card>
       </div>
-    </div>
+      
+      <Separator />
+
+      {/* Your Documents Section */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Documents</h2>
+        {documents.length > 0 ? (
+          <div className="bg-white border border-gray-200/50 rounded-lg">
+            <ul className="divide-y divide-gray-200/50">
+              <AnimatePresence>
+                {documents.map((doc) => (
+                  <motion.li
+                    key={doc.id}
+                    layout
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20, transition: { duration: 0.3 } }}
+                    className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors duration-200"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <FileTypeIcon type={doc.type} />
+                      <div>
+                        <p className="font-medium text-gray-900">{doc.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {doc.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} • Uploaded on {format(new Date(doc.created_at), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button asChild variant="ghost" size="icon" className="text-gray-500 hover:text-theme-600 hover:bg-theme-50">
+                        <a href={doc.url} target="_blank" rel="noopener noreferrer" aria-label="View document">
+                          <Eye className="h-5 w-5" />
+                        </a>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDelete(doc.id, doc.url)} 
+                        disabled={deleting === doc.id}
+                        className="text-gray-500 hover:text-red-600 hover:bg-red-50"
+                        aria-label="Delete document"
+                      >
+                        {deleting === doc.id ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </div>
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+            </ul>
+          </div>
+        ) : (
+          !loading && (
+            <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+              <File className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No documents found</h3>
+              <p className="mt-1 text-sm text-gray-500">Get started by uploading your first document.</p>
+            </div>
+          )
+        )}
+      </div>
+    </motion.div>
   )
 } 

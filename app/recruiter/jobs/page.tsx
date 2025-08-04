@@ -21,7 +21,7 @@ import { bulkDeleteJobs, bulkUpdateJobStatus } from "../dashboard/actions";
 interface JobPosting {
   id: number;
   title: string;
-  is_active: boolean;
+  status: 'draft' | 'active' | 'closed';
   location: string;
   application_count: { count: number }[];
   created_at: string;
@@ -53,17 +53,60 @@ export default function JobPostingsPage() {
       return;
     };
 
-    const { data, error } = await supabase
+    // Fetch job postings
+    const { data: jobs, error: jobsError } = await supabase
       .from("job_postings")
-      .select("*, application_count:candidate_applications(count)")
+      .select("*")
       .eq("recruiter_id", recruiterData.id)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      toast({ title: "Error fetching jobs", description: error.message, variant: "destructive" });
-    } else {
-      setJobPostings(data as JobPosting[] || []);
+    if (jobsError) {
+      toast({ title: "Error fetching jobs", description: jobsError.message, variant: "destructive" });
+      setIsLoading(false);
+      return;
     }
+
+    if (!jobs || jobs.length === 0) {
+      setJobPostings([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Get job IDs
+    const jobIds = jobs.map(job => job.id);
+
+    // Fetch candidate application counts
+    const { data: candidateAppCounts } = await supabase
+      .from("candidate_applications")
+      .select("job_posting_id")
+      .in("job_posting_id", jobIds);
+
+    // Fetch public application counts  
+    const { data: publicAppCounts } = await supabase
+      .from("public_applications")
+      .select("job_id")
+      .in("job_id", jobIds);
+
+    // Count applications per job
+    const candidateCountsByJob = candidateAppCounts?.reduce((acc, app) => {
+      acc[app.job_posting_id] = (acc[app.job_posting_id] || 0) + 1;
+      return acc;
+    }, {} as Record<number, number>) || {};
+
+    const publicCountsByJob = publicAppCounts?.reduce((acc, app) => {
+      acc[app.job_id] = (acc[app.job_id] || 0) + 1;
+      return acc;
+    }, {} as Record<number, number>) || {};
+
+    // Combine counts and add to job postings
+    const jobsWithCounts = jobs.map(job => ({
+      ...job,
+      application_count: [{
+        count: (candidateCountsByJob[job.id] || 0) + (publicCountsByJob[job.id] || 0)
+      }]
+    }));
+
+    setJobPostings(jobsWithCounts as JobPosting[]);
     setIsLoading(false);
   }, [supabase, router, toast]);
 
@@ -81,7 +124,10 @@ export default function JobPostingsPage() {
 
   const sortedJobs = useMemo(() => {
     const filtered = jobPostings
-      .filter(job => statusFilter === 'all' || (statusFilter === 'open' ? job.is_active : !job.is_active))
+      .filter(job => {
+        if (statusFilter === 'all') return true;
+        return job.status === statusFilter;
+      })
       .filter(job => job.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
     let sortableItems = [...filtered];
@@ -129,7 +175,7 @@ export default function JobPostingsPage() {
     }
   };
 
-  const handleBulkAction = async (action: 'open' | 'close' | 'delete') => {
+  const handleBulkAction = async (action: 'active' | 'closed' | 'delete') => {
     setIsBulkProcessing(true);
     const jobIds = Array.from(selectedJobs);
     try {
@@ -137,8 +183,7 @@ export default function JobPostingsPage() {
          await bulkDeleteJobs(jobIds);
          toast({ title: "Success", description: `${jobIds.length} job(s) deleted.` });
       } else {
-        const newStatus = action === 'open';
-        await bulkUpdateJobStatus(jobIds, newStatus);
+        await bulkUpdateJobStatus(jobIds, action === 'active');
         toast({ title: "Success", description: `${jobIds.length} job(s) updated.` });
       }
       await fetchJobs();
@@ -150,12 +195,16 @@ export default function JobPostingsPage() {
     }
   };
 
-  const getStatusBadge = (isActive: boolean) => {
-    const baseClasses = "text-xs font-semibold px-2.5 py-0.5 rounded-full transition-all duration-300 flex items-center";
-    if (isActive) {
-      return <Badge className={`${baseClasses} bg-emerald-100 text-emerald-800 border border-emerald-200`}>Open</Badge>;
+  const getStatusBadge = (status: JobPosting['status']) => {
+    const baseClasses = "text-xs font-semibold px-2.5 py-0.5 rounded-full transition-all duration-300 flex items-center capitalize";
+    switch (status) {
+        case 'active':
+            return <Badge className={`${baseClasses} bg-emerald-100 text-emerald-800 border border-emerald-200`}>Active</Badge>;
+        case 'draft':
+            return <Badge className={`${baseClasses} bg-yellow-100 text-yellow-800 border border-yellow-200`}>Draft</Badge>;
+        case 'closed':
+            return <Badge className={`${baseClasses} bg-gray-100 text-gray-700 border border-gray-200`}>Closed</Badge>;
     }
-    return <Badge className={`${baseClasses} bg-gray-100 text-gray-700 border border-gray-200`}>Closed</Badge>;
   };
 
   const renderSkeleton = () => (
@@ -189,13 +238,14 @@ export default function JobPostingsPage() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="rounded-lg border-gray-200">
-                    Status: <span className="font-semibold ml-1.5 capitalize">{statusFilter}</span>
+                    Status: <span className="font-semibold ml-1.5 capitalize">{statusFilter === 'active' ? 'Open' : statusFilter}</span>
                     <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => setStatusFilter('all')}>All</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setStatusFilter('open')}>Open</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setStatusFilter('active')}>Active</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setStatusFilter('draft')}>Draft</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setStatusFilter('closed')}>Closed</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -207,8 +257,8 @@ export default function JobPostingsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => handleBulkAction('open')} disabled={isBulkProcessing}><ToggleRight className="mr-2 h-4 w-4" /> Mark as Open</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleBulkAction('close')} disabled={isBulkProcessing}><ToggleLeft className="mr-2 h-4 w-4" /> Mark as Closed</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleBulkAction('active')} disabled={isBulkProcessing}><ToggleRight className="mr-2 h-4 w-4" /> Mark as Active</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleBulkAction('closed')} disabled={isBulkProcessing}><ToggleLeft className="mr-2 h-4 w-4" /> Mark as Closed</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -237,7 +287,7 @@ export default function JobPostingsPage() {
             <TableRow className="bg-gray-50 border-b-gray-100 hover:bg-gray-50">
               <TableHead className="w-[50px]"><Checkbox checked={selectedJobs.size === sortedJobs.length && sortedJobs.length > 0} onCheckedChange={handleSelectAll} /></TableHead>
               <TableHead><SortableButton columnKey="title" label="Job Title" sortConfig={sortConfig} requestSort={requestSort} /></TableHead>
-              <TableHead><SortableButton columnKey="is_active" label="Status" sortConfig={sortConfig} requestSort={requestSort} /></TableHead>
+              <TableHead><SortableButton columnKey="status" label="Status" sortConfig={sortConfig} requestSort={requestSort} /></TableHead>
               <TableHead><SortableButton columnKey="location" label="Location" sortConfig={sortConfig} requestSort={requestSort} /></TableHead>
               <TableHead><SortableButton columnKey="application_count" label="Apps" sortConfig={sortConfig} requestSort={requestSort} /></TableHead>
               <TableHead><SortableButton columnKey="created_at" label="Date Posted" sortConfig={sortConfig} requestSort={requestSort} /></TableHead>
@@ -256,14 +306,16 @@ export default function JobPostingsPage() {
                     </Button>
                 </TableCell></TableRow>
             ) : (
-                sortedJobs.map((job, index) => (
-                <motion.tr key={job.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, delay: index * 0.04 }} className="hover:bg-gray-50/50 transition-colors">
+                sortedJobs.map((job) => (
+                <motion.tr layout key={job.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="hover:bg-gray-50/50 transition-colors duration-200">
                     <TableCell><Checkbox checked={selectedJobs.has(job.id)} onCheckedChange={() => handleSelectJob(job.id)} /></TableCell>
-                    <TableCell className="font-medium text-gray-800">{job.title}</TableCell>
-                    <TableCell>{getStatusBadge(job.is_active)}</TableCell>
-                    <TableCell className="text-gray-600">{job.location || 'Remote'}</TableCell>
-                    <TableCell className="text-gray-600 font-medium">{job.application_count[0]?.count || 0}</TableCell>
-                    <TableCell className="text-gray-600">{formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}</TableCell>
+                    <TableCell className="font-semibold text-gray-700">
+                      <Link href={`/recruiter/jobs/${job.id}`} className="hover:text-theme-600">{job.title}</Link>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(job.status)}</TableCell>
+                    <TableCell className="text-gray-500">{job.location}</TableCell>
+                    <TableCell className="text-gray-500 text-center">{job.application_count[0]?.count || 0}</TableCell>
+                    <TableCell className="text-gray-500">{formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}</TableCell>
                     <TableCell className="text-right">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>

@@ -43,6 +43,15 @@ export default function HomePage() {
     setIsLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
+      if (plan === 'basic') {
+        if (session) {
+          router.push('/dashboard')
+        } else {
+          router.push('/signup?plan=basic&redirect=/dashboard')
+        }
+        return;
+      }
+
       if (session) {
         router.push(`/onboarding?plan=${plan}`)
       } else {
@@ -93,7 +102,7 @@ export default function HomePage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-base px-8 py-4 border-2 border-gray-300 hover:bg-gray-50 rounded-full font-medium transition-all duration-200"
+                  className="text-base px-8 py-4 border-2 border-gray-300 bg-white text-black hover:bg-black hover:text-white rounded-full font-medium transition-all duration-200"
                 >
                   View pricing
                 </Button>
@@ -229,18 +238,14 @@ export default function HomePage() {
             {/* Everyday Plan */}
             <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-xl border-2 border-green-500 relative flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-medium shadow-lg">Free Trial</span>
+                <span className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-medium shadow-lg">Free</span>
               </div>
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-medium text-gray-900 mb-2">Basic Plan</h3>
                 <p className="text-gray-600 mb-6">For anyone looking for a new job</p>
                 <div className="flex items-baseline justify-center">
-                  <span className="text-5xl font-light text-gray-900">R49</span>
-                  <span className="text-gray-500 ml-2">/month</span>
+                  <span className="text-5xl font-light text-gray-900">Free</span>
                 </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  <span className="line-through">R99</span> after 2 months
-                </p>
               </div>
 
               <ul className="space-y-4 mb-8">
@@ -268,7 +273,7 @@ export default function HomePage() {
                   onClick={() => handlePlanAction("basic")}
                   disabled={isLoading}
                 >
-                  {isLoading ? "Loading..." : "Start 2 Month Free Trial"}
+                  {isLoading ? "Loading..." : "Get Started For Free"}
                 </Button>
               </div>
             </div>
@@ -471,7 +476,7 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="text-base px-8 py-4 border-2 border-gray-600 text-white hover:bg-gray-800 rounded-full font-medium transition-all duration-200"
+                className="text-base px-8 py-4 border-2 border-gray-600 bg-white text-black hover:bg-black hover:text-white rounded-full font-medium transition-all duration-200"
               >
                 View pricing
               </Button>

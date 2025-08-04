@@ -88,11 +88,12 @@ async function getPageData(companySlug: string, jobSlugWithId: string) {
 // This is the main component for the page. It fetches data and passes
 // it to the client component.
 export default async function PublicJobPage({ params }: { params: { companySlug: string; jobSlugWithId: string }}) {
-  const { job, userProfile } = await getPageData(params.companySlug, params.jobSlugWithId)
+  const { companySlug, jobSlugWithId } = await params;
+  const { job, userProfile } = await getPageData(companySlug, jobSlugWithId)
 
   if (!job) {
     notFound()
   }
 
-  return <PublicJobView job={job} userProfile={userProfile} />
+  return <PublicJobView job={job} userProfile={userProfile} companySlug={companySlug} />
 } 

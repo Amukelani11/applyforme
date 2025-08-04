@@ -28,18 +28,48 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      console.log('Attempting login for:', formData.email)
+
+      // Check if the user is a recruiter
+      const { data: recruiter, error: recruiterError } = await supabase
+        .from('recruiters')
+        .select('email')
+        .eq('email', formData.email)
+        .single();
+      
+      if (recruiter) {
+        // It's a recruiter, redirect to recruiter login
+        setError("You are a recruiter. Redirecting you to the recruiter login...");
+        setTimeout(() => {
+          router.push('/recruiter/login');
+        }, 2000);
+        return;
+      }
+
+      console.log('Attempting sign in with password...')
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       })
 
-      if (signInError) throw signInError
+      if (signInError) {
+        console.error('Sign in error:', signInError)
+        throw signInError
+      }
 
-      // Let the middleware handle the redirect
-      router.refresh()
+      console.log('Sign in successful, user:', data.user?.id)
+
+      // On successful login, redirect to the dashboard.
+      router.push('/dashboard');
     } catch (err: any) {
       console.error("Login error:", err)
-      setError(err.message)
+      if (err.message.includes("Invalid login credentials")) {
+        setError("Incorrect email or password. Please try again.");
+      } else if (err.message.includes("Email not confirmed")) {
+        setError("Please check your email and confirm your account before signing in.");
+      } else {
+        setError(err.message)
+      }
     } finally {
       setLoading(false)
     }

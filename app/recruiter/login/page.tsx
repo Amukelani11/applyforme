@@ -24,12 +24,19 @@ export default function RecruiterLoginPage() {
     setIsLoading(true)
 
     try {
+      console.log('Attempting recruiter login for:', email)
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (error) throw error
+      if (error) {
+        console.error('Sign in error:', error)
+        throw error
+      }
+
+      console.log('Sign in successful, checking if user is recruiter...')
 
       // Check if user is a recruiter
       const { data: recruiterData, error: recruiterError } = await supabase
@@ -39,9 +46,12 @@ export default function RecruiterLoginPage() {
         .single()
 
       if (recruiterError || !recruiterData) {
+        console.log('User is not a recruiter, signing out...')
         await supabase.auth.signOut()
         throw new Error("This account is not registered as a recruiter")
       }
+
+      console.log('Recruiter login successful')
 
       toast({
         title: "Success",
@@ -51,9 +61,17 @@ export default function RecruiterLoginPage() {
       router.refresh()
     } catch (error: any) {
       console.error("Error signing in:", error)
+      let errorMessage = error.message
+      
+      if (error.message.includes("Invalid login credentials")) {
+        errorMessage = "Incorrect email or password. Please try again."
+      } else if (error.message.includes("Email not confirmed")) {
+        errorMessage = "Please check your email and confirm your account before signing in."
+      }
+      
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {

@@ -44,6 +44,22 @@ export interface SubscriptionData {
   transactionId: string;
 }
 
+export interface NewMessageData {
+  senderName: string
+  jobTitle: string
+  messageContent: string
+  conversationUrl: string
+}
+
+export interface TeamMessageData {
+  senderName: string
+  jobTitle: string
+  candidateName: string
+  messageContent: string
+  applicationUrl: string
+  applicationId: string
+}
+
 // Job Posted Confirmation Email
 export function getJobPostedTemplate(jobData: JobPostingData, recruiterName: string): EmailTemplate {
   return {
@@ -708,6 +724,262 @@ export function getSubscriptionRenewalTemplate(
       Your subscription will continue to be active, and your next billing date is now ${new Date(nextBillingDate).toLocaleDateString()}.\n\n
       Thank you for your continued support!\n\n
       Thanks,\nThe ApplyForMe Team
+    `
+  }
+} 
+
+// Get new message notification template
+export function getNewMessageTemplate(
+  messageData: NewMessageData,
+  recipientName: string
+): EmailTemplate {
+  const subject = `New message from ${messageData.senderName} regarding ${messageData.jobTitle}`;
+  const text = `Hi ${recipientName},\nYou have received a new message from ${messageData.senderName} regarding your application for ${messageData.jobTitle}.\n\nMessage: ${messageData.messageContent}\n\nView and reply here: ${messageData.conversationUrl}`;
+  
+  return {
+    subject,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Message Received</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #374151; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f9fafb;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          }
+          .header { 
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .header h1 { 
+            margin: 0 0 8px 0; 
+            font-size: 28px; 
+            font-weight: 700; 
+            letter-spacing: -0.025em;
+          }
+          .header p { 
+            margin: 0; 
+            font-size: 16px; 
+            opacity: 0.9; 
+            font-weight: 400;
+          }
+          .content { 
+            padding: 40px 30px; 
+            background-color: #ffffff;
+          }
+          .message-card { 
+            background: #f8fafc; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 12px; 
+            padding: 24px; 
+            margin: 24px 0; 
+            border-left: 4px solid #8b5cf6;
+          }
+          .message-card p { 
+            margin: 0; 
+            color: #374151; 
+            font-size: 16px; 
+            line-height: 1.6;
+          }
+          .button { 
+            display: inline-block; 
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); 
+            color: white; 
+            padding: 16px 32px; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 24px 0; 
+            font-weight: 600; 
+            font-size: 16px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3);
+          }
+          .button:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4);
+          }
+          .footer { 
+            text-align: center; 
+            margin-top: 40px; 
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280; 
+            font-size: 14px; 
+          }
+          .sender-info {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            border: 1px solid #e5e7eb;
+          }
+          .sender-info strong {
+            color: #8b5cf6;
+            font-weight: 600;
+          }
+          .job-title {
+            color: #1f2937;
+            font-weight: 600;
+          }
+          .cta-section {
+            text-align: center;
+            margin: 32px 0;
+          }
+          .cta-text {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 16px;
+          }
+          @media only screen and (max-width: 600px) {
+            .container { margin: 0; border-radius: 0; }
+            .header, .content { padding: 24px 20px; }
+            .header h1 { font-size: 24px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💬 New Message Received</h1>
+            <p>You have a new message regarding your job application</p>
+          </div>
+          <div class="content">
+            <p style="font-size: 18px; color: #1f2937; margin-bottom: 24px;">Hi ${recipientName},</p>
+            
+            <div class="sender-info">
+              <p style="margin: 0 0 8px 0;">You have received a new message from <strong>${messageData.senderName}</strong> regarding your application for <span class="job-title">${messageData.jobTitle}</span>.</p>
+            </div>
+            
+            <div class="message-card">
+              <p>${messageData.messageContent}</p>
+            </div>
+            
+            <div class="cta-section">
+              <p class="cta-text">Click the button below to view the full conversation and reply:</p>
+              <a href="${messageData.conversationUrl}" class="button">View Conversation</a>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+              This message was sent from your ApplyForMe account. You can manage your notification preferences in your dashboard settings.
+            </p>
+          </div>
+          <div class="footer">
+            <p style="margin: 0 0 8px 0;"><strong>Best regards,</strong><br>The ApplyForMe Team</p>
+            <p style="margin: 0; font-size: 13px;">Need help? Contact us at <a href="mailto:support@applyforme.com" style="color: #8b5cf6; text-decoration: none;">support@applyforme.com</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text,
+  }
+} 
+
+// Team Message Notification Email
+export function getTeamMessageTemplate(messageData: TeamMessageData, recipientName: string): EmailTemplate {
+  return {
+    subject: `Team Message: ${messageData.senderName} commented on ${messageData.candidateName}'s application`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Team Message Notification</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .message-card { background: white; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+          .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .sender-info { background: #f0f9ff; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💬 Team Message</h1>
+            <p>New comment on candidate application</p>
+          </div>
+          <div class="content">
+            <p>Hi ${recipientName},</p>
+            <p>${messageData.senderName} has added a comment to the application for <strong>${messageData.candidateName}</strong>.</p>
+            
+            <div class="sender-info">
+              <p><strong>From:</strong> ${messageData.senderName}</p>
+              <p><strong>Job:</strong> ${messageData.jobTitle}</p>
+              <p><strong>Candidate:</strong> ${messageData.candidateName}</p>
+            </div>
+            
+            <div class="message-card">
+              <h3>Message:</h3>
+              <p style="white-space: pre-line; margin: 0;">${messageData.messageContent}</p>
+            </div>
+            
+            <p>Click the button below to view the full application and respond to the team message.</p>
+            
+            <a href="${messageData.applicationUrl}" class="button">View Application</a>
+            
+            <p><strong>Quick Actions:</strong></p>
+            <ul>
+              <li>Review the candidate's full profile</li>
+              <li>Add your own notes or comments</li>
+              <li>Update the application status</li>
+              <li>Schedule an interview</li>
+            </ul>
+            
+            <div class="footer">
+              <p>This is an automated notification from your recruitment platform.</p>
+              <p>You can manage your notification preferences in your account settings.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Team Message Notification
+
+Hi ${recipientName},
+
+${messageData.senderName} has added a comment to the application for ${messageData.candidateName}.
+
+From: ${messageData.senderName}
+Job: ${messageData.jobTitle}
+Candidate: ${messageData.candidateName}
+
+Message:
+${messageData.messageContent}
+
+View the full application and respond: ${messageData.applicationUrl}
+
+Quick Actions:
+- Review the candidate's full profile
+- Add your own notes or comments
+- Update the application status
+- Schedule an interview
+
+This is an automated notification from your recruitment platform.
+You can manage your notification preferences in your account settings.
     `
   }
 } 

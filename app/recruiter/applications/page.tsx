@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Eye, Users, ChevronDown, User, Briefcase, FileText } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ interface Application {
   status: string;
   ai_score: number;
   created_at: string;
+  is_read?: boolean;
   job_postings: {
     id: number;
     title: string;
@@ -87,10 +89,10 @@ export default function ApplicationsPage() {
         return;
     }
     
-    // Then get all applications for those jobs
+    // Then get all applications for those jobs with is_read field
     const { data: candidateApps, error: candidateAppsError } = await supabase
       .from("candidate_applications")
-      .select("*, job_postings(id, title)")
+      .select("*, is_read, job_postings(id, title)")
       .in("job_posting_id", jobIds)
       .order("created_at", { ascending: false });
 
@@ -98,10 +100,10 @@ export default function ApplicationsPage() {
       toast({ title: "Error fetching applications", description: candidateAppsError.message, variant: "destructive" });
     }
     
-    // Fetch public applications
+    // Fetch public applications with is_read field
     const { data: publicApps, error: publicAppsError } = await supabase
       .from("public_applications")
-      .select("*")
+      .select("*, is_read")
       .in("job_id", jobIds)
       .order("created_at", { ascending: false });
 
@@ -204,16 +206,39 @@ export default function ApplicationsPage() {
                   <TableRow><TableCell colSpan={6} className="text-center py-16 text-gray-500"><FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />No applications match your filters.</TableCell></TableRow>
               ) : (
                   filteredApplications.map(app => (
-                  <motion.tr key={app.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="hover:bg-gray-50/50 transition-colors">
+                  <motion.tr key={app.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className={cn(
+                    "hover:bg-gray-50/50 transition-colors",
+                    app.is_read === false && "bg-blue-50/30 border-l-4 border-l-blue-500"
+                  )}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${app.candidate_name}`} />
-                            <AvatarFallback>{app.candidate_name.charAt(0)}</AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-10 w-10 border">
+                              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${app.candidate_name}`} />
+                              <AvatarFallback>{app.candidate_name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            {app.is_read === false && (
+                              <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse" />
+                            )}
+                          </div>
                           <div>
-                            <div className="font-medium text-gray-800">{app.candidate_name}</div>
-                            <div className="text-sm text-gray-500">{app.candidate_email}</div>
+                            <div className={cn(
+                              "font-medium",
+                              app.is_read === false ? "text-blue-900" : "text-gray-800"
+                            )}>
+                              {app.candidate_name}
+                              {app.is_read === false && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  New
+                                </span>
+                              )}
+                            </div>
+                            <div className={cn(
+                              "text-sm",
+                              app.is_read === false ? "text-blue-600" : "text-gray-500"
+                            )}>
+                              {app.candidate_email}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
@@ -222,8 +247,13 @@ export default function ApplicationsPage() {
                       <TableCell><Badge variant="outline" className="border-gray-200 text-gray-700 font-mono">{app.is_public ? 'N/A' : `${Math.round(app.ai_score * 100)}%`}</Badge></TableCell>
                       <TableCell className="text-gray-600">{formatDistanceToNow(new Date(app.created_at), { addSuffix: true })}</TableCell>
                       <TableCell className="text-right">
-                          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-theme-600 hover:bg-theme-100/50 rounded-md" disabled={!app.job_postings}>
-                              <Link href={app.job_postings ? `/recruiter/jobs/${app.job_postings.id}/applications/${app.id}${app.is_public ? '?public=true' : ''}` : '#'}>
+                          <Button asChild variant="ghost" size="icon" className={cn(
+                            "h-8 w-8 rounded-md",
+                            app.is_read === false 
+                              ? "text-blue-600 hover:text-blue-700 hover:bg-blue-100/50" 
+                              : "text-gray-500 hover:text-theme-600 hover:bg-theme-100/50"
+                          )} disabled={!app.job_postings}>
+                              <Link href={app.job_postings ? `/recruiter/jobs/${app.job_postings.id}/applications/${app.id}${app.is_public ? '?type=public' : ''}` : '#'}>
                                 <Eye className="h-5 w-5" />
                               </Link>
                           </Button>

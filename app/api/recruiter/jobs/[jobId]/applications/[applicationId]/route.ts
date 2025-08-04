@@ -1,20 +1,87 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { config } from "@/lib/config";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Google Cloud AI Analysis
+// Google Generative AI Analysis
 async function analyzeApplicationWithAI(candidateData: any, jobPosting: any) {
-  const GOOGLE_CLOUD_API_KEY = config.googleCloud.apiKey;
-  const GOOGLE_CLOUD_PROJECT_ID = config.googleCloud.projectId;
-  const GOOGLE_CLOUD_LOCATION = config.googleCloud.location;
+  const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
-  if (!GOOGLE_CLOUD_API_KEY) {
-    console.warn('Google Cloud API key not configured, using mock analysis');
+  if (!GOOGLE_API_KEY) {
+    console.warn('Google API key not configured, using mock analysis');
     return generateMockAnalysis(candidateData, jobPosting);
   }
 
   try {
-    // Prepare candidate profile for AI analysis
+    // Initialize the Google Generative AI client
+    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+
+    // --------------------------------------
+    // 1. Extract CV text (if a resume PDF is available)
+    // --------------------------------------
+    let cvText = '';
+    try {
+      const cvUrl = (candidateData.documents && candidateData.documents[0]?.file_url) || candidateData.cv_url || null;
+      if (cvUrl) {
+        console.log('Attempting to extract text from CV URL:', cvUrl);
+        const cvRes = await fetch(cvUrl);
+        if (cvRes.ok) {
+          const arrayBuffer = await cvRes.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          
+          // Try to extract text using Google AI's text extraction capabilities
+          try {
+            // Use Google AI to extract text from the PDF
+            const visionModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+            
+            // Convert PDF to base64 for Google AI processing
+            const base64Data = buffer.toString('base64');
+            const mimeType = 'application/pdf';
+            
+            const prompt = "Please extract and return all the text content from this PDF document. Focus on extracting: 1) Personal information (name, contact details), 2) Work experience and job titles, 3) Education and qualifications, 4) Skills and certifications, 5) Any other relevant professional information. Return only the extracted text without any analysis or commentary.";
+            
+            const result = await visionModel.generateContent([
+              prompt,
+              {
+                inlineData: {
+                  data: base64Data,
+                  mimeType: mimeType
+                }
+              }
+            ]);
+            
+            const response = await result.response;
+            cvText = response.text();
+            console.log('Successfully extracted CV text using Google AI, length:', cvText.length);
+            
+            // Limit the text length to avoid token limits
+            if (cvText.length > 4000) {
+              cvText = cvText.substring(0, 4000) + '... (truncated)';
+            }
+            
+          } catch (aiExtractionError) {
+            console.warn('Google AI text extraction failed, using fallback method:', aiExtractionError);
+            
+            // Fallback: Try to extract text using a simple approach
+            // For now, we'll use a placeholder but indicate the CV is available
+            cvText = `CV document is available for review. The candidate has uploaded a resume/CV document. Please review the attached CV for detailed information about the candidate's experience, skills, and qualifications.`;
+          }
+        } else {
+          console.warn('Failed to fetch CV, status:', cvRes.status, 'URL:', cvUrl);
+          cvText = 'CV document could not be accessed for text extraction.';
+        }
+      } else {
+        console.log('No CV URL available for text extraction');
+        cvText = 'No CV document was provided by the candidate.';
+      }
+    } catch (cvErr) {
+      console.warn('Failed to extract text from CV PDF:', cvErr);
+      cvText = 'CV document processing failed. Please review the attached CV manually.';
+    }
+
+    // --------------------------------------
+    // 2. Prepare candidate profile for AI analysis
+    // --------------------------------------
     const candidateProfile = `
 Candidate Profile:
 Name: ${candidateData.user?.full_name || candidateData.full_name || 'Not provided'}
@@ -38,20 +105,9 @@ Requirements: ${jobPosting.requirements || 'No specific requirements listed'}
 Description: ${jobPosting.description || 'No job description provided'}
 `;
 
-    const response = await fetch(
-      `https://${GOOGLE_CLOUD_LOCATION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_CLOUD_PROJECT_ID}/locations/${GOOGLE_CLOUD_LOCATION}/publishers/google/models/gemini-pro:generateContent`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GOOGLE_CLOUD_API_KEY}`
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Analyze this job application and provide a comprehensive assessment. Be specific and actionable.
+    const prompt = `Analyze this job application and provide a comprehensive assessment. Be specific and actionable.
 
-${candidateProfile}
+${cvText ? `CV Content:\n${cvText}\n\n` : ''}${candidateProfile}
 
 ${jobRequirements}
 
@@ -94,25 +150,11 @@ Please provide your analysis in the following JSON format:
     "<step 1>",
     "<step 2>"
   ]
-}`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.2,
-            topP: 0.8,
-            topK: 40,
-            maxOutputTokens: 2048
-          }
-        })
-      }
-    );
+}`;
 
-    if (!response.ok) {
-      throw new Error(`Google Cloud AI API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const aiText = response.text();
     
     if (!aiText) {
       throw new Error('No AI response received');
@@ -230,39 +272,147 @@ function parseAIResponseFallback(aiText: string, candidateData: any, jobPosting:
   };
 }
 
+interface ApplicationUpdateData {
+  status?: string;
+  notes?: string;
+  markAsRead?: boolean;
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { jobId: string; applicationId: string } }
+) {
+  try {
+    const { jobId, applicationId } = await params;
+    const url = new URL(request.url);
+    
+    // Determine if this is a public application by checking if the ID starts with "public-"
+    const isPublicApplication = applicationId.startsWith('public-');
+    const actualApplicationId = isPublicApplication ? applicationId.replace('public-', '') : applicationId;
+    const type = isPublicApplication ? 'public' : (url.searchParams.get('type') || 'candidate');
+    
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify this recruiter owns the job
+    const { data: recruiter } = await supabase
+      .from('recruiters')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!recruiter) {
+      return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 });
+    }
+
+    const { data: job } = await supabase
+      .from('job_postings')
+      .select('id')
+      .eq('id', jobId)
+      .eq('recruiter_id', recruiter.id)
+      .single();
+
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found or unauthorized' }, { status: 404 });
+    }
+
+    const updateData: ApplicationUpdateData = await request.json();
+    const dbUpdate: any = {};
+
+    if (updateData.status) {
+      dbUpdate.status = updateData.status;
+    }
+    
+    if (updateData.notes !== undefined) {
+      dbUpdate.recruiter_notes = updateData.notes;
+    }
+
+    if (updateData.markAsRead) {
+      dbUpdate.is_read = true;
+    }
+
+    let result;
+    if (type === 'public') {
+      const { data, error } = await supabase
+        .from('public_applications')
+        .update(dbUpdate)
+        .eq('id', actualApplicationId)
+        .eq('job_id', jobId)
+        .select()
+        .single();
+
+      result = { data, error };
+    } else {
+      const { data, error } = await supabase
+        .from('candidate_applications')
+        .update(dbUpdate)
+        .eq('id', actualApplicationId)
+        .eq('job_posting_id', jobId)
+        .select()
+        .single();
+
+      result = { data, error };
+    }
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    return NextResponse.json({ success: true, data: result.data });
+  } catch (error: any) {
+    console.error('Error updating application:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function GET(
   request: Request,
   { params }: { params: { jobId: string; applicationId: string } }
 ) {
   try {
+    const { jobId, applicationId } = await params;
+    const url = new URL(request.url);
+    
+    // Determine if this is a public application by checking if the ID starts with "public-"
+    const isPublicApplication = applicationId.startsWith('public-');
+    const actualApplicationId = isPublicApplication ? applicationId.replace('public-', '') : applicationId;
+    const type = isPublicApplication ? 'public' : (url.searchParams.get('type') || 'candidate');
+    
     const supabase = await createClient();
-    const { jobId, applicationId } = params;
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'candidate';
-
-    // Get current user to verify they're a recruiter for this job
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify recruiter owns this job
-    const { data: jobPosting, error: jobError } = await supabase
-      .from('job_postings')
-      .select(`
-        *,
-        recruiter:recruiters!inner(user_id)
-      `)
-      .eq('id', jobId)
-      .eq('recruiter.user_id', user.id)
+    // Verify this recruiter owns the job
+    const { data: recruiter } = await supabase
+      .from('recruiters')
+      .select('id')
+      .eq('user_id', user.id)
       .single();
 
-    if (jobError || !jobPosting) {
+    if (!recruiter) {
+      return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 });
+    }
+
+    const { data: job } = await supabase
+      .from('job_postings')
+      .select('*')
+      .eq('id', jobId)
+      .eq('recruiter_id', recruiter.id)
+      .single();
+
+    if (!job) {
       return NextResponse.json({ error: 'Job not found or unauthorized' }, { status: 404 });
     }
 
-    let applicationData;
-    let candidateData;
+    let applicationData: any = null;
+    let candidateData: any = null;
 
     if (type === 'candidate') {
       // Fetch candidate application
@@ -281,12 +431,21 @@ export async function GET(
             portfolio_url
           )
         `)
-        .eq('id', applicationId)
+        .eq('id', actualApplicationId)
         .eq('job_posting_id', jobId)
         .single();
 
       if (appError || !application) {
         return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+      }
+
+      // Mark as read if not already read
+      if (!application.is_read) {
+        await supabase
+          .from('candidate_applications')
+          .update({ is_read: true })
+          .eq('id', applicationId)
+          .eq('job_posting_id', jobId);
       }
 
       // Fetch additional candidate data
@@ -322,142 +481,177 @@ export async function GET(
         .order('created_at', { ascending: false })
         .limit(1);
 
-      applicationData = application;
-      candidateData = {
+      applicationData = {
         ...application,
+        full_name: application.user?.full_name || application.full_name,
+        email: application.user?.email || application.email,
+        phone: application.user?.phone || application.phone,
+      };
+      candidateData = {
+        id: application.id,
+        full_name: application.user?.full_name || application.full_name,
+        email: application.user?.email || application.email,
+        phone: application.user?.phone || application.phone,
+        location: application.user?.location || application.location,
+        linkedin_url: application.user?.linkedin_url,
+        github_url: application.user?.github_url,
+        portfolio_url: application.user?.portfolio_url,
         work_experience: workExperience || [],
         education: education || [],
         certifications: certifications || [],
-        documents: documents || []
+        documents: documents || [],
+        status: application.status || 'new'
       };
 
-    } else {
-      // Fetch public/detailed application
+    } else if (type === 'public') {
+      // Handle public applications
+      const actualApplicationId = applicationId.startsWith('public-') 
+        ? applicationId.replace('public-', '') 
+        : applicationId;
+
+      const tryParseJSON = (value: any) => {
+        if (!value || typeof value !== 'string') return null;
+        try {
+          return JSON.parse(value);
+        } catch {
+          return null;
+        }
+      };
+
       const { data: application, error: appError } = await supabase
         .from('public_applications')
         .select('*')
-        .eq('id', applicationId)
+        .eq('id', actualApplicationId)
         .eq('job_id', jobId)
         .single();
 
       if (appError || !application) {
-        return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+        return NextResponse.json({ error: 'Public application not found' }, { status: 404 });
+      }
+
+      // Mark as read if not already read
+      if (!application.is_read) {
+        await supabase
+          .from('public_applications')
+          .update({ is_read: true })
+          .eq('id', actualApplicationId)
+          .eq('job_id', jobId);
       }
 
       applicationData = application;
+      const parsedWorkExp = Array.isArray(application.work_experience)
+        ? application.work_experience
+        : tryParseJSON(application.work_experience) || [];
+
+      const parsedEdu = Array.isArray(application.education)
+        ? application.education
+        : tryParseJSON(application.education) || [];
+
+      // Create CV URL from cv_path if available
+      // For public applications, we can use the regular client since storage policies allow access
+      let cvUrl = null;
+      if (application.cv_path) {
+        try {
+          const { data: signedUrl } = await supabase.storage
+            .from('documents')
+            .createSignedUrl(application.cv_path, 3600); // 1 hour expiry
+          cvUrl = signedUrl?.signedUrl || null;
+          console.log('Created signed URL for CV:', cvUrl);
+        } catch (error) {
+          console.warn('Failed to create signed URL for CV:', error);
+          // Fallback to direct URL if signed URL fails
+          cvUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/documents/${application.cv_path}`;
+        }
+      }
+
       candidateData = {
-        ...application,
-        user: {
-          full_name: `${application.first_name} ${application.last_name}`.trim(),
-          email: application.email,
-          phone: application.phone_number,
-          location: application.location
-        },
-        work_experience: application.work_experience || [],
-        education: application.education || [],
+        id: `public-${application.id}`,
+        full_name: application.full_name,
+        email: application.email,
+        phone: application.phone_number,
+        location: application.location,
+        work_experience: parsedWorkExp,
+        education: parsedEdu,
         certifications: [],
-        documents: application.cv_path ? [{ file_url: application.cv_path, type: 'cv' }] : []
+        documents: cvUrl ? [{ file_url: cvUrl }] : [],
+        cv_url: cvUrl,
+        cover_letter: application.cover_letter || null,
+        status: 'new'
       };
     }
 
-    // Perform AI analysis
-    const aiAnalysis = await analyzeApplicationWithAI(candidateData, jobPosting);
+    // Check if AI analysis already exists and is recent (within 24 hours)
+    let ai_analysis = null;
+    const shouldRunAI = (analysis: any, updatedAt: string) => {
+      if (!analysis) return true;
+      if (!updatedAt) return true;
+      
+      const lastAnalysis = new Date(updatedAt);
+      const now = new Date();
+      const hoursSinceAnalysis = (now.getTime() - lastAnalysis.getTime()) / (1000 * 60 * 60);
+      
+      // Re-run analysis if it's older than 24 hours
+      return hoursSinceAnalysis > 24;
+    };
 
-    // Return comprehensive application data
+    if (type === 'candidate') {
+      // Check existing AI analysis for candidate applications
+      if (applicationData.ai_analysis && !shouldRunAI(applicationData.ai_analysis, applicationData.ai_analysis_updated_at)) {
+        ai_analysis = applicationData.ai_analysis;
+        console.log('Using cached AI analysis for candidate application');
+      } else {
+        // Perform new AI analysis
+        ai_analysis = await analyzeApplicationWithAI(candidateData, job);
+        
+        // Save the analysis to database
+        await supabase
+          .from('candidate_applications')
+          .update({ 
+            ai_analysis: ai_analysis,
+            ai_analysis_updated_at: new Date().toISOString()
+          })
+          .eq('id', applicationId)
+          .eq('job_posting_id', jobId);
+        
+        console.log('Performed new AI analysis for candidate application');
+      }
+    } else if (type === 'public') {
+      // Check existing AI analysis for public applications
+      if (applicationData.ai_analysis && !shouldRunAI(applicationData.ai_analysis, applicationData.ai_analysis_updated_at)) {
+        ai_analysis = applicationData.ai_analysis;
+        console.log('Using cached AI analysis for public application');
+      } else {
+        // Perform new AI analysis
+        ai_analysis = await analyzeApplicationWithAI(candidateData, job);
+        
+        // Save the analysis to database
+        const actualApplicationId = applicationId.startsWith('public-') 
+          ? applicationId.replace('public-', '') 
+          : applicationId;
+          
+        await supabase
+          .from('public_applications')
+          .update({ 
+            ai_analysis: ai_analysis,
+            ai_analysis_updated_at: new Date().toISOString()
+          })
+          .eq('id', actualApplicationId)
+          .eq('job_id', jobId);
+        
+        console.log('Performed new AI analysis for public application');
+      }
+    }
+
     return NextResponse.json({
       application: applicationData,
       candidate: candidateData,
-      job: jobPosting,
-      ai_analysis: aiAnalysis,
-      type
+      job: job,
+      ai_analysis: ai_analysis,
+      type: type
     });
 
   } catch (error: any) {
-    console.error('Application fetch error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-// Update application status (shortlist/reject)
-export async function PATCH(
-  request: Request,
-  { params }: { params: { jobId: string; applicationId: string } }
-) {
-  try {
-    const supabase = await createClient();
-    const { jobId, applicationId } = params;
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'candidate';
-    
-    const body = await request.json();
-    const { status, notes } = body;
-
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify recruiter owns this job
-    const { data: jobPosting, error: jobError } = await supabase
-      .from('job_postings')
-      .select(`
-        *,
-        recruiter:recruiters!inner(user_id)
-      `)
-      .eq('id', jobId)
-      .eq('recruiter.user_id', user.id)
-      .single();
-
-    if (jobError || !jobPosting) {
-      return NextResponse.json({ error: 'Job not found or unauthorized' }, { status: 404 });
-    }
-
-    let updateData: any = {};
-    if (status) updateData.status = status;
-    if (notes !== undefined) updateData.recruiter_notes = notes;
-    updateData.updated_at = new Date().toISOString();
-
-    if (type === 'candidate') {
-      // Update candidate application
-      const { data, error } = await supabase
-        .from('candidate_applications')
-        .update(updateData)
-        .eq('id', applicationId)
-        .eq('job_posting_id', jobId)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
-
-      return NextResponse.json({ success: true, application: data });
-    } else {
-      // Update public/detailed application
-      const { data, error } = await supabase
-        .from('public_applications')
-        .update(updateData)
-        .eq('id', applicationId)
-        .eq('job_id', jobId)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
-
-      return NextResponse.json({ success: true, application: data });
-    }
-
-  } catch (error: any) {
-    console.error('Application update error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error fetching application:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 } 

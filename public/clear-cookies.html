@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Malformed Cookies</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #c82333;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Clear Malformed Supabase Cookies</h1>
+        <p>This page will help clear malformed Supabase cookies that are causing authentication issues.</p>
+        
+        <button onclick="clearAllCookies()">Clear All Supabase Cookies</button>
+        <button onclick="clearMalformedCookies()">Clear Only Malformed Cookies</button>
+        <button onclick="checkCookies()">Check Current Cookies</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function clearAllCookies() {
+            const resultDiv = document.getElementById('result');
+            const cookies = document.cookie.split(';');
+            let clearedCount = 0;
+            
+            cookies.forEach(cookie => {
+                const name = cookie.split('=')[0].trim();
+                if (name.includes('sb-') || name.includes('supabase')) {
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    clearedCount++;
+                }
+            });
+            
+            resultDiv.innerHTML = `<p class="success">Cleared ${clearedCount} Supabase cookies!</p>`;
+        }
+        
+        function clearMalformedCookies() {
+            const resultDiv = document.getElementById('result');
+            const cookies = document.cookie.split(';');
+            let clearedCount = 0;
+            
+            cookies.forEach(cookie => {
+                const parts = cookie.split('=');
+                const name = parts[0].trim();
+                const value = parts.slice(1).join('=');
+                
+                if (value && value.startsWith('base64-')) {
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    clearedCount++;
+                }
+            });
+            
+            resultDiv.innerHTML = `<p class="success">Cleared ${clearedCount} malformed cookies!</p>`;
+        }
+        
+        function checkCookies() {
+            const resultDiv = document.getElementById('result');
+            const cookies = document.cookie.split(';');
+            let supabaseCookies = [];
+            let malformedCookies = [];
+            
+            cookies.forEach(cookie => {
+                const parts = cookie.split('=');
+                const name = parts[0].trim();
+                const value = parts.slice(1).join('=');
+                
+                if (name.includes('sb-') || name.includes('supabase')) {
+                    supabaseCookies.push(name);
+                    
+                    if (value && value.startsWith('base64-')) {
+                        malformedCookies.push(name);
+                    }
+                }
+            });
+            
+            let html = '<h3>Cookie Status:</h3>';
+            html += `<p class="info">Total Supabase cookies: ${supabaseCookies.length}</p>`;
+            html += `<p class="error">Malformed cookies: ${malformedCookies.length}</p>`;
+            
+            if (supabaseCookies.length > 0) {
+                html += '<h4>Supabase Cookies:</h4><ul>';
+                supabaseCookies.forEach(cookie => {
+                    const isMalformed = malformedCookies.includes(cookie);
+                    const className = isMalformed ? 'error' : 'success';
+                    html += `<li class="${className}">${cookie}${isMalformed ? ' (MALFORMED)' : ''}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+        
+        // Check cookies on page load
+        window.onload = function() {
+            checkCookies();
+        };
+    </script>
+</body>
+</html> 

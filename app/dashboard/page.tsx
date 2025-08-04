@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { supabase } from "@/lib/supabaseClient"
+import { createClient } from "@/lib/supabase/client"
 import { Calendar, Briefcase, FileText, Lightbulb, Clock, Star, BookmarkPlus, Plus, Trash2, Upload, Award, Sparkles, Eye, Bookmark, User, ArrowRight, CheckCircle, Lock } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -159,10 +159,10 @@ export default function DashboardPage() {
   }
 
   const getChecklistItems = () => {
-    const items = [];
+    const items: { text: string; href: string }[] = [];
     if (profileStrength < 100) items.push({ text: "Complete Your Profile", href: "/dashboard/profile" });
-    if (!applications || applications.length === 0) items.push({ text: "Apply for your first job", href: "/jobs" });
-    items.push({ text: "Get AI Job Recommendations", href: "/dashboard/ai-recommendations" });
+    if (!applications || applications.length === 0) items.push({ text: "Set Your Job Preferences", href: "/dashboard/preferences" });
+    items.push({ text: "Configure AI Recommendations", href: "/dashboard/preferences" });
     return items;
   }
 
@@ -185,11 +185,6 @@ export default function DashboardPage() {
           <Button asChild variant="outline">
             <Link href="/dashboard/documents">
               <Upload className="mr-2 h-4 w-4" /> Upload CV
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/jobs">
-              Find a Job <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
             </div>
@@ -235,7 +230,7 @@ export default function DashboardPage() {
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">You haven't applied to any jobs yet.</p>
                   <Button asChild variant="link" className="mt-2">
-                    <Link href="/jobs">Find jobs to apply for</Link>
+                    <Link href="/dashboard/preferences">Set your preferences</Link>
                       </Button>
                     </div>
                   )}

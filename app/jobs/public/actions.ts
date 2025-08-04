@@ -1,11 +1,12 @@
 "use server"
 
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 
 export async function submitPublicApplication(jobId: number, formData: FormData) {
   try {
+    const supabase = createClient()
     const fullName = formData.get("fullName") as string;
     const email = formData.get("email") as string;
     const cvFile = formData.get("cv") as File;

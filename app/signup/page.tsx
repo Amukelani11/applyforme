@@ -54,6 +54,17 @@ export default function SignUpPage() {
         throw new Error("No user data returned")
       }
 
+      // If the plan is free, update the user record
+      if (formData.plan === 'basic' || formData.plan === 'pro') {
+        await fetch('/api/auth/set-free-plan', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: authData.user.id, plan: formData.plan }),
+        });
+      }
+
       // Sign in the user immediately after signup
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,

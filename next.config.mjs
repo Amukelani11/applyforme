@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['pdfjs-dist', '@react-pdf-viewer/core', '@react-pdf-viewer/default-layout'],
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -15,10 +16,7 @@ const nextConfig = {
     GOOGLE_CLOUD_LOCATION: process.env.GOOGLE_CLOUD_LOCATION
   },
   // Updated configuration for Next.js 15
-  serverExternalPackages: ['canvas', 'pdfjs-dist'],
-  serverActions: {
-    bodySizeLimit: '10mb',
-  },
+  serverExternalPackages: ['canvas'],
   webpack: (config, { isServer }) => {
     // Handle PDF.js and canvas for both server and client
     if (!isServer) {

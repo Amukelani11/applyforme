@@ -1,18 +1,8 @@
-"use client"
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Download, Send, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
-import { useToast } from '@/hooks/use-toast'
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 interface Application {
   id: number
@@ -37,465 +27,200 @@ interface User {
   address: string | null
 }
 
-interface Recruiter {
-  id: string
-  user_id: string
-  company_name: string
-  contact_email: string
-  contact_phone: string | null
-  industry: string | null
-  location: string | null
-  is_verified: boolean
-  created_at: string
+async function getApplication(supabase: any, applicationId: string) {
+  const { data: application, error } = await supabase
+    .from('applications')
+    .select('*')
+    .eq('id', applicationId)
+    .single();
+
+  return { application, error };
 }
 
-interface JobPosting {
-  id: number
-  recruiter_id: string
-  title: string
-  company: string
-  location: string | null
-  job_type: string
-  salary_range: string | null
-  is_active: boolean
-  created_at: string
+async function getUser(supabase: any, userId: string) {
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  return { user, error };
 }
 
-export default function ApplicationPage({ params }: { params: { applicationId: string } }) {
-  const router = useRouter()
-  const [application, setApplication] = useState<Application | null>(null)
-  const [user, setUser] = useState<User | null>(null)
-  const [recruiters, setRecruiters] = useState<Recruiter[]>([])
-  const [jobPostings, setJobPostings] = useState<JobPosting[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [notes, setNotes] = useState('')
-  const [nextSteps, setNextSteps] = useState('')
-  const [selectedRecruiter, setSelectedRecruiter] = useState<string>('')
-  const [selectedJob, setSelectedJob] = useState<string>('')
-  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false)
-  const supabase = createClientComponentClient()
-  const { toast } = useToast()
+export default async function ApplicationPage({ params }: { params: Promise<{ applicationId: string }> }) {
+  const { applicationId } = await params;
+  const supabase = await createClient();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Check if user is admin
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError) throw sessionError
-
-        if (!session) {
-          router.push('/login')
-          return
-        }
-
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single()
-
-        if (userError) throw userError
-        if (!userData.is_admin) {
-          router.push('/dashboard')
-          return
-        }
-
-        // Fetch application
-        const { data: applicationData, error: applicationError } = await supabase
-          .from('applications')
-          .select('*')
-          .eq('id', params.applicationId)
-          .single()
-
-        if (applicationError) throw applicationError
-        setApplication(applicationData)
-        setNotes(applicationData.notes || '')
-        setNextSteps(applicationData.next_steps || '')
-
-        // Fetch user data
-        const { data: userData2, error: userError2 } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', applicationData.user_id)
-          .single()
-
-        if (userError2) throw userError2
-        setUser(userData2)
-
-        // Fetch recruiters
-        const { data: recruitersData, error: recruitersError } = await supabase
-          .from('recruiters')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (recruitersError) throw recruitersError
-        setRecruiters(recruitersData || [])
-
-        // Fetch job postings
-        const { data: jobPostingsData, error: jobPostingsError } = await supabase
-          .from('job_postings')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (jobPostingsError) throw jobPostingsError
-        setJobPostings(jobPostingsData || [])
-
-      } catch (error: any) {
-        console.error('Application details error:', error)
-        setError(error.message || 'An error occurred while loading the application details')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [router, supabase, params.applicationId])
-
-  const handleStatusChange = async (newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('applications')
-        .update({ status: newStatus })
-        .eq('id', params.applicationId)
-
-      if (error) throw error
-
-      setApplication(prev => prev ? { ...prev, status: newStatus } : null)
-    } catch (error: any) {
-      console.error('Status update error:', error)
-      setError(error.message || 'Failed to update status')
-    }
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    redirect('/login');
   }
 
-  const handleSaveNotes = async () => {
-    try {
-      const { error } = await supabase
-        .from('applications')
-        .update({ 
-          notes,
-          next_steps: nextSteps,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', params.applicationId)
+  const { data: adminData, error: adminError } = await supabase
+    .from('users')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
 
-      if (error) throw error
-
-      setApplication(prev => prev ? { 
-        ...prev, 
-        notes,
-        next_steps: nextSteps,
-        updated_at: new Date().toISOString()
-      } : null)
-    } catch (error: any) {
-      console.error('Notes update error:', error)
-      setError(error.message || 'Failed to save notes')
-    }
+  if (adminError || !adminData?.is_admin) {
+    redirect('/dashboard');
   }
 
-  const handleSendCVToRecruiter = async () => {
-    if (!user || !selectedRecruiter || !selectedJob) {
-      toast({
-        title: "Error",
-        description: "Please select a recruiter and job",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      // Get user's CV URL
-      const { data: documents, error: documentsError } = await supabase
-        .from('documents')
-        .select('file_url')
-        .eq('user_id', user.id)
-        .eq('document_type', 'cv')
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (documentsError) throw documentsError
-
-      if (!documents || documents.length === 0) {
-        toast({
-          title: "Error",
-          description: "No CV found for this user",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Create candidate application
-      const { error: applicationError } = await supabase
-        .from('candidate_applications')
-        .insert({
-          job_posting_id: parseInt(selectedJob),
-          user_id: user.id,
-          cv_url: documents[0].file_url,
-          status: 'pending',
-          recruiter_notes: `CV sent by admin from ${user.full_name || user.email}`
-        })
-
-      if (applicationError) throw applicationError
-
-      toast({
-        title: "Success",
-        description: "CV sent to recruiter successfully",
-      })
-
-      setIsSendDialogOpen(false)
-      setSelectedRecruiter('')
-      setSelectedJob('')
-    } catch (error: any) {
-      console.error('Error sending CV:', error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send CV",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const getJobsForRecruiter = (recruiterId: string) => {
-    return jobPostings.filter(job => job.recruiter_id === recruiterId && job.is_active)
-  }
-
-  if (loading) {
+  const { application, error: applicationError } = await getApplication(supabase, applicationId);
+  if (applicationError || !application) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c084fc] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading application details...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()}
-            className="bg-[#c084fc] hover:bg-[#a855f7]"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  if (!application || !user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">Application not found</p>
-          <Link href="/admin">
-            <Button className="bg-[#c084fc] hover:bg-[#a855f7]">
-              Back to Admin Dashboard
-            </Button>
+          <h1 className="text-2xl font-bold text-red-500">Application Not Found</h1>
+          <p className="text-muted-foreground">The application you're looking for doesn't exist.</p>
+          <Link href="/admin/applications" className="mt-4 inline-block text-blue-600 hover:underline">
+            Back to Applications
           </Link>
         </div>
       </div>
-    )
+    );
+  }
+
+  const { user: applicantUser, error: userError2 } = await getUser(supabase, application.user_id);
+  if (userError2) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-500">Error Loading User</h1>
+          <p className="text-muted-foreground">{userError2.message}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <Link href="/admin">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <div className="flex items-center justify-between space-y-2">
+        <div className="flex items-center space-x-2">
+          <Link href="/admin/applications">
+            <Badge variant="outline" className="cursor-pointer">
+              ← Back to Applications
+            </Badge>
           </Link>
-          <h1 className="text-3xl font-bold">Application Details</h1>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href={`/admin/${user.id}`}>
-            <Button variant="outline">
-              View User Profile
-            </Button>
-          </Link>
-          <Button>
-            <Download className="h-4 w-4 mr-2" />
-            Download CV
-          </Button>
-          <Button 
-            onClick={() => setIsSendDialogOpen(true)}
-            className="bg-[#c084fc] hover:bg-[#a855f7]"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            Send CV to Recruiter
-          </Button>
-        </div>
+        <h2 className="text-3xl font-bold tracking-tight">Application Details</h2>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Application Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Job Details</CardTitle>
+            <CardTitle>Application Information</CardTitle>
+            <CardDescription>Details about this job application</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p><strong>Position:</strong> {application.job_title}</p>
-              <p><strong>Company:</strong> {application.company}</p>
-              <p><strong>Location:</strong> {application.location || 'N/A'}</p>
-              <p><strong>Salary Range:</strong> {application.salary_range || 'N/A'}</p>
-              <p><strong>Applied Date:</strong> {new Date(application.applied_date).toLocaleDateString()}</p>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Job Title</label>
+              <p className="text-sm text-gray-600">{application.job_title}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Company</label>
+              <p className="text-sm text-gray-600">{application.company}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Location</label>
+              <p className="text-sm text-gray-600">{application.location || 'Not specified'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Salary Range</label>
+              <p className="text-sm text-gray-600">{application.salary_range || 'Not specified'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Status</label>
+              <Badge className={
+                application.status === 'applied' ? 'bg-blue-100 text-blue-800' :
+                application.status === 'interviewing' ? 'bg-yellow-100 text-yellow-800' :
+                application.status === 'hired' ? 'bg-green-100 text-green-800' :
+                application.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'
+              }>
+                {application.status}
+              </Badge>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Applied Date</label>
+              <p className="text-sm text-gray-600">{new Date(application.applied_date).toLocaleDateString()}</p>
             </div>
           </CardContent>
         </Card>
 
+        {/* Applicant Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Applicant Information</CardTitle>
+            <CardDescription>Details about the applicant</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Name</label>
+              <p className="text-sm text-gray-600">{applicantUser.full_name || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <p className="text-sm text-gray-600">{applicantUser.email}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Phone</label>
+              <p className="text-sm text-gray-600">{applicantUser.phone || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Address</label>
+              <p className="text-sm text-gray-600">{applicantUser.address || 'Not provided'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Contact Information */}
+      {(application.contact_name || application.contact_email) && (
         <Card>
           <CardHeader>
             <CardTitle>Contact Information</CardTitle>
+            <CardDescription>Contact details for this application</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p><strong>Name:</strong> {application.contact_name || 'N/A'}</p>
-              <p><strong>Email:</strong> {application.contact_email || 'N/A'}</p>
-              <p><strong>Applicant:</strong> {user.full_name || user.email}</p>
-              <p><strong>Phone:</strong> {user.phone || 'N/A'}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="space-y-4">
+            {application.contact_name && (
               <div>
-                <Badge className={
-                  application.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                  application.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                  application.status === 'interviewed' ? 'bg-yellow-100 text-yellow-800' : 
-                  'bg-gray-100 text-gray-800'
-                }>
-                  {application.status}
-                </Badge>
+                <label className="text-sm font-medium">Contact Name</label>
+                <p className="text-sm text-gray-600">{application.contact_name}</p>
               </div>
-              <Select
-                value={application.status}
-                onValueChange={handleStatusChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Update status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="reviewing">Reviewing</SelectItem>
-                  <SelectItem value="interviewed">Interviewed</SelectItem>
-                  <SelectItem value="accepted">Accepted</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            )}
+            {application.contact_email && (
+              <div>
+                <label className="text-sm font-medium">Contact Email</label>
+                <p className="text-sm text-gray-600">{application.contact_email}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
-      </div>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add notes about this application..."
-              className="min-h-[200px]"
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Next Steps</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={nextSteps}
-              onChange={(e) => setNextSteps(e.target.value)}
-              placeholder="Add next steps for this application..."
-              className="min-h-[200px]"
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <Button onClick={handleSaveNotes}>
-          Save Changes
-        </Button>
-      </div>
-
-      {/* Send CV Dialog */}
-      <Dialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Send CV to Recruiter</DialogTitle>
-            <DialogDescription>
-              Send {user?.full_name || user?.email}'s CV to a recruiter for a specific job.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="recruiter" className="text-sm font-medium">
-                Select Recruiter
-              </label>
-              <Select value={selectedRecruiter} onValueChange={setSelectedRecruiter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a recruiter" />
-                </SelectTrigger>
-                <SelectContent>
-                  {recruiters.map((recruiter) => (
-                    <SelectItem key={recruiter.id} value={recruiter.id}>
-                      {recruiter.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="job" className="text-sm font-medium">
-                Select Job
-              </label>
-              <Select 
-                value={selectedJob} 
-                onValueChange={setSelectedJob}
-                disabled={!selectedRecruiter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a job" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedRecruiter && getJobsForRecruiter(selectedRecruiter).map((job) => (
-                    <SelectItem key={job.id} value={job.id.toString()}>
-                      {job.title} at {job.company}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Notes and Next Steps */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Notes & Next Steps</CardTitle>
+          <CardDescription>Internal notes and next steps for this application</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Notes</label>
+            <p className="text-sm text-gray-600 mt-1">
+              {application.notes || 'No notes added yet.'}
+            </p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSendDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSendCVToRecruiter}>
-              Send CV
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div>
+            <label className="text-sm font-medium">Next Steps</label>
+            <p className="text-sm text-gray-600 mt-1">
+              {application.next_steps || 'No next steps defined yet.'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 } 

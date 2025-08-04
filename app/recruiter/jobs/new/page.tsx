@@ -3,16 +3,41 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Briefcase, Building2, MapPin, Calendar, DollarSign, FileText, Users, Clock, Target } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  ArrowLeft,
+  Briefcase,
+  Building2,
+  MapPin,
+  Calendar as CalendarIcon,
+  DollarSign,
+  FileText,
+  Users,
+  Clock,
+  Target,
+  Loader2
+} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { trackJobPosted } from "@/lib/gtag"
+import { Separator } from "@/components/ui/separator"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+
+type JobStatus = 'active' | 'draft';
 
 interface FormData {
   title: string
@@ -25,8 +50,20 @@ interface FormData {
   description: string
   requirements: string
   benefits: string
-  applicationDeadline: string
+  applicationDeadline: Date | undefined
 }
+
+const SectionHeader = ({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }) => (
+    <div className="flex items-center space-x-4">
+        <div className="p-3 bg-purple-100 rounded-lg">
+            <Icon className="h-6 w-6 text-[#c084fc]" />
+        </div>
+        <div>
+            <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+            <p className="text-gray-500">{description}</p>
+        </div>
+    </div>
+);
 
 export default function NewJobPage() {
   const router = useRouter()
@@ -44,7 +81,7 @@ export default function NewJobPage() {
     description: "",
     requirements: "",
     benefits: "",
-    applicationDeadline: "",
+    applicationDeadline: undefined,
   })
 
   const handleChange = (field: keyof FormData, value: string) => {
@@ -54,8 +91,7 @@ export default function NewJobPage() {
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSave = async (status: JobStatus) => {
     setIsSubmitting(true)
 
     try {
@@ -74,6 +110,7 @@ export default function NewJobPage() {
       // Create job posting
       const { error: jobError } = await supabase.from("job_postings").insert({
         recruiter_id: recruiterData.id,
+        status: status,
         title: formData.title,
         company: formData.company,
         location: formData.location,
@@ -84,22 +121,23 @@ export default function NewJobPage() {
         description: formData.description,
         requirements: formData.requirements,
         benefits: formData.benefits,
-        application_deadline: formData.applicationDeadline,
-        is_active: true,
+        application_deadline: formData.applicationDeadline ? formData.applicationDeadline.toISOString() : null,
       })
 
       if (jobError) throw jobError
 
       toast({
         title: "Success",
-        description: "Job posting created successfully!",
+        description: `Job posting successfully ${status === 'draft' ? 'saved as draft' : 'created'}!`,
       })
 
-      // Track job posted event
-      trackJobPosted(formData.title, formData.company)
+      // Track job posted event only if it's not a draft
+      if (status === 'active') {
+        trackJobPosted(formData.title, formData.company)
+      }
 
       router.refresh()
-      router.push("/recruiter/dashboard")
+      router.push("/recruiter/jobs")
     } catch (error: any) {
       console.error("Error creating job posting:", error)
       toast({
@@ -113,68 +151,52 @@ export default function NewJobPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-4xl mx-auto py-8"
+    >
         <div className="mb-8">
           <Link
             href="/recruiter/dashboard"
-            className="inline-flex items-center text-[#c084fc] hover:text-[#a855f7] mb-6 transition-colors duration-200"
+            className="group inline-flex items-center text-gray-500 hover:text-[#c084fc] mb-6 transition-colors duration-200"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-1" />
             Back to Dashboard
           </Link>
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">Post New Job</h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <div className="text-left">
+            <h1 className="text-3xl font-bold text-gray-800 mb-1">Post a New Job</h1>
+            <p className="text-lg text-gray-500">
               Create an attractive job posting to find the perfect candidate for your team
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={(e) => { e.preventDefault(); handleSave('active'); }} className="space-y-12">
           {/* Basic Job Information */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-[#c084fc]/10 to-[#a855f7]/10 border-b border-gray-100">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#c084fc]/20 rounded-lg">
-                  <Briefcase className="h-6 w-6 text-[#c084fc]" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-semibold text-gray-900">Job Details</CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Essential information about the position
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-8">
+            <SectionHeader icon={Briefcase} title="Job Details" description="Essential information about the position" />
+            <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title" className="text-sm font-medium text-gray-700 flex items-center">
-                    <Briefcase className="h-4 w-4 mr-2 text-[#c084fc]" />
-                    Job Title *
-                  </Label>
+                  <Label htmlFor="title" className="font-medium">Job Title *</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => handleChange("title", e.target.value)}
-                    className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
+                    className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition"
                     placeholder="e.g., Senior Software Engineer"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company" className="text-sm font-medium text-gray-700 flex items-center">
-                    <Building2 className="h-4 w-4 mr-2 text-[#c084fc]" />
-                    Company *
-                  </Label>
+                  <Label htmlFor="company" className="font-medium">Company *</Label>
                   <Input
                     id="company"
                     value={formData.company}
                     onChange={(e) => handleChange("company", e.target.value)}
-                    className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
+                    className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition"
                     placeholder="e.g., TechCorp Solutions"
                     required
                   />
@@ -183,29 +205,23 @@ export default function NewJobPage() {
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="location" className="text-sm font-medium text-gray-700 flex items-center">
-                    <MapPin className="h-4 w-4 mr-2 text-[#c084fc]" />
-                    Location
-                  </Label>
+                  <Label htmlFor="location" className="font-medium">Location</Label>
                   <Input
                     id="location"
                     value={formData.location}
                     onChange={(e) => handleChange("location", e.target.value)}
-                    className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
+                    className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition"
                     placeholder="e.g., Cape Town, South Africa"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="jobType" className="text-sm font-medium text-gray-700 flex items-center">
-                    <Clock className="h-4 w-4 mr-2 text-[#c084fc]" />
-                    Job Type *
-                  </Label>
+                  <Label htmlFor="jobType" className="font-medium">Job Type *</Label>
                   <Select
                     value={formData.jobType}
                     onValueChange={(value) => handleChange("jobType", value)}
                   >
-                    <SelectTrigger className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]">
+                    <SelectTrigger className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition">
                       <SelectValue placeholder="Select job type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -219,205 +235,152 @@ export default function NewJobPage() {
               </div>
 
               {formData.jobType === "contract" && (
-                <div className="bg-[#c084fc]/5 border border-[#c084fc]/20 rounded-lg p-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700 flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-[#c084fc]" />
-                        Contract Term *
-                      </Label>
-                      <div className="mt-3 space-y-3">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id="durationType"
-                              name="contractTermType"
-                              value="duration"
-                              checked={!formData.contractTerm.includes('-')}
-                              onChange={() => handleChange("contractTerm", "")}
-                              className="text-[#c084fc] focus:ring-[#c084fc]"
-                            />
-                            <Label htmlFor="durationType" className="text-sm font-normal">Duration</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id="endDateType"
-                              name="contractTermType"
-                              value="endDate"
-                              checked={formData.contractTerm.includes('-')}
-                              onChange={() => handleChange("contractTerm", "")}
-                              className="text-[#c084fc] focus:ring-[#c084fc]"
-                            />
-                            <Label htmlFor="endDateType" className="text-sm font-normal">End Date</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {!formData.contractTerm.includes('-') ? (
-                      <div>
-                        <Label htmlFor="contractDuration" className="text-sm font-medium text-gray-700">Duration</Label>
-                        <Input
-                          id="contractDuration"
-                          value={formData.contractTerm}
-                          onChange={(e) => handleChange("contractTerm", e.target.value)}
-                          placeholder="e.g., 6 months, 1 year, 2 years 3 months"
-                          className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
-                          required
-                        />
-                      </div>
-                    ) : (
-                      <div>
-                        <Label htmlFor="contractEndDate" className="text-sm font-medium text-gray-700">Contract End Date</Label>
-                        <Input
-                          id="contractEndDate"
-                          type="date"
-                          value={formData.contractTerm}
-                          onChange={(e) => handleChange("contractTerm", e.target.value)}
-                          className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
-                          required
-                        />
-                      </div>
-                    )}
-                  </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="contractTerm" className="font-medium">Contract Term</Label>
+                  <Input
+                    id="contractTerm"
+                    value={formData.contractTerm}
+                    onChange={(e) => handleChange("contractTerm", e.target.value)}
+                    className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition"
+                    placeholder="e.g., 6 months"
+                  />
                 </div>
               )}
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="salaryType" className="text-sm font-medium text-gray-700 flex items-center">
-                    <DollarSign className="h-4 w-4 mr-2 text-[#c084fc]" />
-                    Salary Type
-                  </Label>
+                  <Label htmlFor="salaryRange" className="font-medium">Salary Range</Label>
+                  <div className="relative">
+                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                     <Input
+                        id="salaryRange"
+                        value={formData.salaryRange}
+                        onChange={(e) => handleChange("salaryRange", e.target.value)}
+                        className="pl-9 border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition"
+                        placeholder="e.g., 80,000 - 120,000"
+                      />
+                  </div>
+                </div>
+
+                 <div className="space-y-2">
+                  <Label htmlFor="salaryType" className="font-medium">Salary Type</Label>
                   <Select
                     value={formData.salaryType}
                     onValueChange={(value) => handleChange("salaryType", value)}
                   >
-                    <SelectTrigger className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]">
+                    <SelectTrigger className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition">
                       <SelectValue placeholder="Select salary type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="annual">Annual</SelectItem>
                       <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="hourly">Hourly</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="salaryRange" className="text-sm font-medium text-gray-700 flex items-center">
-                    <DollarSign className="h-4 w-4 mr-2 text-[#c084fc]" />
-                    Salary Range
-                  </Label>
-                  <Input
-                    id="salaryRange"
-                    value={formData.salaryRange}
-                    onChange={(e) => handleChange("salaryRange", e.target.value)}
-                    placeholder={formData.salaryType === "monthly" ? "e.g., R15,000 - R25,000" : "e.g., R180,000 - R300,000"}
-                    className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
-                  />
-                </div>
               </div>
-            </CardContent>
-          </Card>
+
+               <div className="space-y-2">
+                  <Label htmlFor="applicationDeadline" className="font-medium">Application Deadline</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal border-gray-200 hover:bg-gray-50",
+                          !formData.applicationDeadline && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                        {formData.applicationDeadline ? (
+                          format(formData.applicationDeadline, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.applicationDeadline}
+                        onSelect={(date) => setFormData(prev => ({ ...prev, applicationDeadline: date }))}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+          </div>
+
+          <Separator />
 
           {/* Job Description */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-[#c084fc]/10 to-[#a855f7]/10 border-b border-gray-100">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#c084fc]/20 rounded-lg">
-                  <FileText className="h-6 w-6 text-[#c084fc]" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-semibold text-gray-900">Job Description</CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Detailed information about the role and responsibilities
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
+          <div className="space-y-8">
+             <SectionHeader icon={FileText} title="Job Description" description="Provide a detailed overview of the role" />
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-sm font-medium text-gray-700">Job Description *</Label>
+                <Label htmlFor="description" className="font-medium">Detailed Description *</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleChange("description", e.target.value)}
-                  className="min-h-[150px] border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
-                  placeholder="Provide a comprehensive description of the role, responsibilities, and what makes this position exciting..."
+                  className="min-h-[150px] border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition"
+                  placeholder="Describe the main responsibilities, day-to-day tasks, and objectives of the role."
                   required
                 />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="requirements" className="text-sm font-medium text-gray-700 flex items-center">
-                    <Target className="h-4 w-4 mr-2 text-[#c084fc]" />
-                    Requirements
-                  </Label>
-                  <Textarea
-                    id="requirements"
-                    value={formData.requirements}
-                    onChange={(e) => handleChange("requirements", e.target.value)}
-                    className="min-h-[120px] border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
-                    placeholder="List the key requirements, qualifications, and skills needed for this position..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="benefits" className="text-sm font-medium text-gray-700 flex items-center">
-                    <Users className="h-4 w-4 mr-2 text-[#c084fc]" />
-                    Benefits
-                  </Label>
-                  <Textarea
-                    id="benefits"
-                    value={formData.benefits}
-                    onChange={(e) => handleChange("benefits", e.target.value)}
-                    className="min-h-[120px] border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc]"
-                    placeholder="List the benefits, perks, and advantages of working in this position..."
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="requirements" className="font-medium">Key Requirements *</Label>
+                <Textarea
+                  id="requirements"
+                  value={formData.requirements}
+                  onChange={(e) => handleChange("requirements", e.target.value)}
+                  className="min-h-[150px] border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition"
+                  placeholder="List the essential skills, qualifications, and experience required for this position."
+                  required
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="applicationDeadline" className="text-sm font-medium text-gray-700 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-[#c084fc]" />
-                  Application Deadline
-                </Label>
-                <Input
-                  id="applicationDeadline"
-                  type="date"
-                  value={formData.applicationDeadline}
-                  onChange={(e) => handleChange("applicationDeadline", e.target.value)}
-                  className="border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] max-w-xs"
+                <Label htmlFor="benefits" className="font-medium">Benefits & Perks</Label>
+                 <Textarea
+                  id="benefits"
+                  value={formData.benefits}
+                  onChange={(e) => handleChange("benefits", e.target.value)}
+                  className="min-h-[100px] border-gray-200 focus:border-[#c084fc] focus:ring-[#c084fc] transition"
+                  placeholder="e.g., Medical aid, remote work options, performance bonuses, etc."
                 />
               </div>
-            </CardContent>
-          </Card>
+          </div>
+          
+          <Separator />
 
-          {/* Submit Button */}
-          <div className="flex justify-center">
+          <div className="flex justify-end pt-4 gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleSave('draft')}
+              disabled={isSubmitting}
+              size="lg"
+            >
+              Save as Draft
+            </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white px-8 py-3 rounded-xl text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              size="lg"
+              className="bg-[#c084fc] hover:bg-[#a855f7] text-white font-semibold shadow-lg shadow-purple-500/10 hover:shadow-xl hover:shadow-purple-500/20 transition-all transform hover:-translate-y-0.5"
             >
               {isSubmitting ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Creating Job Post...</span>
-                </div>
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Job...
+                </>
               ) : (
-                <div className="flex items-center space-x-2">
-                  <Briefcase className="h-5 w-5" />
-                  <span>Create Job Post</span>
-                </div>
+                'Publish Job Post'
               )}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </motion.div>
   )
 } 

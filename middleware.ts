@@ -1,158 +1,195 @@
-import { createClient } from '@/lib/supabase/middleware'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  // Skip middleware for static assets and API routes
-  if (
-    req.nextUrl.pathname.startsWith('/_next') ||
-    req.nextUrl.pathname.includes('/api/') ||
-    req.nextUrl.pathname.startsWith('/static') ||
-    req.nextUrl.pathname.includes('.') ||
-    req.nextUrl.pathname === '/favicon.ico'
-  ) {
+export async function middleware(request: NextRequest) {
+  if (request.nextUrl.searchParams.get('mcp-edit-mode') === 'true') {
     return NextResponse.next()
   }
 
-  console.log('🔒 MIDDLEWARE TRIGGERED:', req.nextUrl.pathname)
-  
-  const { supabase, response } = createClient(req)
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  // Refresh session if expired - required for Server Components
-  // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Define public routes that don't require authentication
-  const publicRoutes = [
-    '/',
-    '/pricing',
-    '/privacy',
-    '/terms',
-    '/signup',
-    '/login',
-    '/jobs',
-    '/submit-job'
-  ]
-
-  // Check if current path is a public route
-  const isPublicRoute = publicRoutes.some(route => 
-    req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route + '/')
-  )
-
-  // If it's a public route, allow access
-  if (isPublicRoute) {
-    return response
+  // Proactively clear malformed cookies
+  const clearMalformedCookies = () => {
+    try {
+      const allCookies = request.cookies.getAll()
+      const malformedCookies = allCookies.filter(cookie => 
+        // Only remove obviously invalid placeholder cookies (empty or "undefined")
+        !cookie.value || cookie.value === 'undefined'
+      )
+      
+      if (malformedCookies.length > 0) {
+        console.log(`Clearing ${malformedCookies.length} malformed cookies:`, 
+          malformedCookies.map(c => c.name).join(', '))
+        
+        malformedCookies.forEach(cookie => {
+          response.cookies.delete(cookie.name)
+        })
+      }
+    } catch (error) {
+      console.error('Error clearing malformed cookies:', error)
+    }
   }
 
-  // Handle recruiter routes
-  if (req.nextUrl.pathname.startsWith('/recruiter')) {
-    // Allow public access to recruiter landing page, login and register pages
-    if (req.nextUrl.pathname === '/recruiter' || 
-        req.nextUrl.pathname === '/recruiter/login' || 
-        req.nextUrl.pathname === '/recruiter/register') {
-      // Only redirect to dashboard if user is logged in AND trying to access login
-      if (user && req.nextUrl.pathname === '/recruiter/login') {
-        const redirectUrl = req.nextUrl.clone()
-        redirectUrl.pathname = '/recruiter/dashboard'
-        return NextResponse.redirect(redirectUrl)
+  // Clear malformed cookies before processing
+  clearMalformedCookies()
+
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            try {
+              const cookie = request.cookies.get(name)
+              if (!cookie?.value) return undefined
+              
+              // Return cookie value as-is; Supabase expects base64 values unchanged
+              
+              return cookie.value
+            } catch (error) {
+              console.error('Error getting cookie:', name, error)
+              return undefined
+            }
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            try {
+              request.cookies.set({ name, value, ...options })
+              response = NextResponse.next({
+                request: {
+                  headers: request.headers,
+                },
+              })
+              response.cookies.set({ name, value, ...options })
+            } catch (error) {
+              console.error('Error setting cookie:', name, error)
+            }
+          },
+          remove(name: string, options: CookieOptions) {
+            try {
+              request.cookies.set({ name, value: '', ...options })
+              response = NextResponse.next({
+                request: {
+                  headers: request.headers,
+                },
+              })
+              response.cookies.set({ name, value: '', ...options })
+            } catch (error) {
+              console.error('Error removing cookie:', name, error)
+            }
+          },
+        },
       }
+    )
+
+    const { pathname } = request.nextUrl
+    const isRecruiterPath = pathname.startsWith('/recruiter')
+
+    let user = null
+    let userData = null
+
+    try {
+      const { data, error } = await supabase.auth.getUser()
+      if (error) {
+        console.error('Auth error:', error)
+        // Only clear cookies for specific auth errors, not for missing sessions
+        if (error.message && !error.message.includes('Auth session missing')) {
+          // Clear ALL potentially corrupted Supabase cookies
+          response.cookies.delete('sb-access-token')
+          response.cookies.delete('sb-refresh-token')
+          response.cookies.delete('supabase-auth-token')
+          response.cookies.delete('sb-lkwtmfhxdjbwwjecghda-auth-token')
+          response.cookies.delete('sb-lkwtmfhxdjbwwjecghda-auth-token.0')
+          response.cookies.delete('sb-lkwtmfhxdjbwwjecghda-auth-token.1')
+          response.cookies.delete('sb-lkwtmfhxdjbwwjecghda-auth-token.2')
+        }
+      } else {
+        user = data.user
+      }
+    } catch (error) {
+      console.error('Error getting user:', error)
+      // Only clear cookies for specific errors, not for missing sessions
+      if (error instanceof Error && !error.message.includes('Auth session missing')) {
+        // Clear ALL potentially corrupted Supabase cookies
+        response.cookies.delete('sb-access-token')
+        response.cookies.delete('sb-refresh-token')
+        response.cookies.delete('supabase-auth-token')
+        response.cookies.delete('sb-lkwtmfhxdjbwwjecghda-auth-token')
+        response.cookies.delete('sb-lkwtmfhxdjbwwjecghda-auth-token.0')
+        response.cookies.delete('sb-lkwtmfhxdjbwwjecghda-auth-token.1')
+        response.cookies.delete('sb-lkwtmfhxdjbwwjecghda-auth-token.2')
+      }
+    }
+
+    // Handle unauthenticated users
+    if (!user) {
+      if (isRecruiterPath && pathname !== '/recruiter/login' && pathname !== '/recruiter/register') {
+        return NextResponse.redirect(new URL('/recruiter/login', request.url))
+    }
+      // Add other non-recruiter protected paths here if needed, redirecting to /login
       return response
     }
 
-    // For other recruiter routes, require authentication
-    if (!user) {
-      console.log('No session, redirecting to recruiter login')
-      const redirectUrl = req.nextUrl.clone()
-      redirectUrl.pathname = '/recruiter/login'
-      return NextResponse.redirect(redirectUrl)
-    }
-
-    // Check if user is a recruiter
-    const { data: userData } = await supabase
+    // Handle authenticated users
+    try {
+      const { data } = await supabase
       .from('users')
-      .select('is_recruiter')
+        .select('is_recruiter, onboarding_completed, subscription_status, is_admin')
       .eq('id', user.id)
       .single()
 
-    if (!userData?.is_recruiter) {
-      return new NextResponse('Access denied. Recruiters only.', { status: 403 })
-    }
-  }
-
-  // Handle admin routes
-  if (req.nextUrl.pathname.startsWith('/admin')) {
-    console.log('🔒 Checking admin access for path:', req.nextUrl.pathname)
-    
-    if (!user) {
-      console.log('No session user found')
-      return NextResponse.redirect(new URL('/login', req.url))
-    }
-
-    console.log('User ID:', user.id)
-
-    // Fetch the user's admin status
-    const { data: userData, error } = await supabase
-      .from('users')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
-
-    console.log('User data:', userData)
-    console.log('Error if any:', error)
-
-    if (error) {
+      userData = data
+    } catch (error) {
       console.error('Error fetching user data:', error)
-      return new NextResponse('Error checking admin status', { status: 500 })
     }
 
-    if (!userData?.is_admin) {
-      console.log('User is not an admin')
-      return new NextResponse('Access denied. Admins only.', { status: 403 })
-    }
-
-    console.log('Admin access granted')
-  }
-
-  // Handle protected routes (require authentication)
-  const protectedRoutes = [
-    '/dashboard',
-    '/onboarding',
-    '/checkout',
-    '/cv-review',
-    '/apply'
-  ]
-
-  const isProtectedRoute = protectedRoutes.some(route => 
-    req.nextUrl.pathname.startsWith(route)
-  )
-
-  if (isProtectedRoute && !user) {
-    console.log('Protected route accessed without session, redirecting to login')
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  // If user is signed in and trying to access login pages, redirect to dashboard
-  if (user && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/login')) {
-    console.log('User signed in, checking role for redirection');
-    const { data: userData } = await supabase
-      .from('users')
-      .select('is_recruiter')
-      .eq('id', user.id)
-      .single();
-
-    const redirectUrl = req.nextUrl.clone();
-    if (userData?.is_recruiter) {
-      redirectUrl.pathname = '/recruiter/dashboard';
+    const isRecruiter = userData?.is_recruiter ?? false
+    
+    if (isRecruiter) {
+      // If a recruiter is on a non-recruiter path, redirect them away
+      if (!isRecruiterPath && pathname !== '/dashboard') { // allow access to a general dashboard if needed
+         // for now, let's just let them be. A better behavior might be needed.
+      }
+      // If a recruiter is on login/register, send to their dashboard
+      if (pathname === '/recruiter/login' || pathname === '/recruiter/register') {
+        return NextResponse.redirect(new URL('/recruiter/dashboard', request.url))
+      }
     } else {
-      redirectUrl.pathname = '/dashboard';
-    }
-    console.log(`Redirecting to ${redirectUrl.pathname}`);
-    return NextResponse.redirect(redirectUrl);
+      // This is a regular user
+      const onboardingCompleted = userData?.onboarding_completed ?? false
+      const subscriptionStatus = userData?.subscription_status
+
+      // If a regular user tries to access a recruiter path, send them to their dashboard
+      if (isRecruiterPath) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return response
+      // If a logged-in user is on the main login/signup, send to their dashboard
+      if (pathname === '/login' || pathname === '/signup') {
+          return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+
+      // Check for onboarding if they are not a premium user
+      if (
+        !onboardingCompleted &&
+        pathname !== '/onboarding' &&
+        subscriptionStatus !== 'premium' &&
+        subscriptionStatus !== 'active'
+      ) {
+        return NextResponse.redirect(new URL('/onboarding', request.url))
+      }
+    }
+
+    return response
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // Return response without any authentication checks if there's a critical error
+    return response
+  }
 }
 
 export const config = {
@@ -163,8 +200,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - jobs/public/apply (public job application forms with file uploads)
+     * - public files
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|jobs/public/apply).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public|jobs/public).*)',
   ],
 } 

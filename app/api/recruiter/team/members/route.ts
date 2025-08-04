@@ -1,0 +1,198 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const supabaseAdmin = createAdminClient()
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get recruiter profile
+    const { data: recruiter, error: recruiterError } = await supabase
+      .from('recruiters')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (recruiterError || !recruiter) {
+      return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 })
+    }
+
+    // Get team members without foreign key joins
+    const { data: teamMembers, error: teamError } = await supabase
+      .from('team_members')
+      .select('*')
+      .eq('recruiter_id', recruiter.id)
+      .order('created_at', { ascending: false })
+
+    if (teamError) {
+      console.error('Error fetching team members:', teamError)
+      return NextResponse.json({ error: 'Failed to fetch team members' }, { status: 500 })
+    }
+
+    // Get user details for all team members
+    if (teamMembers && teamMembers.length > 0) {
+      const userIds = [...new Set([
+        ...teamMembers.map(tm => tm.user_id),
+        ...teamMembers.filter(tm => tm.invited_by).map(tm => tm.invited_by)
+      ])]
+
+      const { data: users } = await supabaseAdmin.auth.admin.listUsers()
+      const userMap = new Map()
+      users.users.forEach(u => userMap.set(u.id, u))
+
+      // Enhance team members with user details
+      const enhancedTeamMembers = teamMembers.map(member => ({
+        ...member,
+        user: userMap.get(member.user_id) ? {
+          id: userMap.get(member.user_id)?.id,
+          email: userMap.get(member.user_id)?.email,
+          created_at: userMap.get(member.user_id)?.created_at
+        } : null,
+        invited_by_user: member.invited_by && userMap.get(member.invited_by) ? {
+          id: userMap.get(member.invited_by)?.id,
+          email: userMap.get(member.invited_by)?.email,
+          created_at: userMap.get(member.invited_by)?.created_at
+        } : null
+      }))
+
+      return NextResponse.json({ teamMembers: enhancedTeamMembers })
+    }
+
+    return NextResponse.json({ teamMembers: teamMembers || [] })
+
+  } catch (error) {
+    console.error('Error in team members route:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const supabaseAdmin = createAdminClient()
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get recruiter profile
+    const { data: recruiter, error: recruiterError } = await supabase
+      .from('recruiters')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (recruiterError || !recruiter) {
+      return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 })
+    }
+
+    // Check if user is admin
+    const { data: teamMember, error: memberError } = await supabase
+      .from('team_members')
+      .select('role')
+      .eq('recruiter_id', recruiter.id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (memberError || !teamMember || teamMember.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { email, full_name, role } = body
+
+    if (!email || !full_name || !role) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Check if user already exists in auth.users
+    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers()
+    const userExists = existingUser.users.find(u => u.email === email)
+
+    if (userExists) {
+      // Check if user is already a team member
+      const { data: existingMember } = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('recruiter_id', recruiter.id)
+        .eq('user_id', userExists.id)
+        .single()
+
+      if (existingMember) {
+        return NextResponse.json({ error: 'User is already a team member' }, { status: 400 })
+      }
+
+      // Add existing user to team
+      const { data: newMember, error: insertError } = await supabase
+        .from('team_members')
+        .insert({
+          recruiter_id: recruiter.id,
+          user_id: userExists.id,
+          role,
+          status: 'active',
+          invited_by: user.id,
+          joined_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Error adding team member:', insertError)
+        return NextResponse.json({ error: 'Failed to add team member' }, { status: 500 })
+      }
+
+      return NextResponse.json({ 
+        message: 'Team member added successfully',
+        teamMember: newMember
+      })
+
+    } else {
+      // Create invitation
+      const token = crypto.randomUUID()
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + 7) // 7 days from now
+
+      const { data: invitation, error: inviteError } = await supabase
+        .from('team_invitations')
+        .insert({
+          recruiter_id: recruiter.id,
+          email,
+          full_name,
+          role,
+          invited_by: user.id,
+          token,
+          expires_at: expiresAt.toISOString()
+        })
+        .select()
+        .single()
+
+      if (inviteError) {
+        console.error('Error creating invitation:', inviteError)
+        return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 })
+      }
+
+      // TODO: Send invitation email
+      // For now, just return the invitation data
+      return NextResponse.json({ 
+        message: 'Invitation created successfully',
+        invitation
+      })
+    }
+
+  } catch (error) {
+    console.error('Error in team members route:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+} 

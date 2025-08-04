@@ -10,10 +10,16 @@ import {
   Settings,
   LogOut,
   Search,
-  Home
+  Home,
+  Calendar,
+  Lightbulb,
+  Wand2, // Use Wand2 for Tools
+  Database,
+  Shield,
+  MessageSquare
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState, useRef } from "react"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -36,11 +42,38 @@ const navigation = [
     icon: Users
   },
   {
+    name: "Messages",
+    href: "/recruiter/messages",
+    icon: MessageSquare
+  },
+  {
+    name: "Talent Pools",
+    href: "/recruiter/talent-pools",
+    icon: Database
+  },
+  {
+    name: "Tools",
+    href: "/recruiter/tools",
+    icon: Wand2
+  },
+  {
+    name: "Calendar",
+    href: "/recruiter/calendar",
+    icon: Calendar
+  },
+  {
+    name: "Team Management",
+    href: "/recruiter/team",
+    icon: Shield
+  },
+  {
     name: "Billing",
     href: "/recruiter/dashboard/billing",
     icon: CreditCard
   },
 ]
+
+// Remove the separate tools section and all individual tool links.
 
 const bottomNavigation = [
   {
@@ -54,10 +87,11 @@ export function RecruiterSidebar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [recruiter, setRecruiter] = useState<any>(null)
   const [searchExpanded, setSearchExpanded] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   
   const navRef = useRef<HTMLElement>(null)
   const [activeIndicatorStyle, setActiveIndicatorStyle] = useState({})
@@ -69,17 +103,55 @@ export function RecruiterSidebar() {
         setUser(user)
         const { data: recruiterData, error } = await supabase
           .from('recruiters')
-          .select('company_name, cover_image_url, logo_url')
+          .select('id, company_name')
           .eq('user_id', user.id)
           .single()
         
         if (recruiterData) {
           setRecruiter(recruiterData)
+          // Fetch unread application count
+          fetchUnreadCount(recruiterData.id)
         }
       }
     }
     getRecruiterData()
   }, [supabase])
+
+  const fetchUnreadCount = async (recruiterId: string) => {
+    try {
+      // Get job IDs for this recruiter
+      const { data: jobs } = await supabase
+        .from('job_postings')
+        .select('id')
+        .eq('recruiter_id', recruiterId)
+      
+      if (!jobs || jobs.length === 0) {
+        setUnreadCount(0)
+        return
+      }
+      
+      const jobIds = jobs.map((j: any) => j.id)
+      
+      // Count unread candidate applications
+      const { count: candidateCount } = await supabase
+        .from('candidate_applications')
+        .select('*', { count: 'exact', head: true })
+        .in('job_posting_id', jobIds)
+        .eq('is_read', false)
+      
+      // Count unread public applications
+      const { count: publicCount } = await supabase
+        .from('public_applications')
+        .select('*', { count: 'exact', head: true })
+        .in('job_id', jobIds)
+        .eq('is_read', false)
+      
+      const totalUnread = (candidateCount || 0) + (publicCount || 0)
+      setUnreadCount(totalUnread)
+    } catch (error) {
+      console.error('Error fetching unread count:', error)
+    }
+  }
 
   useEffect(() => {
     if (navRef.current) {
@@ -93,6 +165,17 @@ export function RecruiterSidebar() {
       }
     }
   }, [pathname, searchParams]);
+
+  // Refresh unread count periodically
+  useEffect(() => {
+    if (recruiter?.id) {
+      const interval = setInterval(() => {
+        fetchUnreadCount(recruiter.id)
+      }, 30000) // Check every 30 seconds
+      
+      return () => clearInterval(interval)
+    }
+  }, [recruiter?.id])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -110,7 +193,7 @@ export function RecruiterSidebar() {
       <div className="p-6 border-b border-gray-50">
         <div className="flex items-center space-x-3">
           <Avatar className="w-10 h-10 ring-2 ring-gray-100">
-            <AvatarImage src={recruiter?.logo_url} alt={recruiter?.company_name} />
+            <AvatarImage src="" alt={recruiter?.company_name} />
             <AvatarFallback className="bg-theme-100 text-theme-700 font-semibold">
               {user ? getInitials(recruiter?.company_name || user.email!) : 'R'}
             </AvatarFallback>
@@ -163,6 +246,7 @@ export function RecruiterSidebar() {
 
         {navigation.map((item, index) => {
           const isActive = pathname.startsWith(item.href) && (item.href !== '/recruiter/dashboard' || pathname === item.href);
+          const isApplicationsPage = item.name === "Applications";
           
           return (
             <Link
@@ -181,11 +265,23 @@ export function RecruiterSidebar() {
                 "h-5 w-5 transition-all duration-200",
                 isActive ? "text-theme-600" : "text-gray-400 group-hover:text-gray-600"
               )} />
-              <span className="transition-all duration-200">{item.name}</span>
+              <span className="transition-all duration-200 flex-1">{item.name}</span>
+              {isApplicationsPage && unreadCount > 0 && (
+                <div className="relative">
+                  <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                    <span className="text-xs font-semibold text-white">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  </div>
+                </div>
+              )}
             </Link>
           )
         })}
       </nav>
+
+      {/* Tools Section */}
+      {/* The separate tools section and all individual tool links are removed. */}
 
       {/* Bottom Navigation - Refined */}
       <div className="p-6 border-t border-gray-50 space-y-2">

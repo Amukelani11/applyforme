@@ -60,14 +60,11 @@ export default function DashboardLayout({
   const pathname = usePathname()
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen bg-gray-50/50">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Navbar variant="dashboard" />
-        <main className="flex-1 overflow-y-auto pt-16">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1 lg:pl-72 p-6">
+        {children}
+      </main>
     </div>
   )
 } 

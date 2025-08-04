@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { supabase } from "@/lib/supabaseClient"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -58,6 +58,7 @@ const PAYFAST_SANDBOX = true // Force sandbox mode for testing
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'
 
 export default function CheckoutPage() {
+  const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)

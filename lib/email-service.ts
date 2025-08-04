@@ -5,6 +5,8 @@ import {
   ApplicationData, 
   WeeklyReportData,
   SubscriptionData,
+  NewMessageData,
+  TeamMessageData,
   getJobPostedTemplate,
   getApplicationAlertTemplate,
   getJobExpiryReminderTemplate,
@@ -12,7 +14,9 @@ import {
   getWeeklyReportTemplate,
   getCVImprovementTemplate,
   getSubscriptionConfirmationTemplate,
-  getSubscriptionRenewalTemplate
+  getSubscriptionRenewalTemplate,
+  getNewMessageTemplate,
+  getTeamMessageTemplate
 } from './email-templates'
 
 const supabase = createClient(
@@ -182,6 +186,37 @@ export class EmailService {
     }
   }
 
+  // Send new message notification
+  static async sendNewMessageNotification(
+    messageData: NewMessageData,
+    recipient: EmailRecipient
+  ): Promise<boolean> {
+    try {
+      const template = getNewMessageTemplate(messageData, recipient.name);
+      
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: recipient.email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text
+        }
+      });
+
+      if (error) {
+        console.error('Error sending new message email:', error);
+        return false;
+      }
+
+      // Log the email sent
+      await this.logEmailSent('new_message', recipient.email);
+      return true;
+    } catch (error) {
+      console.error('Error sending new message notification:', error);
+      return false;
+    }
+  }
+
   // Send CV improvement notification
   static async sendCVImprovementNotification(
     userEmail: string,
@@ -271,6 +306,37 @@ export class EmailService {
       return true
     } catch (error) {
       console.error('Error sending subscription renewal:', error)
+      return false
+    }
+  }
+
+  // Send team message notification
+  static async sendTeamMessageNotification(
+    messageData: TeamMessageData,
+    recipient: EmailRecipient
+  ): Promise<boolean> {
+    try {
+      const template = getTeamMessageTemplate(messageData, recipient.name)
+      
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: recipient.email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text
+        }
+      })
+
+      if (error) {
+        console.error('Error sending team message email:', error)
+        return false
+      }
+
+      // Log the email sent
+      await this.logEmailSent('team_message', recipient.email, parseInt(messageData.applicationId) || undefined)
+      return true
+    } catch (error) {
+      console.error('Error sending team message notification:', error)
       return false
     }
   }

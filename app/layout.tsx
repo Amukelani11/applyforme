@@ -8,11 +8,17 @@ import { ConditionalFooter } from "@/components/conditional-footer"
 import { ConditionalNavbar } from "@/components/conditional-navbar"
 import GoogleAnalytics from "@/components/google-analytics"
 import RootClientLayout from "@/components/RootClientLayout"
+import McpEditScript from "@/components/McpEditScript"
+import { Suspense } from "react"
+import { Inter } from 'next/font/google'
+import { ThemeProvider } from "@/components/theme-provider"
 
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
 })
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
@@ -80,8 +86,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GoogleAnalytics />
       </head>
       <body className={poppins.className} suppressHydrationWarning={true}>
-        <RootClientLayout>{children}</RootClientLayout>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <RootClientLayout>
+            {children}
+          </RootClientLayout>
+          <Toaster />
+          <Suspense fallback={null}>
+            <McpEditScript />
+          </Suspense>
+          {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
+        </ThemeProvider>
       </body>
     </html>
   )

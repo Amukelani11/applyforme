@@ -219,3 +219,21 @@ body {
 .overflow-x-auto::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+.rc-slider-track {
+  background-color: #c084fc;
+}
+
+.rc-slider-handle {
+  border-color: #c084fc;
+}
+
+/* Custom styles for shadcn/ui Slider */
+.slider-track {
+    background-color: #c084fc;
+}
+.slider-thumb {
+    background-color: white;
+    border-width: 2px;
+    border-color: #c084fc;
+}

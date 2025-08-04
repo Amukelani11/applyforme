@@ -32,6 +32,7 @@ const applicationSchema = z.object({
   cv_path: z.string().min(1, "CV is required."),
   workExperience: z.array(workExperienceSchema).optional(),
   education: z.array(educationSchema).optional(),
+  customFields: z.record(z.any()).optional(),
 });
 
 type ApplicationData = z.infer<typeof applicationSchema>;
@@ -69,33 +70,56 @@ export async function detailedApply(jobId: number, applicationData: ApplicationD
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const dataToInsert = {
+    const fullName = `${applicationData.firstName} ${applicationData.lastName}`;
+
+    console.log('Application data to submit:', {
       job_id: jobId,
-      first_name: applicationData.firstName,
-      last_name: applicationData.lastName,
+      full_name: fullName,
       email: applicationData.email,
       phone_number: applicationData.phoneNumber,
-      cover_letter: applicationData.coverLetter,
+      cover_letter: applicationData.coverLetter || '',
       cv_path: applicationData.cv_path,
-      work_experience: applicationData.workExperience,
-      education: applicationData.education,
-    };
-
-    console.log('Data to insert:', JSON.stringify(dataToInsert, null, 2));
-
-    const { error: applicationError } = await supabaseAdmin.from('public_applications').insert([dataToInsert]);
-
-    if (applicationError) {
-      console.error('Full application error:', JSON.stringify(applicationError, null, 2));
-      throw new Error(`Failed to save application: ${applicationError.message}`);
-    }
-
-    const { error: incrementError } = await supabaseAdmin.rpc('increment_public_app_count_and_insert', {
-        p_job_id: jobId
+      work_experience: applicationData.workExperience || [],
+      education: applicationData.education || [],
     });
 
-    if (incrementError) {
-        console.error('Error incrementing public application count:', incrementError);
+    // Use the atomic RPC function that handles both increment and insert
+    const { error: rpcError } = await supabaseAdmin.rpc('increment_public_app_count_and_insert_detailed', {
+      p_job_id: jobId,
+      p_full_name: fullName,
+      p_email: applicationData.email,
+      p_cv_path: applicationData.cv_path,
+      p_phone_number: applicationData.phoneNumber,
+      p_cover_letter: applicationData.coverLetter || '',
+      p_work_experience: JSON.stringify(applicationData.workExperience || []),
+      p_education: JSON.stringify(applicationData.education || [])
+    });
+
+    if (rpcError) {
+      console.error('RPC function error:', JSON.stringify(rpcError, null, 2));
+      throw new Error(`Failed to save application: ${rpcError.message}`);
+    }
+
+    // Get the application ID for custom fields insertion
+    const { data: insertedApplication, error: appError } = await supabaseAdmin
+      .from('public_applications')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('email', applicationData.email)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Handle custom fields if they exist
+    if (applicationData.customFields && Object.keys(applicationData.customFields).length > 0 && insertedApplication) {
+      const { error: customFieldsError } = await supabaseAdmin.rpc('insert_custom_field_responses', {
+        p_application_id: insertedApplication.id,
+        p_custom_fields: applicationData.customFields
+      });
+
+      if (customFieldsError) {
+        console.error('Error inserting custom field responses:', customFieldsError);
+      }
     }
 
     // --- Recruiter Notification ---
@@ -121,7 +145,7 @@ export async function detailedApply(jobId: number, applicationData: ApplicationD
     // 3. Build ApplicationData for email template
     const applicationEmailData = {
       id: 0, // Not needed for email
-      candidate_name: `${applicationData.firstName} ${applicationData.lastName}`,
+      candidate_name: fullName,
       candidate_email: applicationData.email,
       job_title: job.title,
       company: job.company,
