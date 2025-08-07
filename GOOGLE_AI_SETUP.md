@@ -15,7 +15,7 @@ Create or update your `.env.local` file in the project root:
 
 ```bash
 # Google AI API Key for CV Analysis
-GOOGLE_AI_API_KEY=your_actual_api_key_here
+GOOGLE_API_KEY=your_actual_api_key_here
 ```
 
 ### 3. Test the Setup

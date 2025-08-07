@@ -55,8 +55,11 @@ export function ActivityFeed({ applications, isLoading }: { applications?: any[]
     <div className="space-y-4">
       {applications.map((app, index) => {
         const isUnread = app.is_read === false;
-        const userName = app.user?.full_name || app.user_profiles?.full_name || app.name || 'Unknown Candidate';
-        const userAvatar = app.user?.avatar_url || app.user_profiles?.avatar_url;
+        // Handle both candidate_applications and public_applications data structures
+        // For candidate_applications: app.users?.full_name
+        // For public_applications: app.full_name (direct field)
+        const userName = app.users?.full_name || app.full_name || app.user_profiles?.full_name || app.name || 'Unknown Candidate';
+        const userAvatar = undefined;
         
         return (
           <motion.div 

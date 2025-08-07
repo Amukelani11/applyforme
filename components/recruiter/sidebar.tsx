@@ -17,6 +17,7 @@ import {
   UserPlus,
   Wrench,
   Bell,
+  Brain,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
@@ -57,9 +58,9 @@ const navigation = [
     icon: Calendar
   },
   {
-    name: "Insights",
-    href: "/recruiter/insights",
-    icon: BarChart3
+    name: "AI Market Research",
+    href: "/recruiter/market-research",
+    icon: Brain
   },
   {
     name: "Tools",
@@ -74,6 +75,11 @@ const navigation = [
 ]
 
 const bottomNavigation = [
+  {
+    name: "Billing",
+    href: "/recruiter/dashboard/billing",
+    icon: FileText
+  },
   {
     name: "Settings",
     href: "/recruiter/dashboard/settings",
@@ -191,7 +197,7 @@ function RecruiterSidebarContent() {
       <div className="p-6 border-b border-gray-50">
         <div className="flex items-center space-x-3">
           <Avatar className="w-10 h-10 ring-2 ring-gray-100">
-            <AvatarImage src={recruiter?.avatar_url} alt={recruiter?.company_name} />
+            <AvatarImage src={undefined} alt={recruiter?.company_name} />
             <AvatarFallback className="bg-theme-100 text-theme-700 font-semibold">
               {user ? getInitials(user.email!) : 'R'}
             </AvatarFallback>

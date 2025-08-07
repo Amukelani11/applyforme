@@ -32,7 +32,7 @@ const tools = [
     name: "AI Market Research Assistant",
     description: "Powerful South African industry research with chat-like interface. Research salaries, experience requirements, and market trends.",
     icon: Globe,
-    href: "/recruiter/insights",
+    href: "/recruiter/market-research",
     color: "text-blue-500",
     isNew: true,
     isPremium: true

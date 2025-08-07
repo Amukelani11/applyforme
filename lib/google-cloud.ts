@@ -10,7 +10,7 @@ const GOOGLE_CLOUD_LOCATION = config.googleCloud.location
 const DOCUMENT_PROCESSOR_ID = 'your-processor-id'
 
 // Vertex AI model name
-const MODEL_NAME = 'gemini-pro'
+const MODEL_NAME = 'gemini-1.5-pro'
 
 interface AnalysisResult {
   text: string

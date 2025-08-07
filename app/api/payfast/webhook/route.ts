@@ -38,8 +38,11 @@ function validatePayFastRequest(formData: FormData, passphrase?: string): boolea
 export async function POST(req: NextRequest) {
   const supabase = createAdminClient();
   
+  console.log('PayFast webhook received');
+  
   try {
     const formData = await req.formData();
+    console.log('Form data received:', Object.fromEntries(formData.entries()));
 
     // --- Security Check ---
     if (!validatePayFastRequest(formData, process.env.PAYFAST_PASSPHRASE)) {
@@ -95,8 +98,94 @@ export async function POST(req: NextRequest) {
         updated_at: new Date().toISOString(),
         recruiter_id: recruiter.id,
       };
+    } else if (productId === 'free_trial') {
+      console.log(`Processing free trial for user: ${userId}`);
+      console.log('Webhook data received:', body);
+      
+      // First, ensure the user record exists in the users table
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (userCheckError && userCheckError.code !== 'PGRST116') {
+        console.error('Error checking user:', userCheckError);
+        throw new Error('Failed to check user');
+      }
+
+      if (!existingUser) {
+        // User doesn't exist in users table, insert them
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            subscription_plan: 'professional',
+            subscription_status: 'trial',
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+            payfast_token: String(body.token || ''),
+            payfast_subscription_id: String(body.pf_payment_id || ''),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('Error inserting user:', insertError);
+          throw new Error('Failed to create user record');
+        }
+      } else {
+        // User exists, update their subscription status
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            subscription_plan: 'professional',
+            subscription_status: 'trial',
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+            payfast_token: String(body.token || ''),
+            payfast_subscription_id: String(body.pf_payment_id || ''),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+
+        if (updateError) {
+          console.error('Error updating user trial status:', updateError);
+          throw new Error('Failed to update trial status');
+        }
+      }
+
+      // Send welcome email for free trial
+      try {
+        const emailService = new EmailService();
+        await emailService.sendEmail({
+          to: String(body.email_address || ''),
+          subject: 'Welcome to Your ApplyForMe Free Trial!',
+          html: `
+            <h2>Welcome to ApplyForMe!</h2>
+            <p>Your 30-day free trial has been activated successfully.</p>
+            <p><strong>What's included in your trial:</strong></p>
+            <ul>
+              <li>Unlimited job postings</li>
+              <li>Advanced AI screening</li>
+              <li>Talent pool management</li>
+              <li>Up to 3 team members</li>
+              <li>Priority support</li>
+            </ul>
+            <p>Your trial ends on ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}.</p>
+            <p>You can cancel anytime before the trial ends to avoid charges.</p>
+            <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/recruiter/dashboard">Start using ApplyForMe now</a></p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+      }
 
       // Check if a subscription already exists
+      if (!recruiter) {
+        throw new Error('Recruiter not found');
+      }
+
       const { data: existingSubscription, error: selectError } = await supabase
         .from('recruiter_subscriptions')
         .select('id')
@@ -106,6 +195,17 @@ export async function POST(req: NextRequest) {
       if (selectError && selectError.code !== 'PGRST116') {
         throw new Error(`Database error checking for subscription: ${selectError.message}`);
       }
+
+      // Define subscription data
+      const subscriptionData = {
+        recruiter_id: recruiter.id,
+        plan_name: 'Premium Plan',
+        status: 'active',
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        amount: parseFloat(amount),
+        transaction_id: transactionId
+      };
 
       const emailPayload = {
         planName: 'Premium Plan',
@@ -120,7 +220,7 @@ export async function POST(req: NextRequest) {
         const { error: updateError } = await supabase
           .from('recruiter_subscriptions')
           .update(subscriptionData)
-          .eq('id', existingSubscription.id);
+          .eq('id', existingSubscription?.id);
 
         if (updateError) {
           throw new Error(`Failed to update subscription: ${updateError.message}`);

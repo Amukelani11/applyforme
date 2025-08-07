@@ -50,7 +50,7 @@ begin
   -- Call Vertex AI API
   select content::jsonb into response
   from http_post(
-    'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0215820874/locations/us-central1/publishers/google/models/gemini-pro:generateContent',
+    'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0215820874/locations/us-central1/publishers/google/models/gemini-1.5-pro:generateContent',
     jsonb_build_object(
       'contents', jsonb_build_array(
         jsonb_build_object(

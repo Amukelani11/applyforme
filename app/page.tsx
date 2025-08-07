@@ -234,8 +234,8 @@ export default function HomePage() {
             <p className="text-xl text-gray-600 font-light">Choose the plan that fits your needs</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Everyday Plan */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Basic Plan */}
             <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-xl border-2 border-green-500 relative flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                 <span className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-medium shadow-lg">Free</span>
@@ -265,6 +265,10 @@ export default function HomePage() {
                   <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Progress tracking dashboard</span>
                 </li>
+                <li className="flex items-center">
+                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <span className="text-gray-700">Basic resume templates</span>
+                </li>
               </ul>
 
               <div className="space-y-3 mt-auto">
@@ -279,16 +283,19 @@ export default function HomePage() {
             </div>
 
             {/* Plus Plan */}
-            <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-gray-200 flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-xl border-2 border-[#c084fc] relative flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] text-white px-6 py-2 rounded-full text-sm font-medium shadow-lg">Most Popular</span>
+              </div>
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-medium text-gray-900 mb-2">Plus</h3>
                 <p className="text-gray-600 mb-6">For those who want extra help and features</p>
                 <div className="flex items-baseline justify-center">
-                  <span className="text-5xl font-light text-gray-900">R99</span>
+                  <span className="text-5xl font-light text-gray-900">R59</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
-                  <span className="line-through">R249</span> Save 60%
+                  <span className="line-through">R149</span> Save 60%
                 </p>
               </div>
 
@@ -299,19 +306,35 @@ export default function HomePage() {
                 </li>
                 <li className="flex items-center">
                   <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Personalized feedback</span>
+                  <span className="text-gray-700">AI-powered resume optimization</span>
                 </li>
                 <li className="flex items-center">
                   <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">24/7 support</span>
+                  <span className="text-gray-700">Personalized cover letter generator</span>
                 </li>
                 <li className="flex items-center">
                   <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Custom cover letters</span>
+                  <span className="text-gray-700">Priority 24/7 support</span>
                 </li>
                 <li className="flex items-center">
                   <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Interview tips</span>
+                  <span className="text-gray-700">Advanced interview preparation</span>
+                </li>
+                <li className="flex items-center">
+                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <span className="text-gray-700">Salary negotiation guidance</span>
+                </li>
+                <li className="flex items-center">
+                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <span className="text-gray-700">Detailed application analytics</span>
+                </li>
+                <li className="flex items-center">
+                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <span className="text-gray-700">Premium resume templates</span>
+                </li>
+                <li className="flex items-center">
+                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <span className="text-gray-700">Job matching recommendations</span>
                 </li>
               </ul>
 
@@ -319,54 +342,6 @@ export default function HomePage() {
                 <Button
                   className="w-full bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] rounded-full"
                   onClick={() => handlePlanAction("plus")}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Loading..." : "Get started"}
-                </Button>
-              </div>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-gray-200 flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-medium text-gray-900 mb-2">Pro</h3>
-                <p className="text-gray-600 mb-6">For power users and professionals</p>
-                <div className="flex items-baseline justify-center">
-                  <span className="text-5xl font-light text-gray-900">R149</span>
-                  <span className="text-gray-500 ml-2">/month</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  <span className="line-through">R249</span> Save 40%
-                </p>
-              </div>
-
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Unlimited job applications</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Top priority support</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Advanced analytics</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Early access to new features</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Monthly performance report</span>
-                </li>
-              </ul>
-
-              <div className="space-y-3 mt-auto">
-                <Button
-                  className="w-full bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] rounded-full"
-                  onClick={() => handlePlanAction("pro")}
                   disabled={isLoading}
                 >
                   {isLoading ? "Loading..." : "Get started"}

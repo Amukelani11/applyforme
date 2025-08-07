@@ -87,7 +87,7 @@ function OnboardingForm() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("No user found")
 
       // Update user profile
@@ -124,7 +124,7 @@ function OnboardingForm() {
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+        setLoading(false)
     }
   }
 
@@ -202,7 +202,7 @@ function OnboardingForm() {
           </div>
         )
       case 3:
-        return (
+  return (
           <div className="space-y-6">
             <div>
               <Label htmlFor="skills">Skills *</Label>
@@ -222,7 +222,7 @@ function OnboardingForm() {
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 placeholder="Tell us about your professional background and goals"
               />
-            </div>
+        </div>
             <div>
               <Label htmlFor="linkedin_url">LinkedIn Profile</Label>
               <Input
@@ -231,8 +231,8 @@ function OnboardingForm() {
                 onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
                 placeholder="https://linkedin.com/in/yourprofile"
               />
-            </div>
-          </div>
+                        </div>
+                      </div>
         )
       case 4:
         return (
@@ -250,7 +250,7 @@ function OnboardingForm() {
                     })}
                   />
                   <Label htmlFor="remote_work">Open to remote work</Label>
-                </div>
+                        </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="relocation"
@@ -292,7 +292,7 @@ function OnboardingForm() {
             <CardDescription className="text-lg text-gray-600">
               Let's get to know you better to find the perfect job opportunities
             </CardDescription>
-          </CardHeader>
+              </CardHeader>
           <CardContent className="p-8">
             {/* Progress Steps */}
             <div className="flex justify-between mb-8">
@@ -334,7 +334,7 @@ function OnboardingForm() {
                 >
                   {loading ? "Saving..." : "Complete Profile"}
                 </Button>
-              )}
+          )}
             </div>
           </CardContent>
         </Card>

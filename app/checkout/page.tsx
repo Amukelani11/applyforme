@@ -96,10 +96,10 @@ function CheckoutForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Order Summary */}
-          <Card>
-            <CardHeader>
+        <Card>
+          <CardHeader>
               <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
+          </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                 <div>
@@ -170,7 +170,7 @@ function CheckoutForm() {
                   </RadioGroup>
                 </div>
 
-                <div className="space-y-4">
+            <div className="space-y-4">
                   <div>
                     <Label htmlFor="cardNumber">Card Number</Label>
                     <Input
@@ -203,34 +203,34 @@ function CheckoutForm() {
                         required
                       />
                     </div>
-                  </div>
-                </div>
+            </div>
+            </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
+            <div className="flex items-center space-x-2">
+              <Checkbox
                     id="agreeToTerms"
                     checked={formData.agreeToTerms}
                     onCheckedChange={(checked) => setFormData({ ...formData, agreeToTerms: checked as boolean })}
                   />
                   <Label htmlFor="agreeToTerms" className="text-sm">
-                    I agree to the{" "}
+                I agree to the{" "}
                     <Link href="/terms" className="text-blue-600 hover:underline">
-                      Terms of Service
+                  Terms of Service
                     </Link>{" "}
-                    and{" "}
+                and{" "}
                     <Link href="/privacy" className="text-blue-600 hover:underline">
-                      Privacy Policy
+                  Privacy Policy
                     </Link>
-                  </Label>
-                </div>
+              </Label>
+            </div>
 
-                <Button
+            <Button
                   type="submit"
                   className="w-full bg-[#c084fc] hover:bg-[#a855f7]"
                   disabled={loading}
                 >
                   {loading ? "Processing..." : `Pay $${selectedPlan.price}/month`}
-                </Button>
+            </Button>
 
                 <div className="flex items-center justify-center text-sm text-gray-500">
                   <Shield className="h-4 w-4 mr-2" />
@@ -238,7 +238,7 @@ function CheckoutForm() {
                 </div>
               </form>
             </CardContent>
-          </Card>
+        </Card>
         </div>
       </div>
     </div>

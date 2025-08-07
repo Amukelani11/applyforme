@@ -127,7 +127,7 @@ export async function middleware(request: NextRequest) {
 
     // Handle unauthenticated users
     if (!user) {
-      if (isRecruiterPath && pathname !== '/recruiter/login' && pathname !== '/recruiter/register') {
+      if (isRecruiterPath && pathname !== '/recruiter' && pathname !== '/recruiter/login' && pathname !== '/recruiter/register' && pathname !== '/recruiter/free-trial') {
         return NextResponse.redirect(new URL('/recruiter/login', request.url))
     }
       // Add other non-recruiter protected paths here if needed, redirecting to /login
@@ -164,7 +164,7 @@ export async function middleware(request: NextRequest) {
       const subscriptionStatus = userData?.subscription_status
 
       // If a regular user tries to access a recruiter path, send them to their dashboard
-      if (isRecruiterPath) {
+      if (isRecruiterPath && pathname !== '/recruiter') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

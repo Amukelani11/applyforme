@@ -123,7 +123,7 @@ export default function MessagesPage() {
           *,
           messages(
             *,
-            sender:users(full_name, avatar_url)
+            sender:users(full_name)
           ),
           candidate_applications(
             candidate_name,
@@ -175,7 +175,7 @@ export default function MessagesPage() {
         const userIds = teamData.map(member => member.user_id)
         const { data: usersData } = await supabase
           .from('users')
-          .select('id, full_name, email, avatar_url')
+          .select('id, full_name, email')
           .in('id', userIds)
 
         if (usersData) {
@@ -186,7 +186,7 @@ export default function MessagesPage() {
               id: member.id,
               full_name: user?.full_name || 'Unknown User',
               email: user?.email || 'unknown@email.com',
-              avatar_url: user?.avatar_url,
+              avatar_url: undefined,
               role: 'Recruiter',
               last_active: new Date().toISOString() // Mock data
             }
@@ -215,7 +215,7 @@ export default function MessagesPage() {
         })
         .select(`
           *,
-          sender:users(full_name, avatar_url)
+          sender:users(full_name)
         `)
         .single()
 

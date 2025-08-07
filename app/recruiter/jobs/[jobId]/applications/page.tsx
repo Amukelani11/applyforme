@@ -47,8 +47,8 @@ function ApplicationsContent() {
   const searchParams = useSearchParams();
   const jobId = params.jobId as string;
 
-  const [applications, setApplications] = useState([]);
-  const [jobData, setJobData] = useState(null);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [jobData, setJobData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,7 +58,7 @@ function ApplicationsContent() {
   const [rejectionData, setRejectionData] = useState({
     applicationId: '',
     candidateName: '',
-    reasons: [],
+    reasons: [] as string[],
     customMessage: '',
     sendEmail: true
   });
@@ -132,7 +132,7 @@ function ApplicationsContent() {
 
   useEffect(() => {
     // Simulate loading data
-    setLoading(true);
+      setLoading(true);
     setTimeout(() => {
       setApplications(mockApplications);
       setJobData(mockJobData);
@@ -147,8 +147,8 @@ function ApplicationsContent() {
     
     const matchesStatus = statusFilter === 'all' || application.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    });
 
   const handleSelectApplication = (applicationId) => {
     const newSelected = new Set(selectedApplications);
@@ -169,36 +169,36 @@ function ApplicationsContent() {
   };
 
   const handleStatusUpdate = async (applicationId, newStatus) => {
-    setProcessing(true);
+      setProcessing(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    setApplications(prev => prev.map(app => 
+        setApplications(prev => prev.map(app => 
       app.id === applicationId ? { ...app, status: newStatus } : app
-    ));
+        ));
     
-    toast({
-      title: "Status Updated",
+        toast({
+          title: "Status Updated",
       description: `Application status updated to ${newStatus}`,
     });
-    setProcessing(false);
+      setProcessing(false);
   };
 
   const handleBatchAction = async (action) => {
-    setProcessing(true);
+      setProcessing(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    setApplications(prev => prev.map(app => 
+        setApplications(prev => prev.map(app => 
       selectedApplications.has(app.id) ? { ...app, status: action } : app
-    ));
+        ));
     
-    setSelectedApplications(new Set());
-    toast({
-      title: "Batch Action Completed",
+        setSelectedApplications(new Set());
+        toast({
+          title: "Batch Action Completed",
       description: `${selectedApplications.size} applications ${action}`,
     });
-    setProcessing(false);
+      setProcessing(false);
   };
 
   const handleRejectApplication = (application) => {
@@ -213,20 +213,20 @@ function ApplicationsContent() {
   };
 
   const confirmRejection = async () => {
-    setProcessing(true);
+      setProcessing(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    setApplications(prev => prev.map(app => 
-      app.id === rejectionData.applicationId ? { ...app, status: 'rejected' } : app
-    ));
+        setApplications(prev => prev.map(app => 
+          app.id === rejectionData.applicationId ? { ...app, status: 'rejected' } : app
+        ));
     
-    setShowRejectionDialog(false);
-    toast({
-      title: "Application Rejected",
+        setShowRejectionDialog(false);
+        toast({
+          title: "Application Rejected",
       description: "The application has been rejected and the candidate has been notified.",
     });
-    setProcessing(false);
+      setProcessing(false);
   };
 
   const getStatusBadge = (status) => {
@@ -262,9 +262,9 @@ function ApplicationsContent() {
         <div className="flex items-center justify-between">
           <div className="h-8 bg-gray-200 rounded w-64 animate-pulse"></div>
           <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
-        </div>
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
+          </div>
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
             <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
               <div className="h-3 bg-gray-200 rounded w-32"></div>
@@ -279,7 +279,7 @@ function ApplicationsContent() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
           <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -294,7 +294,7 @@ function ApplicationsContent() {
           </Button>
           <Button onClick={() => router.push(`/recruiter/jobs/${jobId}/applications/batch`)}>
             Batch Actions
-          </Button>
+              </Button>
         </div>
       </div>
 
@@ -357,8 +357,8 @@ function ApplicationsContent() {
               </div>
               <div className="p-3 bg-emerald-100 rounded-full">
                 <Star className="h-6 w-6 text-emerald-600" />
-              </div>
-            </div>
+          </div>
+        </div>
           </CardContent>
         </Card>
       </div>
@@ -370,13 +370,13 @@ function ApplicationsContent() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
+              <Input
                   placeholder="Search applications..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-48">
@@ -400,27 +400,27 @@ function ApplicationsContent() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Applications ({filteredApplications.length})</CardTitle>
-            {selectedApplications.size > 0 && (
+        {selectedApplications.size > 0 && (
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-600">
                   {selectedApplications.size} selected
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleBatchAction('shortlisted')}
-                  disabled={processing}
-                >
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBatchAction('shortlisted')}
+                    disabled={processing}
+                  >
                   {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Shortlist Selected'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleBatchAction('rejected')}
-                  disabled={processing}
-                >
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBatchAction('rejected')}
+                    disabled={processing}
+                  >
                   {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reject Selected'}
-                </Button>
+                  </Button>
               </div>
             )}
           </div>
@@ -430,48 +430,48 @@ function ApplicationsContent() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">
-                  <Checkbox
-                    checked={selectedApplications.size === filteredApplications.length && filteredApplications.length > 0}
-                    onCheckedChange={handleSelectAll}
-                  />
+                <Checkbox
+                  checked={selectedApplications.size === filteredApplications.length && filteredApplications.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
                 </TableHead>
                 <TableHead>Candidate</TableHead>
                 <TableHead>AI Score</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Applied</TableHead>
                 <TableHead>Source</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <AnimatePresence>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <AnimatePresence>
                 {filteredApplications.map((application) => (
                   <motion.tr
-                    key={application.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                          key={application.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     className="hover:bg-gray-50"
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedApplications.has(application.id)}
-                        onCheckedChange={() => handleSelectApplication(application.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedApplications.has(application.id)}
+                              onCheckedChange={() => handleSelectApplication(application.id)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                           <User className="h-5 w-5 text-gray-600" />
-                        </div>
-                        <div>
+                              </div>
+                              <div>
                           <p className="font-medium">{application.candidate_name}</p>
                           <p className="text-sm text-gray-600">{application.candidate_email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                              <div className="flex items-center space-x-2">
                         <div className="w-16 bg-gray-200 rounded-full h-2">
                           <div
                             className="bg-green-500 h-2 rounded-full"
@@ -479,29 +479,29 @@ function ApplicationsContent() {
                           ></div>
                         </div>
                         <span className="text-sm font-medium">{application.ai_score}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(application.status)}
-                    </TableCell>
-                    <TableCell>
+                              </div>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(application.status)}
+                          </TableCell>
+                          <TableCell>
                       <div className="text-sm">
                         <p>{formatDistanceToNow(new Date(application.created_at), { addSuffix: true })}</p>
                         <p className="text-gray-500">{application.last_activity}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                            </div>
+                          </TableCell>
+                          <TableCell>
                       <Badge variant="outline" className="text-xs">
                         {application.source}
                       </Badge>
-                    </TableCell>
+                          </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
                             <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                                </Button>
+                              </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => router.push(`/recruiter/jobs/${jobId}/applications/${application.id}`)}>
                             <Eye className="h-4 w-4 mr-2" />
@@ -510,31 +510,31 @@ function ApplicationsContent() {
                           <DropdownMenuItem>
                             <MessageSquare className="h-4 w-4 mr-2" />
                             Send Message
-                          </DropdownMenuItem>
+                                </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleStatusUpdate(application.id, 'shortlisted')}>
                             <Check className="h-4 w-4 mr-2" />
-                            Shortlist
-                          </DropdownMenuItem>
+                                  Shortlist
+                                </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleStatusUpdate(application.id, 'interview')}>
                             <Calendar className="h-4 w-4 mr-2" />
-                            Schedule Interview
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+                                  Schedule Interview
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleRejectApplication(application)}>
                             <X className="h-4 w-4 mr-2" />
-                            Reject
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                                  Reject
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
                   </motion.tr>
                 ))}
-              </AnimatePresence>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </AnimatePresence>
+                </TableBody>
+              </Table>
+          </CardContent>
+        </Card>
 
       {/* Rejection Dialog */}
       <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
@@ -574,7 +574,7 @@ function ApplicationsContent() {
               <Checkbox
                 id="sendEmail"
                 checked={rejectionData.sendEmail}
-                onCheckedChange={(checked) => setRejectionData({ ...rejectionData, sendEmail: checked })}
+                onCheckedChange={(checked) => setRejectionData({ ...rejectionData, sendEmail: checked === true })}
               />
               <Label htmlFor="sendEmail">Send email notification to candidate</Label>
             </div>

@@ -52,7 +52,7 @@ function SidebarContent() {
         setUser(user)
         const { data: profileData, error } = await supabase
           .from('users')
-          .select('full_name, avatar_url')
+          .select('full_name')
           .eq('id', user.id)
           .single()
         
@@ -96,7 +96,7 @@ function SidebarContent() {
       <div className="p-6 border-b border-gray-50">
         <div className="flex items-center space-x-3">
           <Avatar className="w-10 h-10 ring-2 ring-gray-100">
-            <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
+            <AvatarImage src={undefined} alt={profile?.full_name} />
             <AvatarFallback className="bg-theme-100 text-theme-700 font-semibold">
               {user ? getInitials(profile?.full_name || user.email!) : 'U'}
             </AvatarFallback>

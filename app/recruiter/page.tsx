@@ -1,629 +1,937 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  UsersIcon, 
-  BriefcaseIcon, 
-  TargetIcon, 
-  BarChartIcon, 
-  CheckmarkIcon,
-  SparklesIcon,
-  StarIcon,
-  ShieldIcon,
-  ClockIcon
-} from "@/components/ui/custom-icons"
-import {
-  Calendar,
-  Database,
-  Wand2,
-  CreditCard,
-  Search,
-  FileText,
-  ListChecks,
-  TrendingUp,
-  Globe,
-  Brain,
-  Zap,
-  ArrowRight,
-  Play,
-  Award,
-  Users,
-  Building2,
-  CheckCircle,
-  ArrowUpRight,
-  Star,
-  MessageSquare,
-  BarChart3,
-  Target,
-  Lightbulb,
-  Shield,
-  Clock,
-  Globe2,
-  PieChart,
-  Send,
-  Mail,
-  Phone,
-  MapPin
-} from "lucide-react"
+import { Check, Star, Users, Building, Percent, Clock, Zap, Target, BarChart3, Users2, Briefcase, FileText, MessageSquare, Calendar, TrendingUp, Globe, Brain, Wand2, Search, CheckCircle, Calendar as CalendarIcon, Share2, Linkedin, MessageCircle, Mail, Phone, ExternalLink, MapPin, DollarSign, Sparkles, Filter, Plus, X, Send, StickyNote, UserPlus } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Navbar } from "@/components/navbar"
+import Link from "next/link"
 
 export default function RecruiterLandingPage() {
-  const router = useRouter()
+  const [showEnterpriseForm, setShowEnterpriseForm] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formData, setFormData] = useState({
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    monthlyJobs: '',
+    teamSize: '',
+    currentTools: '',
+    requirements: '',
+    timeline: ''
+  })
 
-  const stats = [
-    { number: "50K+", label: "Active Candidates", icon: Users },
-    { number: "2,500+", label: "Companies Hiring", icon: Building2 },
-    { number: "95%", label: "Success Rate", icon: Award },
-    { number: "24/7", label: "AI Support", icon: Clock }
-  ]
-
-  const coreFeatures = [
-    {
-      icon: <Target className="w-6 h-6" />,
-      title: "Smart Candidate Matching",
-      description: "AI-powered matching that connects you with the most qualified candidates based on skills, experience, and cultural fit.",
-      color: "from-blue-500 to-cyan-500"
-    },
-    {
-      icon: <BarChart3 className="w-6 h-6" />,
-      title: "Advanced Analytics",
-      description: "Real-time insights into your hiring funnel with predictive analytics and performance metrics.",
-      color: "from-purple-500 to-pink-500"
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: "Talent Pool Management",
-      description: "Build and nurture relationships with passive candidates through intelligent engagement campaigns.",
-      color: "from-emerald-500 to-teal-500"
-    },
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: "Automated Workflows",
-      description: "Streamline your hiring process with customizable automation rules and smart scheduling.",
-      color: "from-orange-500 to-red-500"
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    
+    try {
+      const response = await fetch('/api/enterprise-contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+      
+      if (response.ok) {
+        alert('Thank you! We\'ll be in touch soon.')
+        setShowEnterpriseForm(false)
+        setFormData({
+          companyName: '',
+          contactName: '',
+          email: '',
+          phone: '',
+          monthlyJobs: '',
+          teamSize: '',
+          currentTools: '',
+          requirements: '',
+          timeline: ''
+        })
+      } else {
+        alert('Something went wrong. Please try again.')
+      }
+    } catch (error) {
+      alert('Something went wrong. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
-  ]
-
-  const aiFeatures = [
-    {
-      icon: <Brain className="w-7 h-7" />,
-      title: "AI Resume Screening",
-      description: "Instantly analyze and score resumes with 95% accuracy using advanced NLP and machine learning.",
-      highlight: "95% Accuracy"
-    },
-    {
-      icon: <Search className="w-7 h-7" />,
-      title: "Intelligent Job Matching",
-      description: "Automatically match job requirements with candidate profiles using semantic analysis.",
-      highlight: "Smart Matching"
-    },
-    {
-      icon: <Wand2 className="w-7 h-7" />,
-      title: "JD Optimization",
-      description: "AI-powered job description enhancement for better candidate attraction and SEO performance.",
-      highlight: "SEO Optimized"
-    },
-    {
-      icon: <ListChecks className="w-7 h-7" />,
-      title: "Interview Question Generator",
-      description: "Generate role-specific interview questions with behavioral and technical focus areas.",
-      highlight: "Role-Specific"
-    },
-    {
-      icon: <PieChart className="w-7 h-7" />,
-      title: "Predictive Analytics",
-      description: "Forecast hiring success rates and candidate performance using historical data analysis.",
-      highlight: "Predictive"
-    },
-    {
-      icon: <MessageSquare className="w-7 h-7" />,
-      title: "Automated Communication",
-      description: "Smart email sequences and follow-ups that keep candidates engaged throughout the process.",
-      highlight: "Auto-Engagement"
-    }
-  ]
-
-  const advancedFeatures = [
-    {
-      icon: <Database className="w-6 h-6" />,
-      title: "Talent Intelligence",
-      description: "Comprehensive market insights with salary benchmarks and competitor analysis."
-    },
-    {
-      icon: <Calendar className="w-6 h-6" />,
-      title: "Smart Scheduling",
-      description: "AI-powered interview scheduling with calendar integration and timezone management."
-    },
-    {
-      icon: <Globe2 className="w-6 h-6" />,
-      title: "Global Reach",
-      description: "Access talent from around the world with multi-language support and localization."
-    },
-    {
-      icon: <TrendingUp className="w-6 h-6" />,
-      title: "Performance Tracking",
-      description: "Monitor hiring metrics and team performance with detailed reporting and insights."
-    },
-    {
-      icon: <FileText className="w-6 h-6" />,
-      title: "Document Automation",
-      description: "Generate offer letters, contracts, and compliance documents with legal accuracy."
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: "Enterprise Security",
-      description: "Bank-level security with SOC 2 compliance and advanced data protection."
-    }
-  ]
-
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      role: "Head of Talent Acquisition",
-      company: "TechCorp Solutions",
-      content: "ApplyForMe transformed our hiring process. We've reduced time-to-hire by 60% and improved candidate quality significantly.",
-      rating: 5
-    },
-    {
-      name: "Michael Chen",
-      role: "HR Director",
-      company: "InnovateLabs",
-      content: "The AI-powered screening is incredible. It saves us hours every week and helps us focus on the best candidates.",
-      rating: 5
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Recruitment Manager",
-      company: "GrowthStart",
-      content: "Best recruitment platform we've used. The analytics and automation features are game-changers for our team.",
-      rating: 5
-    }
-  ]
-
-  const benefits = [
-    "Reduce time-to-hire by up to 70%",
-    "Improve candidate quality with AI screening",
-    "Access to 50,000+ active candidates",
-    "Advanced analytics and reporting",
-    "24/7 customer support",
-    "Enterprise-grade security",
-    "Custom integrations available",
-    "Mobile-optimized platform",
-    "Multi-language support",
-    "Compliance and legal support",
-    "Automated workflows",
-    "Predictive hiring insights"
-  ]
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+    <div className="min-h-screen bg-white">
+      <Navbar />
+
+
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-          <div className="text-center">
-            {/* Badges */}
-            <div className="flex items-center justify-center gap-3 mb-8">
-              <Badge variant="secondary" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 px-4 py-2">
-                <SparklesIcon className="w-4 h-4 mr-2" />
-                AI-Powered Platform
-              </Badge>
-              <Badge variant="outline" className="border-blue-200 text-blue-700 px-4 py-2">
-                <StarIcon className="w-4 h-4 mr-2" />
-                Trusted by 2,500+ Companies
-              </Badge>
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-              Hire Smarter,
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Faster</span>
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-              Transform your recruitment with AI-powered candidate matching, automated workflows, and intelligent analytics. 
-              Find the perfect candidates in half the time.
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                onClick={() => router.push("/recruiter/register")}
-              >
-                Start Free Trial
-                <ArrowRight className="w-5 h-5 ml-2" />
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            Hire smarter, <span className="text-theme-600">faster</span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            AI-powered recruitment platform that helps you find, screen and hire the best candidates in record time.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/recruiter/register">
+              <Button size="lg" className="bg-theme-600 hover:bg-theme-700 text-lg px-8 py-3">
+                Start hiring today
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="rounded-full px-8 py-4 text-lg border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300"
-                onClick={() => router.push("/recruiter/login")}
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Watch Demo
+            </Link>
+            <Link href="/recruiter/login">
+              <Button size="lg" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-lg px-8 py-3">
+                Recruiter Login
               </Button>
+            </Link>
+          </div>
+          
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
+            <div className="flex flex-col items-center">
+              <Users className="h-8 w-8 text-theme-600 mb-2" />
+              <p className="text-2xl font-bold text-gray-900">1,000+</p>
+              <p className="text-gray-600">Active Candidates</p>
             </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl mb-3 mx-auto">
-                    <stat.icon className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div className="text-3xl font-bold text-gray-900 mb-1">{stat.number}</div>
-                  <div className="text-sm text-gray-600">{stat.label}</div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center">
+              <Building className="h-8 w-8 text-theme-600 mb-2" />
+              <p className="text-2xl font-bold text-gray-900">25+</p>
+              <p className="text-gray-600">Companies Hiring</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Percent className="h-8 w-8 text-theme-600 mb-2" />
+              <p className="text-2xl font-bold text-gray-900">95%</p>
+              <p className="text-gray-600">Success Rate</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Clock className="h-8 w-8 text-theme-600 mb-2" />
+              <p className="text-2xl font-bold text-gray-900">24/7</p>
+              <p className="text-gray-600">AI Support</p>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Core Features Section */}
-      <div className="py-20 bg-white">
+      {/* Unlock Candidate Potential - AI Review Screen */}
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Hire Successfully
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our comprehensive platform combines cutting-edge AI with proven recruitment methodologies 
-              to deliver exceptional hiring results.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {coreFeatures.map((feature, index) => (
-              <Card
-                key={index}
-                className="group border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-white"
-              >
-                <CardContent className="p-8">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                    <div className="text-white">
-                      {feature.icon}
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-4 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* AI Features Section */}
-      <div className="py-20 bg-gradient-to-br from-gray-50 to-blue-50/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <SparklesIcon className="w-8 h-8 text-purple-600" />
-              <h2 className="text-4xl font-bold text-gray-900">
-                AI-Powered Recruitment
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Unlock Candidate <span className="text-theme-600">Potential</span>
               </h2>
+              <p className="text-lg text-gray-600 mb-8">
+                Our intelligent analysis provides deep insights, scores, and actionable recommendations for every applicant.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">AI-powered candidate scoring with 99% accuracy</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Detailed insights on skills, experience, and cultural fit</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Actionable recommendations for next steps</span>
+                </div>
+              </div>
             </div>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Leverage the power of artificial intelligence to automate repetitive tasks, 
-              improve decision-making, and find the best candidates faster.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {aiFeatures.map((feature, index) => (
-              <Card key={index} className="group border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-white">
-                <CardHeader className="pb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-purple-100 to-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <div className="text-purple-600">
-                      {feature.icon}
-                    </div>
+            <div className="bg-gray-50 rounded-xl p-8">
+              <div className="bg-white rounded-lg p-6 shadow-sm">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-theme-100 rounded-full flex items-center justify-center mr-4">
+                    <span className="text-theme-600 font-semibold">SJ</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
-                      {feature.highlight}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 leading-relaxed">
-                    {feature.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Advanced Features Section */}
-      <div className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Enterprise-Grade Features
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Scale your recruitment efforts with advanced tools designed for growing organizations 
-              and enterprise teams.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {advancedFeatures.map((feature, index) => (
-              <Card key={index} className="group border border-gray-200 hover:border-blue-300 shadow-lg hover:shadow-xl transition-all duration-300 bg-white">
-                <CardContent className="p-8">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-blue-100 to-cyan-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <div className="text-blue-600">
-                      {feature.icon}
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-4 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Testimonials Section */}
-      <div className="py-20 bg-gradient-to-br from-blue-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Trusted by Industry Leaders
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See what our customers say about their experience with ApplyForMe.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                <CardContent className="p-8">
-                  <div className="flex items-center mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-gray-700 mb-6 leading-relaxed italic">
-                    "{testimonial.content}"
-                  </p>
                   <div>
-                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                    <div className="text-sm text-gray-600">{testimonial.role}</div>
-                    <div className="text-sm text-blue-600 font-medium">{testimonial.company}</div>
+                    <h3 className="font-semibold">Sarah Johnson</h3>
+                    <p className="text-gray-600">sarah.johnson@email.com</p>
+                    <p className="text-gray-600">Cape Town, South Africa</p>
+                    <p className="text-gray-600">+27 82 123 4567</p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Benefits Section */}
-      <div className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why Choose ApplyForMe?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Join thousands of companies that have transformed their hiring process with our platform.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {benefits.map((benefit, index) => (
-              <div key={index} className="flex items-start space-x-4 p-6 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors duration-300">
-                <CheckCircle className="w-6 h-6 text-green-500 mt-1 flex-shrink-0" />
-                <p className="text-gray-700 font-medium">{benefit}</p>
+                  <div className="ml-auto text-center">
+                    <div className="w-16 h-16 bg-theme-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-white font-bold text-xl">87</span>
+                    </div>
+                    <a href="#" className="text-theme-600 text-sm hover:underline">Why this score?</a>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-6">
+                  <Button className="w-full bg-green-600 hover:bg-green-700">
+                    <Check className="h-4 w-4 mr-2" />
+                    Shortlisted
+                  </Button>
+                  <Button variant="outline" className="w-full border-red-300 text-red-600 hover:bg-red-50">
+                    <X className="h-4 w-4 mr-2" />
+                    Reject
+                  </Button>
+                  <Button variant="outline" className="w-full border-theme-600 text-theme-600 hover:bg-theme-50">
+                    <Send className="h-4 w-4 mr-2" />
+                    Message Candidate
+                  </Button>
+                  <Button variant="outline" className="w-full border-green-600 text-green-600 hover:bg-green-50">
+                    <Check className="h-4 w-4 mr-2" />
+                    Added to Pool (1)
+                  </Button>
+                  <Button variant="outline" className="w-full">
+                    <StickyNote className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                  <Button variant="outline" className="w-full border-blue-600 text-blue-600 hover:bg-blue-50">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Message Team
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
-
-          <div className="text-center">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full px-10 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-              onClick={() => router.push("/recruiter/register")}
-            >
-              Start Your Free Trial
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Pricing Section */}
-      <div className="py-20 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white">
+      {/* Master Your Pipeline - Dashboard Screen */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="bg-white rounded-xl p-8 shadow-sm">
+              <h3 className="text-lg font-semibold mb-4">Application Funnel</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Applied</span>
+                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div className="bg-theme-600 h-2 rounded-full" style={{ width: '95%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">247</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Reviewed</span>
+                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div className="bg-theme-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">185</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Assessment</span>
+                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div className="bg-theme-600 h-2 rounded-full" style={{ width: '50%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">123</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Interview</span>
+                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div className="bg-theme-600 h-2 rounded-full" style={{ width: '45%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">111</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Offer</span>
+                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div className="bg-theme-600 h-2 rounded-full" style={{ width: '15%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">37</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Hired</span>
+                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div className="bg-theme-600 h-2 rounded-full" style={{ width: '10%' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">25</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Master Your <span className="text-theme-600">Pipeline</span>
+              </h2>
+              <p className="text-lg text-gray-600 mb-8">
+                Gain real-time insights into your hiring funnel and overall performance with comprehensive analytics.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Real-time application funnel visualization</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Performance metrics and team analytics</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Customizable reports and insights</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Build Your Dream Team - Talent Pools Screen */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Build Your <span className="text-theme-600">Dream Team</span>
+              </h2>
+              <p className="text-lg text-gray-600 mb-8">
+                Organize and manage your top candidates in dedicated talent pools for future opportunities.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Create and organize candidate pools by role or skill</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Track candidate engagement and communication history</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Easy candidate search and filtering</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-8">
+              <div className="bg-white rounded-lg p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Talent Pools</h3>
+                  <Button size="sm" className="bg-black hover:bg-gray-800">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-theme-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-theme-600 rounded-full mr-3"></div>
+                      <span className="font-medium">Senior Developers</span>
+                    </div>
+                    <span className="text-sm text-gray-600">23 members</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                      <span className="font-medium">Product Managers</span>
+                    </div>
+                    <span className="text-sm text-gray-600">12 members</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                      <span className="font-medium">UX Designers</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-sm text-gray-600 mr-2">8 members</span>
+                      <Badge variant="secondary" className="text-xs">Public</Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                      <span className="font-medium">Data Scientists</span>
+                    </div>
+                    <span className="text-sm text-gray-600">15 members</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Your Complete Toolkit - Tools Screen */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left side - Tablet-like graphic */}
+            <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-200">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">AI-Powered Recruitment Tools</h3>
+              <p className="text-gray-600 mb-8">
+                Standalone AI tools that work independently - analyze candidates from any source, optimize job descriptions, and make data-driven hiring decisions.
+              </p>
+              
+                             <div className="grid grid-cols-3 gap-4 mb-6">
+                 {/* Top Row */}
+                 <Card className="text-center p-4 flex flex-col h-full">
+                   <div className="flex items-center justify-center mb-2">
+                     <Globe className="h-8 w-8 text-blue-600 mr-2" />
+                     <Brain className="h-6 w-6 text-theme-600" />
+                   </div>
+                   <h4 className="text-sm font-semibold mb-2">AI Market Research Assistant</h4>
+                   <p className="text-xs text-gray-600 mb-3 flex-grow">Powerful South African industry research with real-time insights, research salaries, experience requirements, and market trends.</p>
+                   <Button size="sm" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-xs mt-auto">
+                     Open Tool
+                   </Button>
+                 </Card>
+                 
+                 <Card className="text-center p-4 flex flex-col h-full">
+                   <div className="flex items-center justify-center mb-2">
+                     <Users className="h-8 w-8 text-theme-600 mr-2" />
+                     <Check className="h-6 w-6 text-green-600" />
+                   </div>
+                   <h4 className="text-sm font-semibold mb-2">AI Candidate Screening</h4>
+                   <p className="text-xs text-gray-600 mb-3 flex-grow">Advanced AI-powered candidate evaluation with skills matching, cultural fit analysis, and automated scoring.</p>
+                   <Button size="sm" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-xs mt-auto">
+                     Open Tool
+                   </Button>
+                 </Card>
+                 
+                 <Card className="text-center p-4 flex flex-col h-full">
+                   <div className="flex items-center justify-center mb-2">
+                     <Wand2 className="h-8 w-8 text-theme-600" />
+                   </div>
+                   <h4 className="text-sm font-semibold mb-2">Job Description Optimizer</h4>
+                   <p className="text-xs text-gray-600 mb-3 flex-grow">AI-powered job description enhancement for better candidate attraction and SEO optimization.</p>
+                   <Button size="sm" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-xs mt-auto">
+                     Open Tool
+                   </Button>
+                 </Card>
+                 
+                 {/* Bottom Row */}
+                 <Card className="text-center p-4 flex flex-col h-full">
+                   <div className="flex items-center justify-center mb-2">
+                     <Search className="h-8 w-8 text-blue-400" />
+                   </div>
+                   <h4 className="text-sm font-semibold mb-2">Resume/JD Matching</h4>
+                   <p className="text-xs text-gray-600 mb-3 flex-grow">Advanced matching algorithm to find the perfect fit between candidates and job requirements.</p>
+                   <Button size="sm" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-xs mt-auto">
+                     Open Tool
+                   </Button>
+                 </Card>
+                 
+                 <Card className="text-center p-4 flex flex-col h-full">
+                   <div className="flex items-center justify-center mb-2">
+                     <MessageSquare className="h-8 w-8 text-green-600" />
+                   </div>
+                   <h4 className="text-sm font-semibold mb-2">Interview Questions Generator</h4>
+                   <p className="text-xs text-gray-600 mb-3 flex-grow">Generate intelligent, role-specific interview questions based on job requirements.</p>
+                   <Button size="sm" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-xs mt-auto">
+                     Open Tool
+                   </Button>
+                 </Card>
+                 
+                 <Card className="text-center p-4 flex flex-col h-full">
+                   <div className="flex items-center justify-center mb-2">
+                     <Calendar className="h-8 w-8 text-orange-500" />
+                   </div>
+                   <h4 className="text-sm font-semibold mb-2">Smart Interview Scheduler</h4>
+                   <p className="text-xs text-gray-600 mb-3 flex-grow">Automated scheduling system that coordinates interviews between candidates and team members.</p>
+                   <Button size="sm" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-xs mt-auto">
+                     Open Tool
+                   </Button>
+                 </Card>
+               </div>
+              
+              <p className="text-sm text-gray-600 text-center">
+                Complete suite of AI-powered tools to enhance every aspect of recruitment.
+              </p>
+            </div>
+            
+            {/* Right side - Description */}
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Your Complete <span className="text-theme-600">Toolkit</span>
+              </h2>
+              <p className="text-lg text-gray-600 mb-8">
+                Access powerful features like JD optimization, interview question generation, market insights, and more. Everything you need to streamline your recruitment process in one place.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">AI-powered job description optimization</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Intelligent interview question generation</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">Market research and salary insights</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Create & Optimize Job Posts - Job Posting Screen */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Create & Optimize <span className="text-theme-600">Job Posts</span>
+              </h2>
+              <p className="text-lg text-gray-600 mb-8">
+                Create compelling job postings with AI optimization and share them across multiple platforms instantly.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">AI-powered job description enhancement</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">One-click sharing to LinkedIn, WhatsApp, and more</span>
+                </div>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span className="text-gray-700">SEO optimization for better candidate discovery</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-8">
+              <div className="bg-white rounded-lg p-6 shadow-sm">
+                <h3 className="font-semibold mb-4">Create Job Posting</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                    <input type="text" value="Senior Software Engineer" className="w-full p-2 border border-gray-300 rounded-md" readOnly />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                    <input type="text" value="TechCorp South Africa" className="w-full p-2 border border-gray-300 rounded-md" readOnly />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input type="text" value="Johannesburg, South Africa" className="w-full p-2 border border-gray-300 rounded-md" readOnly />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
+                    <input type="text" value="Full-time" className="w-full p-2 border border-gray-300 rounded-md" readOnly />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Salary Range</label>
+                    <input type="text" value="R45,000 - R65,000 per month" className="w-full p-2 border border-gray-300 rounded-md" readOnly />
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      <Check className="h-4 w-4 mr-1" />
+                      AI Optimized
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      Optimize with AI
+                    </Button>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button size="sm" variant="outline">Save as Draft</Button>
+                    <Button size="sm" variant="outline">Preview</Button>
+                    <Button size="sm" className="bg-theme-600 hover:bg-theme-700">
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      Publish Job
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section id="testimonials" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">
-              Simple, Transparent Pricing
+            <h2 className="text-4xl font-bold text-gray-900 mb-6">
+              Loved by <span className="text-theme-600">recruiters worldwide</span>
             </h2>
-            <p className="text-xl opacity-90 max-w-3xl mx-auto">
-              Start free and scale as you grow. No hidden fees, no surprises.
+            <p className="text-lg text-gray-600">
+              See what our customers have to say about their experience with ApplyForMe.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Free Plan */}
-            <div className="bg-white/10 rounded-3xl p-8 backdrop-blur-sm border border-white/20">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">Free</h3>
-                <div className="text-4xl font-bold mb-2">$0<span className="text-lg">/month</span></div>
-                <p className="text-sm opacity-80">Perfect for getting started</p>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="p-6">
+              <div className="flex mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                ))}
               </div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>1 active job posting</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Unlimited applications</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Basic AI screening</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Email support</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Standard templates</span>
-                </li>
-              </ul>
-              <Button
-                variant="outline"
-                className="w-full border-white/30 text-white hover:bg-white/10"
-                onClick={() => router.push("/recruiter/register")}
-              >
-                Get Started Free
-              </Button>
-            </div>
+              <p className="text-gray-600 mb-4">
+                "ApplyForMe has transformed our hiring process. We've reduced our time-to-hire by 60% and improved candidate quality significantly."
+              </p>
+              <div>
+                <p className="font-semibold">Nokuthula Mokoena</p>
+                <p className="text-gray-600">HR Director</p>
+              </div>
+            </Card>
+            
+            <Card className="p-6">
+              <div className="flex mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                ))}
+              </div>
+              <p className="text-gray-600 mb-4">
+                "The AI-powered screening saves us hours every week. We can now focus on the best candidates and make faster decisions."
+              </p>
+              <div>
+                <p className="font-semibold">Thabo van der Merwe</p>
+                <p className="text-gray-600">Recruitment Manager</p>
+              </div>
+            </Card>
+            
+            <Card className="p-6">
+              <div className="flex mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                ))}
+              </div>
+              <p className="text-gray-600 mb-4">
+                "The analytics and insights give us unprecedented visibility into our hiring funnel. Highly recommended!"
+              </p>
+              <div>
+                <p className="font-semibold">Zinhle Patel</p>
+                <p className="text-gray-600">Talent Acquisition</p>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
 
-            {/* Premium Plan */}
-            <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl p-8 relative transform scale-105">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-white text-blue-600 px-4 py-2 font-semibold">
-                  Most Popular
-                </Badge>
-              </div>
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">Premium</h3>
-                <div className="text-4xl font-bold mb-2">R1,299<span className="text-lg">/month</span></div>
-                <p className="text-sm opacity-90">For growing companies</p>
-              </div>
-              <ul className="space-y-4 mb-8">
+      {/* Pricing */}
+      <section id="pricing" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-6">
+              Simple, <span className="text-theme-600">transparent pricing</span>
+            </h2>
+            <p className="text-lg text-gray-600">
+              Choose the plan that fits your hiring needs. No hidden fees, no surprises.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="p-8 text-center flex flex-col">
+              <h3 className="text-2xl font-bold mb-2">Starter</h3>
+              <p className="text-gray-600 mb-6">Perfect for small teams getting started</p>
+              <div className="text-4xl font-bold mb-6">Free</div>
+              <ul className="space-y-3 mb-8 text-left flex-grow">
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-white mr-3" />
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
                   <span>Unlimited job postings</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-white mr-3" />
-                  <span>Advanced AI features</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Up to 10 applicants per job</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-white mr-3" />
-                  <span>3 users for collaboration</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Basic AI screening</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-white mr-3" />
-                  <span>Talent pools & CRM</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Candidate database access</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-white mr-3" />
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Email support</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Basic analytics</span>
+                </li>
+              </ul>
+              <Button className="w-full bg-theme-600 hover:bg-theme-700">Get started</Button>
+            </Card>
+            
+            <Card className="p-8 text-center border-2 border-theme-600 relative flex flex-col">
+              <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-theme-600">Most Popular</Badge>
+              <h3 className="text-2xl font-bold mb-2">Professional</h3>
+              <p className="text-gray-600 mb-6">Ideal for growing companies</p>
+              <div className="text-4xl font-bold mb-6">R1,299<span className="text-lg text-gray-600">/month</span></div>
+              <ul className="space-y-3 mb-8 text-left flex-grow">
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Everything in Starter</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Unlimited applicants</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Talent pool management</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Up to 2 users</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Collaboration tools</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Advanced AI screening</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
                   <span>Priority support</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-white mr-3" />
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
                   <span>Advanced analytics</span>
                 </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-white mr-3" />
-                  <span>Custom branding</span>
-                </li>
               </ul>
-              <Button
-                className="w-full bg-white text-blue-600 hover:bg-gray-100 font-semibold"
-                onClick={() => router.push("/recruiter/register")}
-              >
-                Start Free Trial
-              </Button>
-            </div>
-
-            {/* Enterprise Plan */}
-            <div className="bg-white/10 rounded-3xl p-8 backdrop-blur-sm border border-white/20">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">Enterprise</h3>
-                <div className="text-4xl font-bold mb-2">Custom</div>
-                <p className="text-sm opacity-80">For large organizations</p>
-              </div>
-              <ul className="space-y-4 mb-8">
+              <Link href="/recruiter/free-trial">
+                <Button className="w-full bg-theme-600 hover:bg-theme-700">Get started</Button>
+              </Link>
+            </Card>
+            
+            <Card className="p-8 text-center flex flex-col">
+              <h3 className="text-2xl font-bold mb-2">Enterprise</h3>
+              <p className="text-gray-600 mb-6">For large organizations with custom needs</p>
+              <div className="text-4xl font-bold mb-6">Custom</div>
+              <ul className="space-y-3 mb-8 text-left flex-grow">
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Everything in Premium</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Everything in Professional</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>R650 per user per month</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Unlimited users</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
                   <span>Custom integrations</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Dedicated support team</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Dedicated account manager</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>SLA guarantees</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>White-label options</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>On-premise options</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Advanced security</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Custom training & onboarding</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Custom reporting</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-3" />
+                  <span>24/7 phone support</span>
                 </li>
               </ul>
-              <Button
-                variant="outline"
-                className="w-full border-white/30 text-white hover:bg-white/10"
-                onClick={() => router.push("/recruiter/register")}
+              <Button 
+                className="w-full bg-theme-600 hover:bg-theme-700"
+                onClick={() => setShowEnterpriseForm(true)}
               >
-                Contact Sales
+                Get more
               </Button>
-            </div>
+            </Card>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* CTA Section */}
-      <div className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Transform Your Hiring?
-          </h2>
-          <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-            Join thousands of companies already using ApplyForMe to hire better candidates faster. 
-            Start your free trial today.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              size="lg"
-              className="bg-white text-blue-600 hover:bg-gray-100 rounded-full px-10 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-              onClick={() => router.push("/recruiter/register")}
-            >
-              Start Free Trial
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-white text-white hover:bg-white/10 rounded-full px-10 py-4 text-lg"
-              onClick={() => router.push("/recruiter/login")}
-            >
-              Schedule Demo
-            </Button>
+      {/* Enterprise Contact Form Modal */}
+      {showEnterpriseForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Enterprise Contact Request</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowEnterpriseForm(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <p className="text-gray-600 mt-2">
+                Tell us about your organization and we'll get back to you with a custom solution.
+              </p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Company Name *
+                  </label>
+                  <Input
+                    type="text"
+                    required
+                    value={formData.companyName}
+                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                    placeholder="Your company name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contact Name *
+                  </label>
+                  <Input
+                    type="text"
+                    required
+                    value={formData.contactName}
+                    onChange={(e) => setFormData({...formData, contactName: e.target.value})}
+                    placeholder="Your full name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address *
+                  </label>
+                  <Input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    placeholder="your.email@company.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <Input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="+27 82 123 4567"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Monthly Job Postings *
+                  </label>
+                  <Select 
+                    value={formData.monthlyJobs} 
+                    onValueChange={(value) => setFormData({...formData, monthlyJobs: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-5">1-5 jobs</SelectItem>
+                      <SelectItem value="6-15">6-15 jobs</SelectItem>
+                      <SelectItem value="16-30">16-30 jobs</SelectItem>
+                      <SelectItem value="31-50">31-50 jobs</SelectItem>
+                      <SelectItem value="50+">50+ jobs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Team Size *
+                  </label>
+                  <Select 
+                    value={formData.teamSize} 
+                    onValueChange={(value) => setFormData({...formData, teamSize: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-10">1-10 employees</SelectItem>
+                      <SelectItem value="11-50">11-50 employees</SelectItem>
+                      <SelectItem value="51-200">51-200 employees</SelectItem>
+                      <SelectItem value="201-500">201-500 employees</SelectItem>
+                      <SelectItem value="500+">500+ employees</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Recruitment Tools
+                </label>
+                <Input
+                  type="text"
+                  value={formData.currentTools}
+                  onChange={(e) => setFormData({...formData, currentTools: e.target.value})}
+                  placeholder="e.g., LinkedIn, Indeed, internal ATS"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Specific Requirements
+                </label>
+                <Textarea
+                  value={formData.requirements}
+                  onChange={(e) => setFormData({...formData, requirements: e.target.value})}
+                  placeholder="Tell us about your specific needs, integrations, or custom features you're looking for..."
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Implementation Timeline
+                </label>
+                <Select 
+                  value={formData.timeline} 
+                  onValueChange={(value) => setFormData({...formData, timeline: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Immediate">Immediate (within 1 month)</SelectItem>
+                    <SelectItem value="1-3 months">1-3 months</SelectItem>
+                    <SelectItem value="3-6 months">3-6 months</SelectItem>
+                    <SelectItem value="6+ months">6+ months</SelectItem>
+                    <SelectItem value="Not sure">Not sure yet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEnterpriseForm(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-theme-600 hover:bg-theme-700"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* CTA Footer */}
+      <section className="py-20 bg-theme-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Ready to transform your hiring?
+          </h2>
+          <p className="text-xl text-theme-100 mb-8">
+            Join thousands of companies that are already hiring smarter with ApplyForMe.
+          </p>
+          <Link href="/recruiter/free-trial">
+            <Button size="lg" className="bg-white text-theme-600 hover:bg-gray-100 text-lg px-8 py-3">
+              Start your free trial
+            </Button>
+          </Link>
+        </div>
+      </section>
     </div>
   )
 } 

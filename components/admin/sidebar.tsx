@@ -16,6 +16,7 @@ import {
   Shield,
   UserCheck,
   Database,
+  ClipboardList,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
@@ -73,6 +74,11 @@ const navigation = [
     name: "Setup",
     href: "/admin/setup",
     icon: Database
+  },
+  {
+    name: "Forms",
+    href: "/admin/forms",
+    icon: ClipboardList
   }
 ]
 
