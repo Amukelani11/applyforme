@@ -10,7 +10,7 @@ export default function RecruiterLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const noSidebarRoutes = ['/recruiter/login', '/recruiter/register', '/recruiter'];
+  const noSidebarRoutes = ['/recruiter/login', '/recruiter/register', '/recruiter', '/recruiter/free-trial', '/recruiter/trial-success'];
 
   if (noSidebarRoutes.includes(pathname)) {
     return (

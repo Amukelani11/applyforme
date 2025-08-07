@@ -127,9 +127,20 @@ export async function middleware(request: NextRequest) {
 
     // Handle unauthenticated users
     if (!user) {
-      if (isRecruiterPath && pathname !== '/recruiter' && pathname !== '/recruiter/login' && pathname !== '/recruiter/register' && pathname !== '/recruiter/free-trial') {
+      // Allow access to public recruiter pages without authentication
+      const publicRecruiterPaths = [
+        '/recruiter',
+        '/recruiter/login', 
+        '/recruiter/register', 
+        '/recruiter/free-trial',
+        '/recruiter/trial-success'
+      ]
+      
+      if (isRecruiterPath && !publicRecruiterPaths.includes(pathname)) {
+        // Only redirect to login for protected recruiter pages
         return NextResponse.redirect(new URL('/recruiter/login', request.url))
-    }
+      }
+      
       // Add other non-recruiter protected paths here if needed, redirecting to /login
       return response
     }

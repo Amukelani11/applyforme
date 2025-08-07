@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle, ArrowRight, Users, BarChart3, MessageSquare, Zap, Shield, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
-export default function TrialSuccessPage() {
+function TrialSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -196,5 +196,20 @@ export default function TrialSuccessPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function TrialSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c084fc] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <TrialSuccessContent />
+    </Suspense>
   )
 } 
