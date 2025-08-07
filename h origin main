@@ -1,0 +1,5 @@
+[33m68790e7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add team invitation email functionality - Create beautiful team invitation email template - Add email sending to team invitation API - Update team page UI to show email sent confirmation - Remove manual invitation link sharing in favor of email automation
+[33m6115f99[m Fix authentication issues for production deployment - Enhanced cookie handling for production environments - Added fallback authentication methods - Improved error handling and logging - Added debug endpoints for troubleshooting
+[33m99d3758[m Fix all Suspense boundary issues - Build now successful and ready for deployment
+[33m1327772[m Fix authentication and Suspense issues - Allow public access to recruiter pages and fix trial-success page
+[33m0802481[m Fix TypeScript errors and enhance market research functionality

@@ -175,6 +175,7 @@ export default function TeamManagementPage() {
   }, [])
 
   const fetchTeamMembers = async () => {
+    console.log('🔄 Fetching team members...')
     setLoading(true)
     try {
       const response = await fetch('/api/recruiter/team/members')
@@ -199,15 +200,17 @@ export default function TeamManagementPage() {
         }
       }))
 
+      console.log('✅ Team members loaded successfully:', transformedMembers.length, 'members')
       setTeamMembers(transformedMembers)
     } catch (error) {
-      console.error('Error fetching team members:', error)
+      console.error('❌ Error fetching team members:', error)
       toast({
         title: "Error",
         description: "Failed to load team members",
         variant: "destructive"
       })
     } finally {
+      console.log('🏁 Team members fetch completed')
       setLoading(false)
     }
   }
@@ -215,6 +218,7 @@ export default function TeamManagementPage() {
   const inviteTeamMember = async () => {
     if (!inviteData.email || !inviteData.full_name) return
 
+    console.log('🚀 Starting team invitation process for:', inviteData.email)
     setLoading(true)
     try {
       const response = await fetch('/api/recruiter/team/members', {
@@ -227,12 +231,16 @@ export default function TeamManagementPage() {
 
       const data = await response.json()
 
+      console.log('📨 API response received:', { status: response.status, data })
+
       if (!response.ok) {
+        console.error('❌ API error:', data.error)
         throw new Error(data.error || 'Failed to send invitation')
       }
 
       // If it's a new invitation (not an existing user), show success message
       if (data.invitation) {
+        console.log('✅ New invitation created successfully:', data.invitation)
         toast({
           title: "Invitation Sent Successfully! 🎉",
           description: `An email invitation has been sent to ${inviteData.email}. They'll receive a beautiful invitation email with a link to join your team.`,
@@ -240,6 +248,7 @@ export default function TeamManagementPage() {
         setInviteDialogOpen(false)
         setInviteData({ email: '', role: 'recruiter', full_name: '' })
       } else {
+        console.log('✅ Existing user added to team successfully')
         toast({
           title: "Team Member Added",
           description: data.message || `${inviteData.full_name} has been added to your team successfully!`,
@@ -251,13 +260,14 @@ export default function TeamManagementPage() {
       // Refresh team members
       await fetchTeamMembers()
     } catch (error) {
-      console.error('Error inviting team member:', error)
+      console.error('❌ Error inviting team member:', error)
       toast({
         title: "Error",
         description: "Failed to send invitation",
         variant: "destructive"
       })
     } finally {
+      console.log('🏁 Team invitation process completed')
       setLoading(false)
     }
   }
