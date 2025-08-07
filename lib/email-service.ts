@@ -7,6 +7,7 @@ import {
   SubscriptionData,
   NewMessageData,
   TeamMessageData,
+  TeamInvitationData,
   getJobPostedTemplate,
   getApplicationAlertTemplate,
   getJobExpiryReminderTemplate,
@@ -16,7 +17,8 @@ import {
   getSubscriptionConfirmationTemplate,
   getSubscriptionRenewalTemplate,
   getNewMessageTemplate,
-  getTeamMessageTemplate
+  getTeamMessageTemplate,
+  getTeamInvitationTemplate
 } from './email-templates'
 
 const supabase = createClient(
@@ -337,6 +339,37 @@ export class EmailService {
       return true
     } catch (error) {
       console.error('Error sending team message notification:', error)
+      return false
+    }
+  }
+
+  // Send team invitation email
+  static async sendTeamInvitationEmail(
+    invitationData: TeamInvitationData,
+    recipientEmail: string
+  ): Promise<boolean> {
+    try {
+      const template = getTeamInvitationTemplate(invitationData)
+      
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: recipientEmail,
+          subject: template.subject,
+          html: template.html,
+          text: template.text
+        }
+      })
+
+      if (error) {
+        console.error('Error sending team invitation email:', error)
+        return false
+      }
+
+      // Log the email sent
+      await this.logEmailSent('team_invitation', recipientEmail)
+      return true
+    } catch (error) {
+      console.error('Error sending team invitation email:', error)
       return false
     }
   }

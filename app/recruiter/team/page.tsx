@@ -160,8 +160,7 @@ export default function TeamManagementPage() {
     role: 'recruiter' as const,
     full_name: ''
   })
-  const [showInviteLink, setShowInviteLink] = useState(false)
-  const [inviteLink, setInviteLink] = useState('')
+
   const [editData, setEditData] = useState({
     full_name: '',
     role: 'recruiter' as 'admin' | 'recruiter' | 'hiring_manager' | 'interviewer',
@@ -232,19 +231,18 @@ export default function TeamManagementPage() {
         throw new Error(data.error || 'Failed to send invitation')
       }
 
-      // If it's a new invitation (not an existing user), show the invitation link
+      // If it's a new invitation (not an existing user), show success message
       if (data.invitation) {
-        const inviteUrl = `${window.location.origin}/team/invite/${data.invitation.token}`
-        setInviteLink(inviteUrl)
-        setShowInviteLink(true)
         toast({
-          title: "Invitation Created",
-          description: `Invitation link generated for ${inviteData.email}`,
+          title: "Invitation Sent Successfully! 🎉",
+          description: `An email invitation has been sent to ${inviteData.email}. They'll receive a beautiful invitation email with a link to join your team.`,
         })
+        setInviteDialogOpen(false)
+        setInviteData({ email: '', role: 'recruiter', full_name: '' })
       } else {
         toast({
-          title: "Invitation Sent",
-          description: data.message || `Invitation sent to ${inviteData.email}`,
+          title: "Team Member Added",
+          description: data.message || `${inviteData.full_name} has been added to your team successfully!`,
         })
         setInviteDialogOpen(false)
         setInviteData({ email: '', role: 'recruiter', full_name: '' })
@@ -704,49 +702,7 @@ export default function TeamManagementPage() {
          </DialogContent>
        </Dialog>
 
-       {/* Invitation Link Dialog */}
-       <Dialog open={showInviteLink} onOpenChange={setShowInviteLink}>
-         <DialogContent>
-           <DialogHeader>
-             <DialogTitle>Invitation Link Generated</DialogTitle>
-           </DialogHeader>
-           <div className="space-y-4">
-             <p className="text-sm text-gray-600">
-               Share this link with {inviteData.email} to invite them to join your team:
-             </p>
-             <div className="flex items-center gap-2">
-               <Input
-                 value={inviteLink}
-                 readOnly
-                 className="flex-1"
-               />
-               <Button
-                 variant="outline"
-                 onClick={() => {
-                   navigator.clipboard.writeText(inviteLink)
-                   toast({
-                     title: "Copied!",
-                     description: "Invitation link copied to clipboard",
-                   })
-                 }}
-               >
-                 Copy
-               </Button>
-             </div>
-             <div className="flex justify-end gap-2 pt-4">
-               <Button 
-                 onClick={() => {
-                   setShowInviteLink(false)
-                   setInviteDialogOpen(false)
-                   setInviteData({ email: '', role: 'recruiter', full_name: '' })
-                 }}
-               >
-                 Done
-               </Button>
-             </div>
-           </div>
-         </DialogContent>
-       </Dialog>
+
     </div>
   )
 } 

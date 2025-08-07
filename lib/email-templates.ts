@@ -60,6 +60,15 @@ export interface TeamMessageData {
   applicationId: string
 }
 
+export interface TeamInvitationData {
+  inviteeName: string
+  inviterName: string
+  companyName: string
+  role: string
+  invitationUrl: string
+  expiresAt: string
+}
+
 // Job Posted Confirmation Email
 export function getJobPostedTemplate(jobData: JobPostingData, recruiterName: string): EmailTemplate {
   return {
@@ -983,3 +992,120 @@ You can manage your notification preferences in your account settings.
     `
   }
 } 
+
+// Team Invitation Email
+export function getTeamInvitationTemplate(invitationData: TeamInvitationData): EmailTemplate {
+  const expiresDate = new Date(invitationData.expiresAt).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
+  return {
+    subject: `You're invited to join ${invitationData.companyName} on ApplyForMe`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Team Invitation</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .invitation-card { background: white; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #c084fc; }
+          .button { display: inline-block; background: #c084fc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; font-weight: bold; }
+          .button:hover { background: #a855f7; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .role-badge { display: inline-block; background: #f0f9ff; color: #0369a1; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 500; }
+          .expiry-notice { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 15px; margin: 20px 0; }
+          .company-info { background: #f8fafc; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 You're Invited!</h1>
+            <p>Join ${invitationData.companyName} on ApplyForMe</p>
+          </div>
+          <div class="content">
+            <p>Hi ${invitationData.inviteeName},</p>
+            <p><strong>${invitationData.inviterName}</strong> has invited you to join their recruitment team on ApplyForMe.</p>
+            
+            <div class="company-info">
+              <h3>🏢 ${invitationData.companyName}</h3>
+              <p>You'll be joining as a <span class="role-badge">${invitationData.role}</span></p>
+            </div>
+            
+            <div class="invitation-card">
+              <h3>What you'll be able to do:</h3>
+              <ul>
+                <li>📋 Review and manage job applications</li>
+                <li>💬 Collaborate with team members on candidates</li>
+                <li>📊 Access recruitment analytics and insights</li>
+                <li>🎯 Help find the best talent for ${invitationData.companyName}</li>
+              </ul>
+            </div>
+            
+            <p>Click the button below to accept the invitation and set up your account:</p>
+            
+            <a href="${invitationData.invitationUrl}" class="button">Accept Invitation</a>
+            
+            <div class="expiry-notice">
+              <p><strong>⏰ Important:</strong> This invitation expires on <strong>${expiresDate}</strong></p>
+              <p>Please accept the invitation before it expires to join the team.</p>
+            </div>
+            
+            <p><strong>What happens next?</strong></p>
+            <ol>
+              <li>Click "Accept Invitation" to create your account</li>
+              <li>Complete your profile setup</li>
+              <li>Start collaborating with your team immediately</li>
+            </ol>
+            
+            <p>If you have any questions, please contact ${invitationData.inviterName} or reply to this email.</p>
+            
+            <div class="footer">
+              <p>This invitation was sent from ApplyForMe - Your recruitment platform</p>
+              <p>If you didn't expect this invitation, you can safely ignore this email.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+You're Invited to Join ${invitationData.companyName} on ApplyForMe
+
+Hi ${invitationData.inviteeName},
+
+${invitationData.inviterName} has invited you to join their recruitment team on ApplyForMe.
+
+Company: ${invitationData.companyName}
+Role: ${invitationData.role}
+
+What you'll be able to do:
+- Review and manage job applications
+- Collaborate with team members on candidates
+- Access recruitment analytics and insights
+- Help find the best talent for ${invitationData.companyName}
+
+Accept the invitation: ${invitationData.invitationUrl}
+
+IMPORTANT: This invitation expires on ${expiresDate}
+
+What happens next?
+1. Click the link above to create your account
+2. Complete your profile setup
+3. Start collaborating with your team immediately
+
+If you have any questions, please contact ${invitationData.inviterName}.
+
+This invitation was sent from ApplyForMe - Your recruitment platform
+If you didn't expect this invitation, you can safely ignore this email.
+    `
+  }
+}

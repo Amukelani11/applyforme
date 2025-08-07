@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { EmailService } from '@/lib/email-service'
 
 // Add a simple health check endpoint
 export async function HEAD(request: NextRequest) {
@@ -256,10 +257,52 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 })
       }
 
-      // TODO: Send invitation email
-      // For now, just return the invitation data
+      // Get recruiter and company information for the email
+      const { data: recruiterInfo } = await supabase
+        .from('recruiters')
+        .select('company_name')
+        .eq('id', recruiter.id)
+        .single()
+
+      const { data: inviterInfo } = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', user.id)
+        .single()
+
+      // Get inviter's name from recruiter profile
+      const { data: inviterProfile } = await supabase
+        .from('recruiters')
+        .select('full_name')
+        .eq('user_id', user.id)
+        .single()
+
+      // Send invitation email
+      try {
+        const invitationUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://applyforme.co.za'}/team/invite/${token}`
+        
+        const emailSent = await EmailService.sendTeamInvitationEmail({
+          inviteeName: full_name,
+          inviterName: inviterProfile?.full_name || 'Team Admin',
+          companyName: recruiterInfo?.company_name || 'Your Company',
+          role: role,
+          invitationUrl: invitationUrl,
+          expiresAt: expiresAt.toISOString()
+        }, email)
+
+        if (!emailSent) {
+          console.error('Failed to send invitation email')
+          // Don't fail the request, just log the error
+        } else {
+          console.log('Team invitation email sent successfully to:', email)
+        }
+      } catch (emailError) {
+        console.error('Error sending invitation email:', emailError)
+        // Don't fail the request, just log the error
+      }
+
       return NextResponse.json({ 
-        message: 'Invitation created successfully',
+        message: 'Invitation created and email sent successfully',
         invitation
       })
     }
