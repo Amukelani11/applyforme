@@ -1,14 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
+// Add a simple health check endpoint
+export async function HEAD(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ 
+        status: 'unauthenticated',
+        error: authError?.message || 'No user found'
+      }, { status: 401 })
+    }
+    
+    return NextResponse.json({ 
+      status: 'authenticated',
+      userId: user.id
+    }, { status: 200 })
+  } catch (error) {
+    return NextResponse.json({ 
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const supabaseAdmin = createAdminClient()
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Add debugging for authentication
+    console.log('Team members API: Attempting to get user...')
+    let { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    // If primary authentication fails, try to get session
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.log('Team members API: Primary auth failed, trying session...')
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError) {
+        console.error('Team members API: Session error:', sessionError)
+        return NextResponse.json({ error: 'Unauthorized - Session error' }, { status: 401 })
+      }
+      
+      if (!session?.user) {
+        console.error('Team members API: No session user found')
+        return NextResponse.json({ error: 'Unauthorized - No session user' }, { status: 401 })
+      }
+      
+      user = session.user
+      console.log('Team members API: User authenticated via session:', user.id)
+    } else {
+      console.log('Team members API: User authenticated via getUser:', user.id)
     }
 
     // Get recruiter profile
@@ -18,9 +63,17 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (recruiterError || !recruiter) {
+    if (recruiterError) {
+      console.error('Team members API: Recruiter error:', recruiterError)
       return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 })
     }
+    
+    if (!recruiter) {
+      console.error('Team members API: No recruiter found for user:', user.id)
+      return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 })
+    }
+
+    console.log('Team members API: Recruiter found:', recruiter.id)
 
     // Get team members without foreign key joins
     const { data: teamMembers, error: teamError } = await supabase
@@ -68,7 +121,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error in team members route:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
@@ -79,9 +135,29 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const supabaseAdmin = createAdminClient()
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Add debugging for authentication
+    console.log('Team members POST API: Attempting to get user...')
+    let { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    // If primary authentication fails, try to get session
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.log('Team members POST API: Primary auth failed, trying session...')
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError) {
+        console.error('Team members POST API: Session error:', sessionError)
+        return NextResponse.json({ error: 'Unauthorized - Session error' }, { status: 401 })
+      }
+      
+      if (!session?.user) {
+        console.error('Team members POST API: No session user found')
+        return NextResponse.json({ error: 'Unauthorized - No session user' }, { status: 401 })
+      }
+      
+      user = session.user
+      console.log('Team members POST API: User authenticated via session:', user.id)
+    } else {
+      console.log('Team members POST API: User authenticated via getUser:', user.id)
     }
 
     // Get recruiter profile

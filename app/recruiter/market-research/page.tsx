@@ -170,6 +170,7 @@ export default function TalentIntelligenceEngine() {
       // Start streaming research from the new API
       const response = await fetch('/api/deep-research', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

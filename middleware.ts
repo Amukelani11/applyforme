@@ -58,13 +58,22 @@ export async function middleware(request: NextRequest) {
           },
           set(name: string, value: string, options: CookieOptions) {
             try {
-              request.cookies.set({ name, value, ...options })
+              // Ensure proper cookie options for production
+              const cookieOptions = {
+                ...options,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax' as const,
+                httpOnly: true,
+                path: '/'
+              }
+              
+              request.cookies.set({ name, value, ...cookieOptions })
               response = NextResponse.next({
                 request: {
                   headers: request.headers,
                 },
               })
-              response.cookies.set({ name, value, ...options })
+              response.cookies.set({ name, value, ...cookieOptions })
             } catch (error) {
               console.error('Error setting cookie:', name, error)
             }
@@ -109,6 +118,7 @@ export async function middleware(request: NextRequest) {
         }
       } else {
         user = data.user
+        console.log('Middleware: User authenticated:', user?.id)
       }
     } catch (error) {
       console.error('Error getting user:', error)

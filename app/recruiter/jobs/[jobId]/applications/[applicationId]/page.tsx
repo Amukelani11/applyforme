@@ -212,7 +212,9 @@ const ApplicationReviewPage = () => {
   // Fetch talent pools
   const fetchPools = async () => {
     try {
-      const response = await fetch('/api/recruiter/talent-pools');
+      const response = await fetch('/api/recruiter/talent-pools', {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setPools(data.pools || []);
@@ -238,7 +240,9 @@ const ApplicationReviewPage = () => {
       setCheckingPools(true);
       const candidateEmail = applicationData?.candidate?.email || applicationData?.application?.email;
       
-      const response = await fetch(`/api/recruiter/talent-pools/check-candidate?email=${encodeURIComponent(candidateEmail)}`);
+      const response = await fetch(`/api/recruiter/talent-pools/check-candidate?email=${encodeURIComponent(candidateEmail)}`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setCandidatePools(data.pools || []);
@@ -265,6 +269,7 @@ const ApplicationReviewPage = () => {
       setUpdating(true);
       const response = await fetch(`/api/recruiter/jobs/${jobId}/applications/${applicationId}?type=${type}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -358,6 +363,7 @@ const ApplicationReviewPage = () => {
     try {
       const response = await fetch('/api/messages', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -405,6 +411,7 @@ const ApplicationReviewPage = () => {
     try {
       const response = await fetch('/api/recruiter/talent-pools/add-member', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -536,7 +543,9 @@ const ApplicationReviewPage = () => {
     const fetchMessages = async () => {
       setLoadingMessages(true);
       try {
-        const res = await fetch(`/api/messages?applicationId=${applicationId}`);
+        const res = await fetch(`/api/messages?applicationId=${applicationId}`, {
+          credentials: 'include',
+        });
         if (res.ok) {
           const data = await res.json();
           setMessages(data.messages || []);
@@ -553,6 +562,7 @@ const ApplicationReviewPage = () => {
     if (!newNote.trim()) return;
     const res = await fetch('/api/messages', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ applicationId, content: newNote })
     });
@@ -579,6 +589,7 @@ const ApplicationReviewPage = () => {
     if (!replyContent.trim()) return;
     const res = await fetch('/api/messages', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ applicationId, content: replyContent, parentId })
     });
@@ -605,7 +616,9 @@ const ApplicationReviewPage = () => {
   const refreshMessages = async () => {
     setLoadingMessages(true);
     try {
-      const res = await fetch(`/api/messages?applicationId=${applicationId}`);
+      const res = await fetch(`/api/messages?applicationId=${applicationId}`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages || []);

@@ -4,20 +4,14 @@ export function createCookieHandler() {
   return {
     async get(name: string) {
       try {
-        // Check if we're in a static generation context
-        if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-          return undefined
-        }
-        
         const cookieStore = await cookies()
         const cookie = cookieStore.get(name)
         if (!cookie?.value) return undefined
         
         // Return cookie value as-is; Supabase expects base64 values unchanged
-        
         return cookie.value
       } catch (error) {
-        // Silently return undefined during static generation
+        // Only return undefined for specific errors, not for all production cases
         if (error instanceof Error && error.message?.includes('Dynamic server usage')) {
           return undefined
         }
@@ -27,15 +21,21 @@ export function createCookieHandler() {
     },
     async set(name: string, value: string, options: any) {
       try {
-        // Check if we're in a static generation context
-        if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-          return
+        const cookieStore = await cookies()
+        
+        // Ensure proper cookie options for production
+        const cookieOptions = {
+          ...options,
+          // Ensure cookies work in production with proper security settings
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax' as const,
+          httpOnly: true,
+          path: '/'
         }
         
-        const cookieStore = await cookies()
-        cookieStore.set(name, value, options)
+        cookieStore.set(name, value, cookieOptions)
       } catch (error) {
-        // Silently ignore during static generation
+        // Only ignore specific errors, not all production cases
         if (error instanceof Error && error.message?.includes('Dynamic server usage')) {
           return
         }
@@ -52,11 +52,6 @@ export function createCookieHandler() {
     },
     async getAll() {
       try {
-        // Check if we're in a static generation context
-        if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-          return []
-        }
-        
         const cookieStore = await cookies()
         const allCookies = cookieStore.getAll()
 
@@ -67,7 +62,7 @@ export function createCookieHandler() {
 
         return validCookies
       } catch (error) {
-        // Silently return empty array during static generation
+        // Only return empty array for specific errors, not all production cases
         if (error instanceof Error && error.message?.includes('Dynamic server usage')) {
           return []
         }
