@@ -372,7 +372,8 @@ export async function POST(request: NextRequest) {
       console.log('🔍 About to enter try-catch block for invitation email...')
       try {
         console.log('🔍 NEXT_PUBLIC_SITE_URL value:', process.env.NEXT_PUBLIC_SITE_URL)
-        const invitationUrl = `https://applyforme.co.za/team/invite/${token}`
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://applyforme.co.za'
+        const invitationUrl = new URL(`/team/invite/${token}`, siteUrl).toString()
         console.log('Preparing to send invitation email to:', email)
         console.log('Invitation URL:', invitationUrl)
         console.log('🔍 About to call EmailService.sendTeamInvitationEmail...')
