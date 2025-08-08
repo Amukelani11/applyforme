@@ -96,6 +96,11 @@ export async function middleware(request: NextRequest) {
     )
 
     const { pathname } = request.nextUrl
+    
+    // Always allow team invite acceptance pages without redirects
+    if (pathname.startsWith('/team/invite/')) {
+      return response
+    }
     const isRecruiterPath = pathname.startsWith('/recruiter')
 
       let user: any = null
