@@ -7,6 +7,7 @@ export async function GET(
 ) {
   try {
     const { token } = await params
+    console.log('🔍 Looking for invitation with token:', token)
     const supabase = await createClient()
 
     // Get invitation details
@@ -26,8 +27,11 @@ export async function GET(
 
     if (error) {
       console.error('Error fetching invitation:', error)
+      console.log('🔍 No invitation found for token:', token)
       return NextResponse.json({ error: 'Invalid or expired invitation' }, { status: 404 })
     }
+
+    console.log('🔍 Found invitation:', invitation)
 
     // Check if invitation is expired
     if (new Date(invitation.expires_at) < new Date()) {

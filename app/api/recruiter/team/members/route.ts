@@ -238,6 +238,10 @@ export async function POST(request: NextRequest) {
 
       // Send notification email to existing user that they've been added to the team
       console.log('🚀 Starting email notification process for existing user...')
+      console.log('🔍 About to enter try-catch block for email sending...')
+      console.log('🔍 Current email:', email)
+      console.log('🔍 Current full_name:', full_name)
+      console.log('🔍 Current role:', role)
       try {
         console.log('📧 Sending team addition notification email to existing user:', email)
         
@@ -260,6 +264,10 @@ export async function POST(request: NextRequest) {
           companyName: recruiterInfo?.company_name,
           inviterName: inviterProfile?.full_name
         })
+        
+        // Test if EmailService is available
+        console.log('🔍 EmailService available:', typeof EmailService)
+        console.log('🔍 EmailService.sendCustomEmail available:', typeof EmailService.sendCustomEmail)
         
         const emailSent = await EmailService.sendCustomEmail(
           { email, name: full_name },
@@ -294,12 +302,14 @@ export async function POST(request: NextRequest) {
         }
       } catch (emailError) {
         console.error('❌ Error sending team addition notification email to:', email, 'Error:', emailError)
+        console.error('🔍 Full error details:', JSON.stringify(emailError, null, 2))
       }
 
-      return NextResponse.json({ 
-        message: 'Team member added successfully',
-        teamMember: newMember
-      })
+      console.log('🔍 About to return success response for existing user...')
+       return NextResponse.json({ 
+         message: 'Team member added successfully',
+         teamMember: newMember
+       })
 
     } else {
       console.log('User not found in auth system, creating invitation for:', { email, full_name, role })
@@ -357,21 +367,38 @@ export async function POST(request: NextRequest) {
         inviterName: inviterProfile?.full_name
       })
 
-             // Send invitation email
-       console.log('🚀 Starting invitation email process for new user...')
-       try {
-         const invitationUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://applyforme.co.za'}/team/invite/${token}`
-         console.log('Preparing to send invitation email to:', email)
-         console.log('Invitation URL:', invitationUrl)
+      // Send invitation email
+      console.log('🚀 Starting invitation email process for new user...')
+      console.log('🔍 About to enter try-catch block for invitation email...')
+      try {
+        console.log('🔍 NEXT_PUBLIC_SITE_URL value:', process.env.NEXT_PUBLIC_SITE_URL)
+        const invitationUrl = `https://applyforme.co.za/team/invite/${token}`
+        console.log('Preparing to send invitation email to:', email)
+        console.log('Invitation URL:', invitationUrl)
+        console.log('🔍 About to call EmailService.sendTeamInvitationEmail...')
+        console.log('🔍 EmailService available:', typeof EmailService)
+        console.log('🔍 EmailService.sendTeamInvitationEmail available:', typeof EmailService.sendTeamInvitationEmail)
         
-        const emailSent = await EmailService.sendTeamInvitationEmail({
-          inviteeName: full_name,
-          inviterName: inviterProfile?.full_name || 'Team Admin',
-          companyName: recruiterInfo?.company_name || 'Your Company',
-          role: role,
-          invitationUrl: invitationUrl,
-          expiresAt: expiresAt.toISOString()
-        }, email)
+        console.log('🔍 EmailService.sendTeamInvitationEmail parameters:', {
+           inviteeName: full_name,
+           inviterName: inviterProfile?.full_name || 'Team Admin',
+           companyName: recruiterInfo?.company_name || 'Your Company',
+           role: role,
+           invitationUrl: invitationUrl,
+           expiresAt: expiresAt.toISOString(),
+           recipientEmail: email
+         })
+         
+         const emailSent = await EmailService.sendTeamInvitationEmail({
+           inviteeName: full_name,
+           inviterName: inviterProfile?.full_name || 'Team Admin',
+           companyName: recruiterInfo?.company_name || 'Your Company',
+           role: role,
+           invitationUrl: invitationUrl,
+           expiresAt: expiresAt.toISOString()
+         }, email)
+         
+         console.log('🔍 EmailService.sendTeamInvitationEmail returned:', emailSent)
 
         if (!emailSent) {
           console.error('Failed to send invitation email to:', email)
