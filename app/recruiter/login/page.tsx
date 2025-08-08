@@ -36,19 +36,36 @@ export default function RecruiterLoginPage() {
         throw error
       }
 
-      console.log('Sign in successful, checking if user is recruiter...')
+      console.log('Sign in successful, checking recruiter or team membership access...')
 
-      // Check if user is a recruiter
+      // Check if user is a recruiter (owner)
       const { data: recruiterData, error: recruiterError } = await supabase
         .from("recruiters")
         .select("id")
         .eq("user_id", data.user.id)
-        .single()
+        .maybeSingle()
 
-      if (recruiterError || !recruiterData) {
-        console.log('User is not a recruiter, signing out...')
+      let hasRecruiterAccess = !!recruiterData
+
+      // If not owner, check if user is a team member for any recruiter
+      if (!hasRecruiterAccess) {
+        const { data: membershipData, error: membershipError } = await supabase
+          .from('team_members')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .limit(1)
+
+        if (membershipError) {
+          console.error('Error checking team membership:', membershipError)
+        }
+
+        hasRecruiterAccess = Array.isArray(membershipData) && membershipData.length > 0
+      }
+
+      if (!hasRecruiterAccess) {
+        console.log('User has no recruiter access (neither owner nor team member), signing out...')
         await supabase.auth.signOut()
-        throw new Error("This account is not registered as a recruiter")
+        throw new Error("This account is not registered as a recruiter or team member")
       }
 
       console.log('Recruiter login successful')

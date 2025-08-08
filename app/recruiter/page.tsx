@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,9 +10,59 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Navbar } from "@/components/navbar"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
 export default function RecruiterLandingPage() {
   const [showEnterpriseForm, setShowEnterpriseForm] = useState(false)
+  const [hasRecruiterAccess, setHasRecruiterAccess] = useState<boolean>(false)
+  const supabase = createClient()
+
+  useEffect(() => {
+    let isMounted = true
+
+    const checkRecruiterAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!isMounted) return
+      if (!user) {
+        setHasRecruiterAccess(false)
+        return
+      }
+
+      // Check recruiter owner profile
+      const { data: recruiter } = await supabase
+        .from('recruiters')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!isMounted) return
+      if (recruiter) {
+        setHasRecruiterAccess(true)
+        return
+      }
+
+      // Check team membership
+      const { data: membership } = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+
+      if (!isMounted) return
+      setHasRecruiterAccess(Array.isArray(membership) && membership.length > 0)
+    }
+
+    checkRecruiterAccess()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkRecruiterAccess()
+    })
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
+  }, [supabase])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     companyName: '',
@@ -83,9 +133,9 @@ export default function RecruiterLandingPage() {
                 Start hiring today
               </Button>
             </Link>
-            <Link href="/recruiter/login">
+            <Link href={hasRecruiterAccess ? "/recruiter/dashboard" : "/recruiter/login"}>
               <Button size="lg" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-lg px-8 py-3">
-                Recruiter Login
+                {hasRecruiterAccess ? 'Dashboard' : 'Recruiter Login'}
               </Button>
             </Link>
           </div>

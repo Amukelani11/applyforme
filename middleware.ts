@@ -173,7 +173,22 @@ export async function middleware(request: NextRequest) {
       console.error('Error fetching user data:', error)
     }
 
-    const isRecruiter = userData?.is_recruiter ?? false
+    // Determine recruiter access: recruiter owners or team members
+    let isRecruiter = userData?.is_recruiter ?? false
+    try {
+      if (!isRecruiter) {
+        const { data: tm } = await supabase
+          .from('team_members')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1)
+
+        isRecruiter = Array.isArray(tm) && tm.length > 0
+      }
+    } catch (err) {
+      // If team_members check fails, default to existing isRecruiter flag
+      console.log('team_members check error (non-blocking):', err)
+    }
     
     if (isRecruiter) {
       // If a recruiter is on a non-recruiter path, redirect them away
