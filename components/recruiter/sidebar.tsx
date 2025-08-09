@@ -103,18 +103,41 @@ function RecruiterSidebarContent() {
   useEffect(() => {
     const getRecruiterData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUser(user)
-        const { data: recruiterData, error } = await supabase
+      if (!user) return
+
+      setUser(user)
+
+      // Try owner profile first
+      const { data: ownerRecruiter } = await supabase
+        .from('recruiters')
+        .select('id, company_name')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (ownerRecruiter) {
+        setRecruiter(ownerRecruiter)
+        fetchUnreadCount(ownerRecruiter.id)
+        return
+      }
+
+      // Fallback: team membership -> find recruiter's company
+      const { data: membership } = await supabase
+        .from('team_members')
+        .select('recruiter_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+
+      if (membership?.recruiter_id) {
+        const { data: teamRecruiter } = await supabase
           .from('recruiters')
           .select('id, company_name')
-          .eq('user_id', user.id)
-          .single()
-        
-        if (recruiterData) {
-          setRecruiter(recruiterData)
-          // Fetch unread application count
-          fetchUnreadCount(recruiterData.id)
+          .eq('id', membership.recruiter_id)
+          .maybeSingle()
+
+        if (teamRecruiter) {
+          setRecruiter(teamRecruiter)
+          fetchUnreadCount(teamRecruiter.id)
         }
       }
     }

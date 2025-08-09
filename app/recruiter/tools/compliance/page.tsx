@@ -524,19 +524,19 @@ export default function CompliancePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" disabled>
                   <Search className="w-4 h-4 mr-2" />
                   Run Compliance Audit
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" disabled>
                   <FileText className="w-4 h-4 mr-2" />
                   Generate Report
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" disabled>
                   <Download className="w-4 h-4 mr-2" />
                   Export Compliance Data
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" disabled>
                   <Share2 className="w-4 h-4 mr-2" />
                   Share with Legal Team
                 </Button>

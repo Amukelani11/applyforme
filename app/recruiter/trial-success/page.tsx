@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle, ArrowRight, Users, BarChart3, MessageSquare, Zap, Shield, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import Script from "next/script"
 
 function TrialSuccessContent() {
   const router = useRouter()
@@ -72,6 +73,25 @@ function TrialSuccessContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      {/* LinkedIn Insight Tag */}
+      <Script id="linkedin-insight-init" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `
+_linkedin_partner_id = "8645017";
+window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
+window._linkedin_data_partner_ids.push(_linkedin_partner_id);
+` }} />
+      <Script id="linkedin-insight-loader" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `
+(function(l){
+if (!l){window.lintrk=function(a,b){window.lintrk.q.push([a,b])};window.lintrk.q=[]}
+var s=document.getElementsByTagName("script")[0];
+var b=document.createElement("script");
+b.type="text/javascript";b.async=true;
+b.src="https://snap.licdn.com/li.lms-analytics/insight.min.js";
+s.parentNode.insertBefore(b,s);
+})(window.lintrk);
+` }} />
+      <noscript>
+        <img height="1" width="1" style={{ display: "none" }} alt="" src="https://px.ads.linkedin.com/collect/?pid=8645017&fmt=gif" />
+      </noscript>
       <div className="max-w-4xl mx-auto px-6 lg:px-8 py-12">
         {/* Success Header */}
         <div className="text-center mb-12">

@@ -27,32 +27,22 @@ export default function ResumeMatchingPage() {
 
   const handleAnalyze = async () => {
     if (!jobDescription.trim() || !resumeText.trim()) return
-    
     setIsAnalyzing(true)
-    
-    // Simulate AI analysis
-    setTimeout(() => {
-      const result: MatchResult = {
-        overallScore: 78,
-        skillsMatch: 85,
-        experienceMatch: 72,
-        educationMatch: 90,
-        matchedSkills: [
-          "JavaScript", "React", "Node.js", "TypeScript", "Git"
-        ],
-        missingSkills: [
-          "Python", "AWS", "Docker"
-        ],
-        recommendations: [
-          "Candidate shows strong frontend development skills",
-          "Consider for mid-level developer positions",
-          "May need additional backend experience for senior roles"
-        ]
-      }
-      
-      setMatchResult(result)
+    try {
+      const res = await fetch('/api/tools/resume-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobDescription, resumeText })
+      })
+      if (!res.ok) throw new Error('Failed to analyze')
+      const data = await res.json()
+      const r = data.result as MatchResult
+      setMatchResult(r)
+    } catch (e) {
+      console.error(e)
+    } finally {
       setIsAnalyzing(false)
-    }, 3000)
+    }
   }
 
   const getScoreColor = (score: number) => {

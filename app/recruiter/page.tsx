@@ -621,7 +621,7 @@ export default function RecruiterLandingPage() {
                 "The AI-powered screening saves us hours every week. We can now focus on the best candidates and make faster decisions."
               </p>
               <div>
-                <p className="font-semibold">Thabo van der Merwe</p>
+                <p className="font-semibold">christine van der merwe</p>
                 <p className="text-gray-600">Recruitment Manager</p>
               </div>
             </Card>
@@ -636,7 +636,7 @@ export default function RecruiterLandingPage() {
                 "The analytics and insights give us unprecedented visibility into our hiring funnel. Highly recommended!"
               </p>
               <div>
-                <p className="font-semibold">Zinhle Patel</p>
+                <p className="font-semibold">zinhle nyaka</p>
                 <p className="text-gray-600">Talent Acquisition</p>
               </div>
             </Card>

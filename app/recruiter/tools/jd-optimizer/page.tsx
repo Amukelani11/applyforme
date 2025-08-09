@@ -60,67 +60,33 @@ export default function JDOptimizerPage() {
 
   const handleOptimize = async () => {
     if (!originalJD.trim()) return
-    
     setIsOptimizing(true)
     setResults(null)
-    
-    // Simulate AI optimization
-    setTimeout(() => {
-      const enhanced = originalJD + "\n\n" +
-        "🎯 Key Requirements:\n" +
-        "• Strong analytical and problem-solving skills\n" +
-        "• Excellent communication and collaboration abilities\n" +
-        "• Proven track record of delivering high-quality results\n\n" +
-        "💡 What We Offer:\n" +
-        "• Competitive salary and comprehensive benefits\n" +
-        "• Professional development and growth opportunities\n" +
-        "• Collaborative and innovative work environment\n" +
-        "• Work-life balance and flexible arrangements"
-      
-      setOptimizedJD(enhanced)
-      
+    try {
+      const res = await fetch('/api/tools/jd-optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: originalJD })
+      })
+      if (!res.ok) throw new Error('Failed to optimize')
+      const data = await res.json()
+      setOptimizedJD(data.enhancedText)
       const mockResults: OptimizationResult = {
-        overallScore: 78,
-        readability: 85,
-        seoScore: 72,
-        clarityScore: 80,
-        keywords: [
-          "JavaScript", "React", "Node.js", "TypeScript", "Git", "AWS", "Docker", "API"
-        ],
-        suggestions: [
-          {
-            type: 'improvement',
-            category: 'Clarity',
-            text: 'Consider breaking down "strong analytical skills" into specific examples',
-            action: 'Add specific examples'
-          },
-          {
-            type: 'warning',
-            category: 'Bias',
-            text: '"Rockstar developer" may discourage diverse candidates',
-            action: 'Replace with "skilled developer"'
-          },
-          {
-            type: 'suggestion',
-            category: 'SEO',
-            text: 'Add more industry-specific keywords for better ATS visibility',
-            action: 'Include keywords'
-          }
-        ],
-        missingSections: [
-          "Company culture description",
-          "Remote work policy",
-          "Career growth opportunities"
-        ],
-        biasDetected: [
-          "Rockstar developer",
-          "Ninja coder"
-        ]
+        overallScore: data.overallScore,
+        readability: data.readability,
+        seoScore: data.seoScore,
+        clarityScore: data.clarityScore,
+        keywords: data.keywords,
+        suggestions: data.suggestions,
+        missingSections: data.missingSections,
+        biasDetected: data.biasDetected
       }
-      
       setResults(mockResults)
+    } catch (e) {
+      console.error(e)
+    } finally {
       setIsOptimizing(false)
-    }, 3000)
+    }
   }
 
   const copyToClipboard = (text: string) => {

@@ -185,18 +185,15 @@ export default function CandidateScreeningPage() {
 
   const analyzeAllCandidates = async () => {
     setIsAnalyzing(true);
-    
-    for (const candidate of candidates.filter(c => c.status === 'pending')) {
-      await simulateAIAnalysis(candidate);
-      // Small delay between candidates
-      await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      for (const candidate of candidates.filter(c => c.status === 'pending')) {
+        await simulateAIAnalysis(candidate);
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      toast({ title: "Analysis Complete", description: "All candidates have been analyzed by AI." });
+    } finally {
+      setIsAnalyzing(false);
     }
-    
-    setIsAnalyzing(false);
-    toast({
-      title: "Analysis Complete",
-      description: "All candidates have been analyzed by AI.",
-    });
   };
 
   const getStatusColor = (status: string) => {

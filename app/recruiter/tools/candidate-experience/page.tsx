@@ -88,7 +88,6 @@ export default function CandidateExperiencePage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // Simulate loading candidate data
     const mockCandidates: Candidate[] = [
       {
         id: '1',
@@ -419,19 +418,19 @@ export default function CandidateExperiencePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" disabled>
                   <Send className="w-4 h-4 mr-2" />
                   Send Follow-up
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" disabled>
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Schedule Call
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" disabled>
                   <FileText className="w-4 h-4 mr-2" />
                   Generate Report
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" disabled>
                   <Download className="w-4 h-4 mr-2" />
                   Export Data
                 </Button>

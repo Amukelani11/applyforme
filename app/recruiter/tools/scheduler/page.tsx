@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,36 +31,72 @@ export default function SchedulerPage() {
   const [isScheduling, setIsScheduling] = useState(false)
   const [scheduledInterviews, setScheduledInterviews] = useState<InterviewSlot[]>([])
 
+  // Load existing events
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/tools/scheduler/events')
+        if (!res.ok) return
+        const data = await res.json()
+        const mapped: InterviewSlot[] = (data.events || []).map((e: any) => ({
+          id: e.id?.toString(),
+          date: new Date(e.start_time).toISOString().split('T')[0],
+          time: new Date(e.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          duration: e.end_time ? Math.max(15, Math.round((new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / 60000)) : 30,
+          type: e.event_type,
+          interviewer: 'You',
+          candidate: e.title?.replace(/^Interview:\s*/, '') || e.title,
+          jobTitle: '',
+          status: 'scheduled'
+        }))
+        setScheduledInterviews(mapped)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    load()
+  }, [])
+
   const handleSchedule = async () => {
     if (!candidateName.trim() || !candidateEmail.trim() || !jobTitle.trim() || !interviewType || !duration) return
-    
     setIsScheduling(true)
-    
-    // Simulate scheduling
-    setTimeout(() => {
+    try {
+      const start = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+      const res = await fetch('/api/tools/scheduler/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Interview: ${candidateName} - ${jobTitle}`,
+          notes: `Type: ${interviewType}, Email: ${candidateEmail}`,
+          event_type: 'interview',
+          start_time: start.toISOString(),
+          end_time: new Date(start.getTime() + parseInt(duration) * 60000).toISOString()
+        })
+      })
+      if (!res.ok) throw new Error('Failed to create event')
+      const data = await res.json()
       const newInterview: InterviewSlot = {
-        id: Date.now().toString(),
-        date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days from now
-        time: "10:00 AM",
+        id: data.event.id?.toString() || Date.now().toString(),
+        date: new Date(data.event.start_time).toISOString().split('T')[0],
+        time: new Date(data.event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         duration: parseInt(duration),
         type: interviewType,
-        interviewer: "Sarah Johnson",
+        interviewer: 'You',
         candidate: candidateName,
         jobTitle: jobTitle,
         status: 'scheduled'
       }
-      
       setScheduledInterviews([newInterview, ...scheduledInterviews])
-      
-      // Reset form
       setCandidateName("")
       setCandidateEmail("")
       setJobTitle("")
       setInterviewType("")
       setDuration("")
-      
+    } catch (e) {
+      console.error(e)
+    } finally {
       setIsScheduling(false)
-    }, 2000)
+    }
   }
 
   const getStatusColor = (status: string) => {

@@ -93,109 +93,54 @@ export default function SalaryAnalyzerPage() {
 
   const generateSalaryData = async () => {
     if (!selectedRole || !selectedLocation || !selectedIndustry || !selectedExperience) {
-      toast({
-        title: "Missing Information",
-        description: "Please select all required fields to analyze salary data.",
-        variant: "destructive"
-      });
+      toast({ title: "Missing Information", description: "Please select all required fields to analyze salary data.", variant: "destructive" });
       return;
     }
-
     setIsAnalyzing(true);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    const baseSalary = {
-      "Entry Level (0-2 years)": 250000,
-      "Junior (2-4 years)": 350000,
-      "Mid Level (4-7 years)": 550000,
-      "Senior (7-10 years)": 850000,
-      "Lead (10-15 years)": 1200000,
-      "Executive (15+ years)": 2000000
-    }[selectedExperience] || 500000;
-
-    const locationMultiplier = {
-      "Cape Town": 1.1,
-      "Johannesburg": 1.05,
-      "Pretoria": 1.0,
-      "Durban": 0.95,
-      "Port Elizabeth": 0.9,
-      "Bloemfontein": 0.85,
-      "Nelspruit": 0.9,
-      "Polokwane": 0.85,
-      "Kimberley": 0.8,
-      "Remote-SA": 0.95
-    }[selectedLocation] || 1.0;
-
-    const industryMultiplier = {
-      "Technology": 1.15,
-      "Finance": 1.1,
-      "Healthcare": 1.05,
-      "Manufacturing": 1.0,
-      "Retail": 0.9,
-      "Education": 0.85,
-      "Consulting": 1.05,
-      "Media": 0.95,
-      "Real Estate": 0.9,
-      "Transportation": 0.95
-    }[selectedIndustry] || 1.0;
-
-    const adjustedSalary = baseSalary * locationMultiplier * industryMultiplier;
-    const minSalary = Math.round(adjustedSalary * 0.8);
-    const maxSalary = Math.round(adjustedSalary * 1.3);
-    const medianSalary = Math.round(adjustedSalary);
-    const marketRate = Math.round(adjustedSalary * 1.05);
-
-    const newSalaryData: SalaryData = {
-      role: selectedRole,
-      location: selectedLocation,
-      industry: selectedIndustry,
-      experience: selectedExperience,
-      minSalary,
-      maxSalary,
-      medianSalary,
-      marketRate,
-      percentile25: Math.round(adjustedSalary * 0.85),
-      percentile75: Math.round(adjustedSalary * 1.2),
-      trend: Math.random() > 0.5 ? 'up' : 'down',
-      trendPercentage: Math.floor(Math.random() * 15) + 1,
-      demand: Math.random() > 0.6 ? 'high' : Math.random() > 0.3 ? 'medium' : 'low',
-      supply: Math.random() > 0.6 ? 'high' : Math.random() > 0.3 ? 'medium' : 'low',
-      lastUpdated: new Date().toLocaleDateString()
-    };
-
-    setSalaryData(newSalaryData);
-
-    // Generate market insights
-    const insights: MarketInsight[] = [
-      {
-        title: "Growing Demand in Tech Sector",
-        description: "Technology roles are experiencing 15% higher demand compared to last year.",
-        impact: 'positive',
-        confidence: 85
-      },
-      {
-        title: "Remote Work Impact",
-        description: "Remote positions show 10% salary premium for specialized roles.",
-        impact: 'positive',
-        confidence: 78
-      },
-      {
-        title: "Skills Gap Widening",
-        description: "Shortage of qualified candidates is driving up salaries in this role.",
-        impact: 'negative',
-        confidence: 92
+    try {
+      const res = await fetch('/api/tools/salary-analyzer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: selectedRole, location: selectedLocation, industry: selectedIndustry, experience: selectedExperience })
+      })
+      if (!res.ok) throw new Error('Failed to analyze')
+      const data = await res.json()
+      const r = data.results
+      // Map AI research results to local structure
+      const mid = r.salaryData?.mid || 'R0 - R0'
+      const rangeNums = (mid.match(/R([0-9,\.]+)\s*-\s*R([0-9,\.]+)/i) || []).slice(1, 3).map((s: string) => parseInt(s.replace(/[^0-9]/g, ''), 10))
+      const median = Math.round((rangeNums[0] + rangeNums[1]) / 2) || 500000
+      const newSalaryData: SalaryData = {
+        role: selectedRole,
+        location: selectedLocation,
+        industry: selectedIndustry,
+        experience: selectedExperience,
+        minSalary: rangeNums[0] || Math.round(median * 0.8),
+        maxSalary: rangeNums[1] || Math.round(median * 1.3),
+        medianSalary: median,
+        marketRate: Math.round(median * 1.05),
+        percentile25: Math.round(median * 0.85),
+        percentile75: Math.round(median * 1.2),
+        trend: 'up',
+        trendPercentage: 5,
+        demand: 'medium',
+        supply: 'medium',
+        lastUpdated: new Date().toLocaleDateString()
       }
-    ];
-
-    setMarketInsights(insights);
-    setIsAnalyzing(false);
-
-    toast({
-      title: "Analysis Complete",
-      description: "Salary benchmark analysis has been generated successfully.",
-    });
+      setSalaryData(newSalaryData)
+      const insights: MarketInsight[] = (r.insights || []).slice(0, 3).map((t: string, i: number) => ({
+        title: t.split(':')[0] || `Insight ${i + 1}`,
+        description: t,
+        impact: /increase|growth|up|higher/i.test(t) ? 'positive' : /decline|down|lower/i.test(t) ? 'negative' : 'neutral',
+        confidence: 80
+      }))
+      setMarketInsights(insights)
+      toast({ title: "Analysis Complete", description: "Salary benchmark analysis has been generated successfully." });
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsAnalyzing(false)
+    }
   };
 
   const getTrendIcon = (trend: string) => {

@@ -26,41 +26,21 @@ export default function InterviewQuestionsPage() {
 
   const handleGenerate = async () => {
     if (!jobTitle.trim() || !jobDescription.trim() || !experienceLevel) return
-    
     setIsGenerating(true)
-    
-    // Simulate AI generation
-    setTimeout(() => {
-      const generatedQuestions: QuestionSet = {
-        behavioral: [
-          "Tell me about a time when you had to lead a team through a challenging project. What was your approach and what was the outcome?",
-          "Describe a situation where you had to resolve a conflict between team members. How did you handle it?",
-          "Can you share an example of when you had to adapt to a significant change in your work environment?",
-          "Tell me about a time when you went above and beyond to deliver exceptional results for a client or stakeholder."
-        ],
-        technical: [
-          "Walk me through your approach to debugging a complex technical issue.",
-          "How do you stay updated with the latest industry trends and technologies?",
-          "Describe a technical challenge you faced and how you solved it.",
-          "What's your process for code review and ensuring code quality?"
-        ],
-        situational: [
-          "If you were given a project with an unrealistic deadline, how would you handle it?",
-          "How would you approach mentoring a junior team member who is struggling?",
-          "What would you do if you discovered a critical bug in production right before a major release?",
-          "How do you prioritize multiple competing deadlines and responsibilities?"
-        ],
-        culture: [
-          "What does work-life balance mean to you, and how do you maintain it?",
-          "How do you handle feedback, both giving and receiving it?",
-          "What motivates you to do your best work?",
-          "How do you contribute to creating a positive team environment?"
-        ]
-      }
-      
-      setQuestions(generatedQuestions)
+    try {
+      const res = await fetch('/api/tools/interview-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobTitle, experienceLevel, jobDescription })
+      })
+      if (!res.ok) throw new Error('Failed to generate')
+      const data = await res.json()
+      setQuestions(data.questions as QuestionSet)
+    } catch (e) {
+      console.error(e)
+    } finally {
       setIsGenerating(false)
-    }, 2500)
+    }
   }
 
   const copyToClipboard = (text: string) => {

@@ -143,10 +143,36 @@ function RecruiterDashboardContent() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("User not found.");
 
-        const { data: recruiter, error: recruiterError } = await supabase.from('recruiters').select('id, job_credits').eq('user_id', user.id).single();
-        if (recruiterError) {
-            console.error('Recruiter fetch error:', recruiterError);
-            throw recruiterError;
+        // Try owner recruiter first
+        let { data: recruiter, error: recruiterError } = await supabase
+          .from('recruiters')
+          .select('id, job_credits')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        // Fallback: if not owner, infer via team membership
+        if (!recruiter) {
+          const { data: membership } = await supabase
+            .from('team_members')
+            .select('recruiter_id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .maybeSingle();
+
+          if (!membership?.recruiter_id) {
+            throw recruiterError || new Error('Recruiter profile not found for this user');
+          }
+
+          const { data: teamRecruiter } = await supabase
+            .from('recruiters')
+            .select('id, job_credits')
+            .eq('id', membership.recruiter_id)
+            .maybeSingle();
+
+          if (!teamRecruiter) {
+            throw new Error('Recruiter record not found for team membership');
+          }
+          recruiter = teamRecruiter
         }
         console.log('Recruiter data:', recruiter);
 

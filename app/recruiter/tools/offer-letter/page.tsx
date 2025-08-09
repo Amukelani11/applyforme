@@ -238,7 +238,7 @@ ${offerLetter.companyName} HR Team
             <CardContent>
               {offerLetter ? (
                 <div className="space-y-6">
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div id="offer-letter-content" className="bg-white border border-gray-200 rounded-lg p-6">
                     <div className="text-center mb-6">
                       <h3 className="text-xl font-bold text-gray-900 mb-2">OFFER LETTER</h3>
                       <p className="text-sm text-gray-600">{new Date().toLocaleDateString()}</p>
@@ -288,7 +288,10 @@ ${offerLetter.companyName} HR Team
 
                   <div className="flex gap-3">
                     <Button 
-                      onClick={() => copyToClipboard(document.querySelector('.bg-white')?.textContent || '')}
+                      onClick={() => {
+                        const el = document.getElementById('offer-letter-content')
+                        copyToClipboard(el ? el.textContent || '' : '')
+                      }}
                       variant="outline"
                       className="flex-1"
                     >
