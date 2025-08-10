@@ -63,7 +63,7 @@ export default function AdminFeedbackPage() {
               <SelectItem value="sign_out">Sign Out</SelectItem>
               <SelectItem value="threshold">Threshold</SelectItem>
             </SelectContent>
-          </SelectSelect>
+          </Select>
         </div>
         <Table>
           <TableHeader>

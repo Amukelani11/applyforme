@@ -5,17 +5,14 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, Suspense } from 'react'
 import { pageview, GA_TRACKING_ID } from '@/lib/gtag'
 
-interface GoogleAnalyticsProps {
-  gaId?: string
-}
-
-function GoogleAnalyticsContent({ gaId }: GoogleAnalyticsProps) {
+function GoogleAnalyticsContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   useEffect(() => {
     if (pathname && GA_TRACKING_ID) {
-      const url = pathname + searchParams.toString()
+      const query = searchParams.toString()
+      const url = query ? `${pathname}?${query}` : pathname
       pageview(url)
     }
   }, [pathname, searchParams])
@@ -36,7 +33,7 @@ function GoogleAnalyticsContent({ gaId }: GoogleAnalyticsProps) {
         dangerouslySetInnerHTML={{
           __html: `
             window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
+            function gtag(){dataLayer.push(arguments);} 
             gtag('js', new Date());
             gtag('config', '${GA_TRACKING_ID}', {
               page_path: window.location.pathname,
@@ -50,10 +47,10 @@ function GoogleAnalyticsContent({ gaId }: GoogleAnalyticsProps) {
   )
 }
 
-export default function GoogleAnalytics({ gaId }: GoogleAnalyticsProps) {
+export default function GoogleAnalytics() {
   return (
     <Suspense fallback={null}>
-      <GoogleAnalyticsContent gaId={gaId} />
+      <GoogleAnalyticsContent />
     </Suspense>
   )
 } 

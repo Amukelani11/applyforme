@@ -94,10 +94,10 @@ function RecruiterSidebarContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const supabase = createClient()
-  const { Dialog: SignOutFeedbackDialog, onLogout: triggerLogoutFeedback } = useFeedbackPrompt({ context: 'sign_out', recruiterId: recruiter?.id || null, role })
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [recruiter, setRecruiter] = useState<any>(null)
   const [role, setRole] = useState<'admin'|'recruiter'|'hiring_manager'|'interviewer'|'owner'|null>(null)
+  const { Dialog: SignOutFeedbackDialog, onLogout: triggerLogoutFeedback } = useFeedbackPrompt({ context: 'sign_out', recruiterId: recruiter?.id || null, role: role || undefined })
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   

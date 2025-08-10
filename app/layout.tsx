@@ -82,9 +82,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <GoogleAnalytics />
-      </head>
+      <head />
       <body className={poppins.className} suppressHydrationWarning={true}>
         <ThemeProvider
           attribute="class"
@@ -99,7 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense fallback={null}>
             <McpEditScript />
           </Suspense>
-          {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
+          <GoogleAnalytics />
         </ThemeProvider>
       </body>
     </html>
