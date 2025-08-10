@@ -94,6 +94,7 @@ function RecruiterSidebarContent() {
   const supabase = createClient()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [recruiter, setRecruiter] = useState<any>(null)
+  const [role, setRole] = useState<'admin'|'recruiter'|'hiring_manager'|'interviewer'|'owner'|null>(null)
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   
@@ -117,6 +118,7 @@ function RecruiterSidebarContent() {
       if (ownerRecruiter) {
         setRecruiter(ownerRecruiter)
         fetchUnreadCount(ownerRecruiter.id)
+        setRole('owner')
         return
       }
 
@@ -138,6 +140,14 @@ function RecruiterSidebarContent() {
         if (teamRecruiter) {
           setRecruiter(teamRecruiter)
           fetchUnreadCount(teamRecruiter.id)
+          // Read the member role
+          const { data: member } = await supabase
+            .from('team_members')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('recruiter_id', teamRecruiter.id)
+            .maybeSingle()
+          if (member?.role) setRole(member.role)
         }
       }
     }
@@ -242,7 +252,27 @@ function RecruiterSidebarContent() {
           className="absolute left-0 w-1 bg-theme-600 rounded-full transition-all duration-500 ease-in-out"
           style={activeIndicatorStyle}
         />
-        {navigation.map((item, index) => {
+        {navigation.filter(item => {
+            // UI gating based on role
+            if (!role || role === 'owner') return true
+            if (role === 'recruiter') {
+              // Hide Team management
+              if (item.name === 'Team') return false
+              // Allow others
+              return true
+            }
+            if (role === 'hiring_manager') {
+              // Hide Team, Jobs, Talent Pools, Tools
+              if (['Team','Jobs','Talent Pools','Tools','AI Market Research'].includes(item.name)) return false
+              return true
+            }
+            if (role === 'interviewer') {
+              // Only Applications, Messages, Calendar, Dashboard
+              if (!['Dashboard','Applications','Messages','Calendar'].includes(item.name)) return false
+              return true
+            }
+            return true
+          }).map((item, index) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -274,7 +304,14 @@ function RecruiterSidebarContent() {
 
       {/* Bottom Navigation & Sign Out */}
       <div className="p-6 border-t border-gray-50 space-y-2">
-        {bottomNavigation.map((item) => {
+        {bottomNavigation.filter(item => {
+            if (!role || role === 'owner') return true
+            if (role === 'admin') return true
+            // Hide Billing for non-admins; allow Settings only for owner/admin
+            if (item.name === 'Billing') return false
+            if (item.name === 'Settings') return false
+            return true
+          }).map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link

@@ -39,34 +39,61 @@ export default function RecruiterCalendar() {
             const monthStart = startOfMonth(currentDate);
             const monthEnd = endOfMonth(currentDate);
 
-            // Get recruiter events
+            // Resolve recruiter context (owner or team member)
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
+
+            let recruiterId: string | null = null;
+            const { data: ownerRecruiter } = await supabase
+                .from('recruiters')
+                .select('id')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (ownerRecruiter?.id) {
+                recruiterId = ownerRecruiter.id;
+            } else {
+                const { data: membership } = await supabase
+                    .from('team_members')
+                    .select('recruiter_id')
+                    .eq('user_id', user.id)
+                    .eq('status', 'active')
+                    .maybeSingle();
+                recruiterId = membership?.recruiter_id || null;
+            }
+
+            if (!recruiterId) throw new Error('Recruiter not found');
+
+            // Get recruiter events (use start_time column and filter by recruiter)
             const { data: recruiterEvents } = await supabase
                 .from('recruiter_events')
-                .select('*')
-                .gte('event_date', monthStart.toISOString().split('T')[0])
-                .lte('event_date', monthEnd.toISOString().split('T')[0]);
+                .select('id, title, notes, event_type, start_time, end_time')
+                .eq('recruiter_id', recruiterId)
+                .gte('start_time', monthStart.toISOString())
+                .lte('start_time', monthEnd.toISOString());
 
             // Get job deadlines
             const { data: jobs } = await supabase
-                .from('jobs')
+                .from('job_postings')
                 .select('id, title, application_deadline')
+                .eq('recruiter_id', recruiterId)
                 .not('application_deadline', 'is', null)
-                .gte('application_deadline', monthStart.toISOString().split('T')[0])
-                .lte('application_deadline', monthEnd.toISOString().split('T')[0]);
+                .gte('application_deadline', monthStart.toISOString())
+                .lte('application_deadline', monthEnd.toISOString());
 
             const allEvents: Event[] = [];
 
             // Add recruiter events
             if (recruiterEvents) {
                 allEvents.push(...recruiterEvents.map((event: any) => ({
-                    id: event.id,
+                    id: String(event.id),
                     title: event.title,
-                    description: event.description,
-                    event_date: event.event_date,
-                    event_type: event.event_type,
-                    is_all_day: event.is_all_day,
-                    start_time: event.start_time,
-                    end_time: event.end_time
+                    description: event.notes || undefined,
+                    event_date: event.start_time ? new Date(event.start_time).toISOString().split('T')[0] : monthStart.toISOString().split('T')[0],
+                    event_type: (event.event_type as 'deadline' | 'interview' | 'reminder' | 'custom') || 'custom',
+                    is_all_day: false,
+                    start_time: event.start_time ? new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+                    end_time: event.end_time ? new Date(event.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
                 })));
             }
 

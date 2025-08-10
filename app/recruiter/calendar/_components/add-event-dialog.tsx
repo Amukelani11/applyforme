@@ -83,18 +83,39 @@ export function AddEventDialog({ isOpen, onClose, onEventAdded, selectedDate }: 
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) throw new Error("Not authenticated");
 
-        const { data: recruiter } = await supabase.from('recruiters').select('id').eq('user_id', session.user.id).single();
-        if (!recruiter) throw new Error("Recruiter profile not found.");
+        // Resolve recruiter for owner or team member
+        let recruiterId: string | null = null;
+        const { data: ownerRecruiter } = await supabase
+          .from('recruiters')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (ownerRecruiter?.id) {
+          recruiterId = ownerRecruiter.id;
+        } else {
+          const { data: membership } = await supabase
+            .from('team_members')
+            .select('recruiter_id')
+            .eq('user_id', session.user.id)
+            .eq('status', 'active')
+            .maybeSingle();
+          recruiterId = membership?.recruiter_id || null;
+        }
+
+        if (!recruiterId) throw new Error("Recruiter profile not found.");
+
+        // Compose timestamps
+        const startTimeIso = new Date(`${values.event_date}T${values.start_time || '09:00'}:00`).toISOString();
+        const endTimeIso = values.end_time ? new Date(`${values.event_date}T${values.end_time}:00`).toISOString() : null;
 
         const { error } = await supabase.from("recruiter_events").insert({
             title: values.title,
             event_type: values.event_type,
-            event_date: values.event_date,
-            start_time: values.start_time || null,
-            end_time: values.end_time || null,
-            description: values.description || null,
-            is_all_day: values.is_all_day,
-            recruiter_id: recruiter.id,
+            start_time: startTimeIso,
+            end_time: endTimeIso,
+            notes: values.description || null,
+            recruiter_id: recruiterId,
         });
 
         if (error) throw error;

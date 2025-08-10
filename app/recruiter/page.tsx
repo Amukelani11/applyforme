@@ -136,7 +136,7 @@ export default function RecruiterLandingPage() {
                 Start hiring today
               </Button>
             </Link>
-            <Link href={hasRecruiterAccess ? "/recruiter/dashboard" : (isLoggedIn ? "/dashboard" : "/signin")}>
+            <Link href={hasRecruiterAccess ? "/recruiter/dashboard" : (isLoggedIn ? "/dashboard" : "/recruiter/login")}>
               <Button size="lg" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-lg px-8 py-3">
                 {(hasRecruiterAccess || isLoggedIn) ? 'Dashboard' : 'Recruiter Login'}
               </Button>

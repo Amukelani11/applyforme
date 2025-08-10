@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -41,7 +44,7 @@ interface Message {
   content: string
   created_at: string
   sender: {
-    id: string
+    id?: string
     full_name: string
     avatar_url?: string
   }
@@ -49,6 +52,7 @@ interface Message {
 
 interface TeamMember {
   id: string
+  user_id?: string
   full_name: string
   email: string
   avatar_url?: string
@@ -66,6 +70,20 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"conversations" | "team">("conversations")
+  const [isNewTeamChatOpen, setIsNewTeamChatOpen] = useState(false)
+  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([])
+  const [conversationName, setConversationName] = useState<string>("")
+  const [activeChatType, setActiveChatType] = useState<"candidate" | "team">("candidate")
+  const [selectedTeamConversation, setSelectedTeamConversation] = useState<{ id: string, messages: any[] } | null>(null)
+  const [newTeamMessage, setNewTeamMessage] = useState("")
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  const relativeTime = (dateLike?: string | null) => {
+    if (!dateLike) return null
+    const d = new Date(dateLike)
+    if (isNaN(d.getTime())) return null
+    return formatDistanceToNow(d, { addSuffix: true })
+  }
 
   useEffect(() => {
     fetchData()
@@ -76,6 +94,7 @@ export default function MessagesPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      setCurrentUserId(user.id)
 
       // Fetch conversations
       await fetchConversations(user.id)
@@ -123,7 +142,7 @@ export default function MessagesPage() {
           *,
           messages(
             *,
-            sender:users(full_name)
+            sender:users(id, full_name, avatar_url)
           ),
           candidate_applications(
             candidate_name,
@@ -152,50 +171,158 @@ export default function MessagesPage() {
     }
   }
 
-  const fetchTeamMembers = async (userId: string) => {
+  const fetchTeamMembers = async (_userId: string) => {
     try {
-      // Get recruiter ID
-      const { data: recruiter } = await supabase
+      const response = await fetch('/api/recruiter/team/members', { method: 'GET' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.error || 'Failed to fetch team members')
+
+      // Exclude current user from the team list
+      const others = (data.teamMembers || []).filter((m: any) => {
+        const memberUserId = m.user?.id || m.user_id
+        return memberUserId && memberUserId !== _userId
+      })
+
+      const formatted: TeamMember[] = others.map((m: any) => ({
+        id: m.id,
+        user_id: m.user?.id || m.user_id,
+        full_name: m.user?.full_name || m.full_name || m.user?.email?.split('@')[0] || 'Team member',
+        email: m.user?.email || m.email || '',
+        avatar_url: undefined,
+        role: m.role,
+        last_active: m.user?.last_sign_in_at || undefined,
+      }))
+
+      // If the current user is a team member, include the team owner as a selectable contact
+      // (team_members table does not include the owner by default)
+      const { data: ownerCheck } = await supabase
         .from('recruiters')
-        .select('id, company_id')
-        .eq('user_id', userId)
-        .single()
+        .select('id')
+        .eq('user_id', _userId)
+        .maybeSingle()
 
-      if (!recruiter) return
+      if (!ownerCheck?.id) {
+        // Not an owner; find the owner of this team (recruiter)
+        const { data: membership } = await supabase
+          .from('team_members')
+          .select('recruiter_id')
+          .eq('user_id', _userId)
+          .eq('status', 'active')
+          .maybeSingle()
 
-      // Get team members (other recruiters in the same company)
-      const { data: teamData } = await supabase
-        .from('recruiters')
-        .select('id, user_id')
-        .eq('company_id', recruiter.company_id)
-        .neq('id', recruiter.id)
+        const teamRecruiterId = membership?.recruiter_id
+        if (teamRecruiterId) {
+          const { data: ownerRecruiter } = await supabase
+            .from('recruiters')
+            .select('user_id, full_name')
+            .eq('id', teamRecruiterId)
+            .maybeSingle()
 
-      if (teamData && teamData.length > 0) {
-        // Get user details for team members
-        const userIds = teamData.map(member => member.user_id)
-        const { data: usersData } = await supabase
-          .from('users')
-          .select('id, full_name, email')
-          .in('id', userIds)
+          const ownerUserId = ownerRecruiter?.user_id
+          if (ownerUserId && ownerUserId !== _userId && !formatted.some(f => f.user_id === ownerUserId)) {
+            const { data: ownerUser } = await supabase
+              .from('users')
+              .select('id, full_name, email')
+              .eq('id', ownerUserId)
+              .maybeSingle()
 
-        if (usersData) {
-          const userMap = new Map(usersData.map(user => [user.id, user]))
-          const formattedTeam = teamData.map(member => {
-            const user = userMap.get(member.user_id)
-            return {
-              id: member.id,
-              full_name: user?.full_name || 'Unknown User',
-              email: user?.email || 'unknown@email.com',
+            formatted.push({
+              id: `owner-${teamRecruiterId}`,
+              user_id: ownerUserId,
+              full_name: ownerUser?.full_name || ownerRecruiter?.full_name || ownerUser?.email?.split('@')[0] || 'Owner',
+              email: ownerUser?.email || '',
               avatar_url: undefined,
-              role: 'Recruiter',
-              last_active: new Date().toISOString() // Mock data
-            }
-          })
-          setTeamMembers(formattedTeam)
+              role: 'owner',
+              last_active: undefined,
+            })
+          }
         }
       }
+
+      setTeamMembers(formatted)
     } catch (error) {
       console.error('Error fetching team members:', error)
+    }
+  }
+
+  const resolveRecruiterId = async (userId: string): Promise<string | null> => {
+    const { data: ownerRecruiter } = await supabase
+      .from('recruiters')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (ownerRecruiter?.id) return ownerRecruiter.id
+
+    const { data: membership } = await supabase
+      .from('team_members')
+      .select('recruiter_id')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .maybeSingle()
+
+    return membership?.recruiter_id || null
+  }
+
+  const startTeamChat = async (participantIds: string[], name?: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const recruiterId = await resolveRecruiterId(user.id)
+      if (!recruiterId) throw new Error('Recruiter context not found')
+
+      // Create conversation via API (server handles permissions)
+      const res = await fetch('/api/team/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participants: participantIds, name: name || null }),
+      })
+
+      const payload = await res.json()
+      if (!res.ok) throw new Error(payload?.error || 'Failed to create conversation')
+
+      setSelectedTeamConversation({ id: payload.id, messages: [] })
+      setActiveChatType('team')
+      setIsNewTeamChatOpen(false)
+      setSelectedParticipantIds([])
+      setConversationName("")
+
+      toast({ title: 'Team chat created' })
+    } catch (error: any) {
+      console.error('Error starting team chat:', error)
+      toast({ title: 'Error', description: error.message || 'Failed to start chat', variant: 'destructive' })
+    }
+  }
+
+  const openDirectChat = async (member: TeamMember) => {
+    if (!member.user_id) return
+    setSelectedParticipantIds([member.user_id])
+    setConversationName(member.full_name || member.email)
+    setIsNewTeamChatOpen(true)
+  }
+
+  const sendTeamMessage = async () => {
+    if (!newTeamMessage.trim() || !selectedTeamConversation) return
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: inserted, error } = await supabase
+        .from('team_messages')
+        .insert({
+          conversation_id: selectedTeamConversation.id,
+          sender_id: user.id,
+          message_text: newTeamMessage.trim(),
+        })
+        .select('*')
+        .single()
+      if (error) throw error
+      const appended = { ...inserted, sender: { id: user.id, full_name: 'You' } }
+      setSelectedTeamConversation(prev => prev ? ({ ...prev, messages: [...(prev.messages || []), appended] }) : prev)
+      setNewTeamMessage("")
+    } catch (error) {
+      console.error('Error sending team message:', error)
+      toast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' })
     }
   }
 
@@ -215,7 +342,7 @@ export default function MessagesPage() {
         })
         .select(`
           *,
-          sender:users(full_name)
+          sender:users(id, full_name, avatar_url)
         `)
         .single()
 
@@ -257,10 +384,10 @@ export default function MessagesPage() {
       {/* Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
-            <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={() => { setActiveTab('team'); setIsNewTeamChatOpen(true) }}>
               <Plus className="w-4 h-4 mr-2" />
               New Chat
             </Button>
@@ -350,9 +477,9 @@ export default function MessagesPage() {
                       <p className="text-xs text-gray-500 truncate">
                         {conversation.application?.job_title || 'Application'}
                       </p>
-                      {conversation.messages.length > 0 && (
+                      {conversation.messages.length > 0 && relativeTime(conversation.messages[conversation.messages.length - 1].created_at) && (
                         <p className="text-xs text-gray-400 mt-1">
-                          {formatDistanceToNow(new Date(conversation.messages[conversation.messages.length - 1].created_at), { addSuffix: true })}
+                          {relativeTime(conversation.messages[conversation.messages.length - 1].created_at) as string}
                         </p>
                       )}
                     </div>
@@ -406,11 +533,13 @@ export default function MessagesPage() {
                       <p className="text-xs text-gray-500 truncate">
                         {member.email}
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Last active {formatDistanceToNow(new Date(member.last_active || ''), { addSuffix: true })}
-                      </p>
+                      {relativeTime(member.last_active) && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Last active {relativeTime(member.last_active) as string}
+                        </p>
+                      )}
                     </div>
-                    <Button size="sm" variant="ghost">
+                    <Button size="sm" variant="ghost" onClick={() => openDirectChat(member)}>
                       <MessageSquare className="w-4 h-4" />
                     </Button>
                   </div>
@@ -423,7 +552,7 @@ export default function MessagesPage() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        {selectedConversation ? (
+        {activeChatType === 'candidate' && selectedConversation ? (
           <>
             {/* Chat Header */}
             <div className="bg-white border-b border-gray-200 p-4">
@@ -450,7 +579,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {selectedConversation.messages.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -458,22 +587,24 @@ export default function MessagesPage() {
                   <p className="text-gray-500 text-sm">Start the conversation with this candidate</p>
                 </div>
               ) : (
-                selectedConversation.messages.map((message) => (
-                  <div key={message.id} className="flex items-start space-x-3">
-                    <Avatar className="w-8 h-8 mt-1">
-                      <AvatarImage src={message.sender.avatar_url} />
-                      <AvatarFallback>{message.sender.full_name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="bg-white border border-gray-200 rounded-lg p-3 max-w-md">
-                        <p className="text-sm text-gray-900">{message.content}</p>
+                selectedConversation.messages.map((message) => {
+                  const isMine = message.sender?.id && currentUserId ? message.sender.id === currentUserId : false
+                  return (
+                    <div key={message.id} className={cn('flex', isMine ? 'justify-end' : 'justify-start')}>
+                      <div className={cn('max-w-md', isMine ? 'text-right' : 'text-left')}>
+                        <div className="text-xs text-gray-500 mb-1">
+                          {isMine ? 'You' : (message.sender?.full_name || 'Member')}
+                        </div>
+                        <div className={cn('rounded-lg p-3', isMine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-900')}>
+                          <p className="text-sm">{message.content}</p>
+                        </div>
+                        {relativeTime(message.created_at) && (
+                          <p className={cn('text-xs text-gray-400 mt-1', isMine ? 'text-right' : 'text-left')}>{relativeTime(message.created_at) as string}</p>
+                        )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                      </p>
                     </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
 
@@ -493,6 +624,74 @@ export default function MessagesPage() {
               </div>
             </div>
           </>
+        ) : activeChatType === 'team' && selectedTeamConversation ? (
+          <>
+            {/* Team Chat Header */}
+            <div className="bg-white border-b border-gray-200 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback>T</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      {conversationName || 'Team Conversation'}
+                    </h2>
+                    <p className="text-sm text-gray-500">Internal team chat</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="ghost">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Team Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {selectedTeamConversation.messages.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">No messages yet</h3>
+                  <p className="text-gray-500 text-sm">Start the conversation with your team</p>
+                </div>
+              ) : (
+                selectedTeamConversation.messages.map((message: any) => {
+                  const isMine = message.sender?.id && currentUserId ? message.sender.id === currentUserId : false
+                  return (
+                    <div key={message.id} className={cn('flex', isMine ? 'justify-end' : 'justify-start')}>
+                      <div className={cn('max-w-md', isMine ? 'text-right' : 'text-left')}>
+                        <div className="text-xs text-gray-500 mb-1">
+                          {isMine ? 'You' : (message.sender?.full_name || 'Member')}
+                        </div>
+                        <div className={cn('rounded-lg p-3', isMine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-900')}>
+                          <p className="text-sm">{message.message_text}</p>
+                        </div>
+                        {relativeTime(message.created_at) && (
+                          <p className={cn('text-xs text-gray-400 mt-1', isMine ? 'text-right' : 'text-left')}>{relativeTime(message.created_at) as string}</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            {/* Team Message Input */}
+            <div className="bg-white border-t border-gray-200 p-4">
+              <div className="flex space-x-3">
+                <Input
+                  placeholder="Type your message..."
+                  value={newTeamMessage}
+                  onChange={(e) => setNewTeamMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendTeamMessage()}
+                  className="flex-1"
+                />
+                <Button onClick={sendTeamMessage} disabled={!newTeamMessage.trim()}>
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
@@ -503,6 +702,51 @@ export default function MessagesPage() {
           </div>
         )}
       </div>
+
+      {/* New Team Chat Dialog */}
+      <Dialog open={isNewTeamChatOpen} onOpenChange={setIsNewTeamChatOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Team Chat</DialogTitle>
+            <DialogDescription>Select one or more team members to start a chat</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+            <div>
+              <Label htmlFor="conversation-name">Conversation name (optional)</Label>
+              <Input id="conversation-name" placeholder="e.g. Hiring plan for Q4" value={conversationName} onChange={(e) => setConversationName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              {teamMembers.map((member) => (
+                <label key={member.user_id || member.id} className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
+                  <Checkbox
+                    checked={selectedParticipantIds.includes(member.user_id || '')}
+                    onCheckedChange={(checked) => {
+                      const uid = member.user_id || ''
+                      setSelectedParticipantIds((prev) =>
+                        checked === true ? Array.from(new Set([...prev, uid])) : prev.filter((id) => id !== uid)
+                      )
+                    }}
+                  />
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={member.avatar_url} />
+                      <AvatarFallback>{member.full_name?.[0] || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{member.full_name}</p>
+                      <p className="text-xs text-gray-500">{member.email}</p>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewTeamChatOpen(false)}>Cancel</Button>
+            <Button onClick={() => startTeamChat(selectedParticipantIds, conversationName)} disabled={selectedParticipantIds.length === 0}>Start Chat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

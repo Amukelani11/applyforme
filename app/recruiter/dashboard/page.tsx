@@ -169,10 +169,8 @@ function RecruiterDashboardContent() {
             .eq('id', membership.recruiter_id)
             .maybeSingle();
 
-          if (!teamRecruiter) {
-            throw new Error('Recruiter record not found for team membership');
-          }
-          recruiter = teamRecruiter
+          // If RLS prevents selecting the recruiter row, fallback to membership ID
+          recruiter = teamRecruiter || { id: membership.recruiter_id, job_credits: 0 }
         }
         console.log('Recruiter data:', recruiter);
 
@@ -213,7 +211,7 @@ function RecruiterDashboardContent() {
         }
         console.log('Jobs data:', jobs);
 
-        const jobIds = jobs.map(j => j.id);
+        const jobIds = (jobs || []).map(j => j.id);
         const openPositions = jobs.length; // All jobs are considered open positions
 
         let allApplications: any[] = [];
@@ -301,11 +299,12 @@ function RecruiterDashboardContent() {
         console.log('Open positions:', openPositions);
         console.log('All applications:', allApplications);
         
-        // Calculate funnel data with better status mapping
-        const reviewedCount = allApplications.filter(a => ['reviewed', 'shortlisted', 'interviewing', 'offer', 'hired'].includes(a.status)).length;
-        const assessmentCount = allApplications.filter(a => ['assessment', 'interviewing', 'offer', 'hired'].includes(a.status)).length;
-        const interviewCount = allApplications.filter(a => ['interviewing', 'offer', 'hired'].includes(a.status)).length;
-        const offerCount = allApplications.filter(a => ['offer', 'hired'].includes(a.status)).length;
+        // Calculate funnel data using our actual status set
+        // candidate_applications.status: 'pending' | 'shortlisted' | 'interviewed' | 'rejected' | 'hired'
+        const reviewedCount = allApplications.filter(a => ['shortlisted', 'interviewed', 'rejected', 'hired'].includes(a.status)).length;
+        const assessmentCount = allApplications.filter(a => ['shortlisted'].includes(a.status)).length;
+        const interviewCount = allApplications.filter(a => ['interviewed'].includes(a.status)).length;
+        const offerCount = allApplications.filter(a => ['offer'].includes(a.status)).length; // keep if exists
         const hiredCount = allApplications.filter(a => a.status === 'hired').length;
         
         console.log('Funnel calculations:', {

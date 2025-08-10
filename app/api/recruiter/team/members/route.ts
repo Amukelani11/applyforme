@@ -30,7 +30,6 @@ export async function HEAD(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const supabaseAdmin = createAdminClient()
     
     // Add debugging for authentication
     console.log('Team members API: Attempting to get user...')
@@ -57,30 +56,38 @@ export async function GET(request: NextRequest) {
       console.log('Team members API: User authenticated via getUser:', user.id)
     }
 
-    // Get recruiter profile
-    const { data: recruiter, error: recruiterError } = await supabase
+    // Resolve recruiter context (owner or team membership)
+    let recruiterId: string | null = null
+    const { data: ownerRecruiter } = await supabase
       .from('recruiters')
       .select('id')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
-    if (recruiterError) {
-      console.error('Team members API: Recruiter error:', recruiterError)
+    if (ownerRecruiter?.id) {
+      recruiterId = ownerRecruiter.id
+    } else {
+      const { data: membership } = await supabase
+        .from('team_members')
+        .select('recruiter_id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle()
+      recruiterId = membership?.recruiter_id || null
+    }
+
+    if (!recruiterId) {
+      console.error('Team members API: No recruiter context for user:', user.id)
       return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 })
     }
-    
-    if (!recruiter) {
-      console.error('Team members API: No recruiter found for user:', user.id)
-      return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 })
-    }
 
-    console.log('Team members API: Recruiter found:', recruiter.id)
+    console.log('Team members API: Recruiter context resolved:', recruiterId)
 
-    // Get team members without foreign key joins
+    // Get team members for this recruiter
     const { data: teamMembers, error: teamError } = await supabase
       .from('team_members')
       .select('*')
-      .eq('recruiter_id', recruiter.id)
+      .eq('recruiter_id', recruiterId)
       .order('created_at', { ascending: false })
 
     if (teamError) {
@@ -88,16 +95,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch team members' }, { status: 500 })
     }
 
-    // Get user details for all team members
+    // Get public user details for all team members
     if (teamMembers && teamMembers.length > 0) {
       const userIds = [...new Set([
         ...teamMembers.map(tm => tm.user_id),
         ...teamMembers.filter(tm => tm.invited_by).map(tm => tm.invited_by)
       ])]
+      let userMap = new Map()
+      if (userIds.length > 0) {
+        const { data: usersPublic, error: usersErr } = await supabase
+          .from('users')
+          .select('id, full_name, email, last_sign_in_at')
+          .in('id', userIds)
 
-      const { data: users } = await supabaseAdmin.auth.admin.listUsers()
-      const userMap = new Map()
-      users.users.forEach(u => userMap.set(u.id, u))
+        if (!usersErr && usersPublic) {
+          usersPublic.forEach((u: any) => userMap.set(u.id, u))
+        }
+      }
 
       // Enhance team members with user details
       const enhancedTeamMembers = teamMembers.map(member => ({
@@ -105,12 +119,14 @@ export async function GET(request: NextRequest) {
         user: userMap.get(member.user_id) ? {
           id: userMap.get(member.user_id)?.id,
           email: userMap.get(member.user_id)?.email,
-          created_at: userMap.get(member.user_id)?.created_at
+          created_at: userMap.get(member.user_id)?.created_at,
+          last_sign_in_at: userMap.get(member.user_id)?.last_sign_in_at,
         } : null,
         invited_by_user: member.invited_by && userMap.get(member.invited_by) ? {
           id: userMap.get(member.invited_by)?.id,
           email: userMap.get(member.invited_by)?.email,
-          created_at: userMap.get(member.invited_by)?.created_at
+          created_at: userMap.get(member.invited_by)?.created_at,
+          last_sign_in_at: userMap.get(member.invited_by)?.last_sign_in_at,
         } : null
       }))
 
