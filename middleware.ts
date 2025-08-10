@@ -152,8 +152,8 @@ export async function middleware(request: NextRequest) {
       ]
       
       if (isRecruiterPath && !publicRecruiterPaths.includes(pathname)) {
-        // Only redirect to login for protected recruiter pages
-        return NextResponse.redirect(new URL('/recruiter/login', request.url))
+        // Only redirect to sign-in for protected recruiter pages
+        return NextResponse.redirect(new URL('/signin', request.url))
       }
       
       // Add other non-recruiter protected paths here if needed, redirecting to /login
@@ -210,7 +210,7 @@ export async function middleware(request: NextRequest) {
   }
 
       // If a logged-in user is on the main login/signup, send to their dashboard
-      if (pathname === '/login' || pathname === '/signup') {
+      if (pathname === '/login' || pathname === '/signup' || pathname === '/signin') {
           return NextResponse.redirect(new URL('/dashboard', request.url))
       }
 

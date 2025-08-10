@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client"
 export default function RecruiterLandingPage() {
   const [showEnterpriseForm, setShowEnterpriseForm] = useState(false)
   const [hasRecruiterAccess, setHasRecruiterAccess] = useState<boolean>(false)
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -25,8 +26,10 @@ export default function RecruiterLandingPage() {
       if (!isMounted) return
       if (!user) {
         setHasRecruiterAccess(false)
+        setIsLoggedIn(false)
         return
       }
+      setIsLoggedIn(true)
 
       // Check recruiter owner profile
       const { data: recruiter } = await supabase
@@ -133,9 +136,9 @@ export default function RecruiterLandingPage() {
                 Start hiring today
               </Button>
             </Link>
-            <Link href={hasRecruiterAccess ? "/recruiter/dashboard" : "/recruiter/login"}>
+            <Link href={hasRecruiterAccess ? "/recruiter/dashboard" : (isLoggedIn ? "/dashboard" : "/signin")}>
               <Button size="lg" variant="outline" className="border-theme-600 text-theme-600 hover:bg-theme-50 text-lg px-8 py-3">
-                {hasRecruiterAccess ? 'Dashboard' : 'Recruiter Login'}
+                {(hasRecruiterAccess || isLoggedIn) ? 'Dashboard' : 'Recruiter Login'}
               </Button>
             </Link>
           </div>
@@ -730,7 +733,7 @@ export default function RecruiterLandingPage() {
                 </li>
               </ul>
               <Link href="/recruiter/free-trial">
-                <Button className="w-full bg-theme-600 hover:bg-theme-700">Get started</Button>
+                <Button className="w-full bg-theme-600 hover:bg-theme-700">Start free trial</Button>
               </Link>
             </Card>
             

@@ -156,16 +156,24 @@ function FreeTrialContent() {
       if (authError) throw authError
 
       if (authData.user) {
+        // Ensure we have a session for RLS policies
+        if (!authData.session) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: signupData.email,
+            password: signupData.password,
+          })
+          if (signInError) {
+            console.error('Auto sign-in failed after signup:', signInError)
+            throw new Error('Please verify your email or sign in to continue')
+          }
+        }
+
         // Create the recruiter profile
         const { error: profileError } = await supabase
           .from("recruiters")
           .insert({
             user_id: authData.user.id,
-            email: signupData.email,
-            full_name: signupData.full_name,
             company_name: signupData.company_name,
-            company_slug: slugify(signupData.company_name),
-            phone: signupData.phone,
             contact_email: signupData.contact_email || signupData.email,
             contact_phone: signupData.contact_phone || signupData.phone,
             company_website: signupData.company_website,

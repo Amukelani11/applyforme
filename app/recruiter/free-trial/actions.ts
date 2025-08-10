@@ -38,8 +38,8 @@ export async function createFreeTrialSession() {
   // Debug logging
   console.log('Payment Data:', paymentData);
   
-  // Create PayFast URL using the same method as the working billing implementation
-  const baseUrl = 'https://sandbox.payfast.co.za/eng/process'
+  // Create PayFast URL using environment (supports sandbox/production)
+  const baseUrl = process.env.PAYFAST_URL || 'https://sandbox.payfast.co.za/eng/process'
   const queryString = new URLSearchParams(paymentData).toString()
   const redirectUrl = `${baseUrl}?${queryString}`
   console.log('Redirect URL:', redirectUrl);

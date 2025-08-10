@@ -50,6 +50,7 @@ export default function BillingPage() {
     const [jobCredits, setJobCredits] = useState<number>(0);
     const [customAmount, setCustomAmount] = useState<number | ''>('');
     const [customPrice, setCustomPrice] = useState({ total: 0, pricePerCredit: 30 });
+  const [trialInfo, setTrialInfo] = useState<any>(null);
 
     const fetchBillingData = async () => {
         setIsLoading(true);
@@ -78,6 +79,26 @@ export default function BillingPage() {
                 } else {
                     setSubscription(null);
                 }
+
+          // Fetch trial info from users table (if present)
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('subscription_status, trial_end_date')
+              .eq('id', user.id)
+              .maybeSingle();
+
+            if (!userError && userData?.subscription_status === 'trial' && userData?.trial_end_date) {
+              const trialEnd = new Date(userData.trial_end_date as string);
+              const now = new Date();
+              const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              setTrialInfo({ isActive: daysLeft > 0, trialEndDate: userData.trial_end_date, daysLeft: Math.max(0, daysLeft) });
+            } else {
+              setTrialInfo(null);
+            }
+          } catch (e) {
+            // Non-critical; ignore
+          }
             }
         }
         setIsLoading(false);
@@ -164,6 +185,18 @@ export default function BillingPage() {
                 <header className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Billing & Plans</h1>
                     <p className="text-gray-500 mt-1">{currentPlanId === 'premium' ? 'Manage your current plan and credit balance.' : 'Choose a plan that fits your hiring needs.'}</p>
+                    <div className="mt-2 text-sm text-gray-600">
+                      Current plan: <span className="font-semibold">{currentPlanId === 'premium' ? 'Premium' : 'Free'}</span>
+                    </div>
+                    {trialInfo?.isActive && (
+                      <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-blue-900">Free trial active</span>
+                          <span className="text-blue-900">Ends {new Date(trialInfo.trialEndDate).toLocaleDateString()}</span>
+                        </div>
+                        <div className="mt-1 text-blue-800">{trialInfo.daysLeft} day{trialInfo.daysLeft === 1 ? '' : 's'} left</div>
+                      </div>
+                    )}
                 </header>
                 
                 <div className={`grid grid-cols-1 ${currentPlanId === 'premium' ? 'md:grid-cols-1' : 'md:grid-cols-2'} gap-8 items-start`}>
