@@ -15,10 +15,13 @@ export async function POST(request: NextRequest) {
       }
       user = session.user
     }
+    console.log('[team/conversations] POST user:', user.id)
 
     const body = await request.json()
     const participants: string[] = Array.isArray(body?.participants) ? body.participants : []
     const name: string | null = body?.name || null
+    console.log('[team/conversations] Payload participants:', participants)
+    console.log('[team/conversations] Payload name:', name)
 
     if (participants.length === 0) {
       return NextResponse.json({ error: 'No participants provided' }, { status: 400 })
@@ -34,6 +37,7 @@ export async function POST(request: NextRequest) {
 
     if (ownerRecruiter?.id) {
       recruiterId = ownerRecruiter.id
+      console.log('[team/conversations] Owner recruiter found:', recruiterId)
     } else {
       const { data: membership } = await supabase
         .from('team_members')
@@ -42,6 +46,7 @@ export async function POST(request: NextRequest) {
         .eq('status', 'active')
         .maybeSingle()
       recruiterId = membership?.recruiter_id || null
+      console.log('[team/conversations] Membership recruiter resolved:', recruiterId)
     }
 
     if (!recruiterId) {
@@ -67,16 +72,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    console.log('[team/conversations] Using recruiterId:', recruiterId)
     // Create conversation via SECURITY DEFINER function to avoid RLS insert blocks
     const { data: createdIdRow, error: fnError } = await supabase
       .rpc('create_team_conversation', { _participants: participants, _name: name || null })
 
     if (fnError || !createdIdRow) {
+      console.error('[team/conversations] RPC error:', fnError)
       return NextResponse.json({ error: fnError?.message || 'Failed to create conversation' }, { status: 500 })
     }
-
+    console.log('[team/conversations] Conversation created with id:', createdIdRow)
     return NextResponse.json({ id: createdIdRow as unknown as string })
   } catch (error: any) {
+    console.error('[team/conversations] Uncaught error:', error)
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 })
   }
 }

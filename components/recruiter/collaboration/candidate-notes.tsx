@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { MessageSquare, User, Eye, EyeOff, Trash2, Edit } from 'lucide-react'
+import { useFeedbackPrompt } from '@/components/feedback/useFeedbackPrompt'
 import { formatDistanceToNow } from 'date-fns'
 
 interface CandidateNote {
@@ -60,6 +61,7 @@ export function CandidateNotes({ applicationId, applicationType, recruiterId }: 
   
   const supabase = createClient()
   const { toast } = useToast()
+  const { Dialog: FeedbackAfterNotesDialog, onAction: feedbackAction } = useFeedbackPrompt({ context: 'collaboration', recruiterId, role: 'team_member', trigger: 'count', actionKey: 'notes_count', actionThreshold: 5 })
 
   useEffect(() => {
     fetchNotes()
@@ -120,6 +122,7 @@ export function CandidateNotes({ applicationId, applicationType, recruiterId }: 
         title: "Success",
         description: "Note added successfully"
       })
+      feedbackAction()
     } catch (error) {
       console.error('Error adding note:', error)
       toast({
@@ -216,6 +219,7 @@ export function CandidateNotes({ applicationId, applicationType, recruiterId }: 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {FeedbackAfterNotesDialog}
         {/* Add New Note */}
         <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
           <div className="flex items-center gap-4">

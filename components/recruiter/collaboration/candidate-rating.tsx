@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useFeedbackPrompt } from '@/components/feedback/useFeedbackPrompt'
 import { Star, StarIcon, MessageSquare, Edit, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -59,6 +60,7 @@ export function CandidateRating({ applicationId, applicationType, recruiterId }:
   
   const supabase = createClient()
   const { toast } = useToast()
+  const { Dialog: FeedbackAfterRatingDialog, onAction: feedbackAction } = useFeedbackPrompt({ context: 'collaboration', recruiterId, role: 'team_member', trigger: 'count', actionKey: 'ratings_count', actionThreshold: 5 })
 
   useEffect(() => {
     fetchRatings()
@@ -121,6 +123,7 @@ export function CandidateRating({ applicationId, applicationType, recruiterId }:
         title: "Success",
         description: "Rating added successfully"
       })
+      feedbackAction()
     } catch (error) {
       console.error('Error adding rating:', error)
       toast({
@@ -249,6 +252,7 @@ export function CandidateRating({ applicationId, applicationType, recruiterId }:
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {FeedbackAfterRatingDialog}
         {/* Average Ratings Summary */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-gray-50 rounded-lg">
           {Object.entries(ratingTypeLabels).map(([key, label]) => {

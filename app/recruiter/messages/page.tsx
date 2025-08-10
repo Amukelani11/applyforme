@@ -25,6 +25,7 @@ import {
 import { formatDistanceToNow } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useFeedbackPrompt } from '@/components/feedback/useFeedbackPrompt'
 
 interface Conversation {
   id: string
@@ -37,6 +38,12 @@ interface Conversation {
     job_title?: string
     company?: string
   }
+}
+
+interface TeamConversation {
+  id: string
+  conversation_name: string | null
+  updated_at: string
 }
 
 interface Message {
@@ -65,6 +72,7 @@ export default function MessagesPage() {
   const { toast } = useToast()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [teamConversations, setTeamConversations] = useState<TeamConversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [newMessage, setNewMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
@@ -77,6 +85,8 @@ export default function MessagesPage() {
   const [selectedTeamConversation, setSelectedTeamConversation] = useState<{ id: string, messages: any[] } | null>(null)
   const [newTeamMessage, setNewTeamMessage] = useState("")
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [teamRecruiterId, setTeamRecruiterId] = useState<string | null>(null)
+  const { Dialog: FeedbackAfterMessagesDialog, onAction: feedbackMessagesAction } = useFeedbackPrompt({ context: 'collaboration', role: 'team_member', trigger: 'count', actionKey: 'messages_sent_count', actionThreshold: 5 })
 
   const relativeTime = (dateLike?: string | null) => {
     if (!dateLike) return null
@@ -96,11 +106,18 @@ export default function MessagesPage() {
       if (!user) return
       setCurrentUserId(user.id)
 
-      // Fetch conversations
+      // Fetch conversations (candidate/public applications)
       await fetchConversations(user.id)
       
       // Fetch team members
       await fetchTeamMembers(user.id)
+
+      // Fetch team conversations
+      await fetchTeamConversations()
+
+      // Resolve and store team recruiter id for realtime filters
+      const resolvedRecruiter = await resolveRecruiterId(user.id)
+      setTeamRecruiterId(resolvedRecruiter)
 
     } catch (error) {
       console.error('Error fetching messages data:', error)
@@ -114,29 +131,103 @@ export default function MessagesPage() {
     }
   }
 
+  // Realtime: subscribe to team_conversations inserts/updates for this team
+  useEffect(() => {
+    if (!teamRecruiterId) return
+    const channel = supabase
+      .channel(`team-conv-${teamRecruiterId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'team_conversations', filter: `recruiter_id=eq.${teamRecruiterId}` },
+        (payload) => {
+          const row = payload.new as { id: string, conversation_name: string | null, updated_at: string }
+          setTeamConversations((prev) => {
+            if (prev.some((c) => c.id === row.id)) return prev
+            return [{ id: row.id, conversation_name: row.conversation_name || null, updated_at: row.updated_at }, ...prev]
+          })
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'team_conversations', filter: `recruiter_id=eq.${teamRecruiterId}` },
+        (payload) => {
+          const row = payload.new as { id: string, conversation_name: string | null, updated_at: string }
+          setTeamConversations((prev) => {
+            const next = prev.map((c) => (c.id === row.id ? { ...c, conversation_name: row.conversation_name || c.conversation_name, updated_at: row.updated_at } : c))
+            // keep most recent first
+            return next.sort((a, b) => (new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()))
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [teamRecruiterId])
+
+  // Realtime: subscribe to incoming messages for the selected team conversation
+  useEffect(() => {
+    if (!selectedTeamConversation?.id) return
+    const convId = selectedTeamConversation.id
+    const channel = supabase
+      .channel(`team-msg-${convId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'team_messages', filter: `conversation_id=eq.${convId}` },
+        async (payload) => {
+          const row = payload.new as { id: string, sender_id: string, message_text: string, created_at: string, conversation_id: string }
+          setSelectedTeamConversation((prev) => {
+            if (!prev) return prev
+            if (prev.id !== row.conversation_id) return prev
+            if (prev.messages?.some((m: any) => m.id === row.id)) return prev
+            const isMine = currentUserId && row.sender_id === currentUserId
+            const member = teamMembers.find(tm => tm.user_id === row.sender_id)
+            const senderName = isMine ? 'You' : (member?.full_name || (member?.email ? member.email.split('@')[0] : 'Member'))
+            const appended = { ...row, sender: { id: row.sender_id, full_name: senderName } }
+            return { ...prev, messages: [...(prev.messages || []), appended] }
+          })
+          // bump conversation ordering by updating updated_at (optimistic)
+          setTeamConversations((prev) => prev.map((c) => (c.id === row.conversation_id ? { ...c, updated_at: row.created_at } : c)).sort((a, b) => (new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [selectedTeamConversation?.id, currentUserId])
+
   const fetchConversations = async (userId: string) => {
     try {
-      // Get recruiter ID
-      const { data: recruiter } = await supabase
-        .from('recruiters')
-        .select('id')
-        .eq('user_id', userId)
-        .single()
-
-      if (!recruiter) return
+      // Resolve recruiter id for owner or team member
+      const recruiterId = await resolveRecruiterId(userId)
+      if (!recruiterId) return
 
       // Get job IDs for this recruiter
-      const { data: jobs } = await supabase
+      const { data: jobs, error: jobsError } = await supabase
         .from('job_postings')
         .select('id')
-        .eq('recruiter_id', recruiter.id)
+        .eq('recruiter_id', recruiterId)
 
+      if (jobsError) throw jobsError
       if (!jobs || jobs.length === 0) return
 
       const jobIds = jobs.map(j => j.id)
 
-      // Get conversations for applications
-      const { data: conversationsData } = await supabase
+      // Get application IDs for those jobs
+      const { data: apps, error: appsError } = await supabase
+        .from('candidate_applications')
+        .select('id')
+        .in('job_posting_id', jobIds)
+
+      if (appsError) throw appsError
+      if (!apps || apps.length === 0) return
+
+      const appIds = apps.map(a => a.id)
+
+      // Get conversations for those applications
+      const { data: conversationsData, error: convError } = await supabase
         .from('conversations')
         .select(`
           *,
@@ -147,13 +238,11 @@ export default function MessagesPage() {
           candidate_applications(
             candidate_name,
             job_postings(title, company)
-          ),
-          public_applications(
-            full_name,
-            job_postings(title, company)
           )
         `)
-        .in('application_id', jobIds.map(id => `job-${id}`))
+        .in('application_id', appIds)
+
+      if (convError) throw convError
 
       if (conversationsData) {
         const formattedConversations = conversationsData.map(conv => ({
@@ -162,7 +251,7 @@ export default function MessagesPage() {
           created_at: conv.created_at,
           updated_at: conv.updated_at,
           messages: conv.messages || [],
-          application: conv.candidate_applications || conv.public_applications
+          application: conv.candidate_applications
         }))
         setConversations(formattedConversations)
       }
@@ -183,15 +272,20 @@ export default function MessagesPage() {
         return memberUserId && memberUserId !== _userId
       })
 
-      const formatted: TeamMember[] = others.map((m: any) => ({
-        id: m.id,
-        user_id: m.user?.id || m.user_id,
-        full_name: m.user?.full_name || m.full_name || m.user?.email?.split('@')[0] || 'Team member',
-        email: m.user?.email || m.email || '',
-        avatar_url: undefined,
-        role: m.role,
-        last_active: m.user?.last_sign_in_at || undefined,
-      }))
+      const formatted: TeamMember[] = others.map((m: any) => {
+        const userId = m.user?.id || m.user_id
+        const fullName = m.user?.full_name || m.full_name || ''
+        const email = m.user?.email || m.email || ''
+        return {
+          id: m.id,
+          user_id: userId,
+          full_name: fullName.trim().length > 0 ? fullName : (email ? email.split('@')[0] : 'Team member'),
+          email: email || 'unknown@applyforme.co.za',
+          avatar_url: undefined,
+          role: m.role,
+          last_active: m.user?.last_sign_in_at || undefined,
+        }
+      })
 
       // If the current user is a team member, include the team owner as a selectable contact
       // (team_members table does not include the owner by default)
@@ -245,6 +339,46 @@ export default function MessagesPage() {
     }
   }
 
+  const fetchTeamConversations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('team_conversations')
+        .select('id, conversation_name, updated_at')
+        .order('updated_at', { ascending: false })
+      if (error) throw error
+      setTeamConversations(data || [])
+    } catch (error) {
+      console.error('Error fetching team conversations:', error)
+    }
+  }
+
+  const fetchTeamConversationMessages = async (conversationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('team_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      const enriched = (data || []).map((row: any) => {
+        const isMine = currentUserId && row.sender_id === currentUserId
+        const member = teamMembers.find(tm => tm.user_id === row.sender_id)
+        const senderName = isMine ? 'You' : (member?.full_name || (member?.email ? member.email.split('@')[0] : 'Member'))
+        return { ...row, sender: { id: row.sender_id, full_name: senderName } }
+      })
+      setSelectedTeamConversation({ id: conversationId, messages: enriched })
+    } catch (error) {
+      console.error('Error fetching team messages:', error)
+      toast({ title: 'Error', description: 'Failed to load team messages', variant: 'destructive' })
+    }
+  }
+
+  const openTeamConversation = async (conv: TeamConversation) => {
+    setActiveChatType('team')
+    setConversationName(conv.conversation_name || '')
+    await fetchTeamConversationMessages(conv.id)
+  }
+
   const resolveRecruiterId = async (userId: string): Promise<string | null> => {
     const { data: ownerRecruiter } = await supabase
       .from('recruiters')
@@ -287,6 +421,9 @@ export default function MessagesPage() {
       setIsNewTeamChatOpen(false)
       setSelectedParticipantIds([])
       setConversationName("")
+
+      // Refresh conversations list so it persists across refresh
+      await fetchTeamConversations()
 
       toast({ title: 'Team chat created' })
     } catch (error: any) {
@@ -359,6 +496,7 @@ export default function MessagesPage() {
         title: "Message sent",
         description: "Your message has been sent successfully"
       })
+      feedbackMessagesAction()
     } catch (error) {
       console.error('Error sending message:', error)
       toast({
@@ -517,33 +655,65 @@ export default function MessagesPage() {
                   </Button>
                 </div>
               ) : (
-                filteredTeamMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={member.avatar_url} />
-                      <AvatarFallback>{member.full_name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {member.full_name}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {member.email}
-                      </p>
-                      {relativeTime(member.last_active) && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          Last active {relativeTime(member.last_active) as string}
-                        </p>
-                      )}
+                <>
+                  {/* Team Conversations List */}
+                  {teamConversations.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      <p className="text-xs uppercase text-gray-500 px-1">Team Conversations</p>
+                      {teamConversations.map((tc) => (
+                        <div
+                          key={tc.id}
+                          onClick={() => openTeamConversation(tc)}
+                          className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                        >
+                          <Avatar className="w-10 h-10">
+                            <AvatarFallback>T</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {tc.conversation_name || 'Team Conversation'}
+                            </p>
+                            {relativeTime(tc.updated_at) && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                {relativeTime(tc.updated_at) as string}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => openDirectChat(member)}>
-                      <MessageSquare className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))
+                  )}
+
+                  {/* Team Members List */}
+                  <p className="text-xs uppercase text-gray-500 px-1">Team Members</p>
+                  {filteredTeamMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={member.avatar_url} />
+                        <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {member.full_name}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {member.email}
+                        </p>
+                        {relativeTime(member.last_active) && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Last active {relativeTime(member.last_active) as string}
+                          </p>
+                        )}
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => openDirectChat(member)}>
+                        <MessageSquare className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           )}
@@ -552,6 +722,7 @@ export default function MessagesPage() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
+        {FeedbackAfterMessagesDialog}
         {activeChatType === 'candidate' && selectedConversation ? (
           <>
             {/* Chat Header */}

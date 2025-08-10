@@ -16,6 +16,7 @@ import { ApplicationFunnelChart } from "@/components/recruiter/application-funne
 import { ApplicationSourcesChart, JobPerformanceChart } from "@/components/recruiter/performance-charts";
 import { ActivityFeed } from "@/components/recruiter/activity-feed";
 import { useToast } from "@/hooks/use-toast"
+import { useTour } from '@/components/tour/useTour'
 
 type ApplicationStatus = { status: string };
 
@@ -133,6 +134,7 @@ const CreditCard = ({ title, value, maxValue, isLoading }: any) => {
 function RecruiterDashboardContent() {
   const supabase = createClient();
   const { toast } = useToast();
+  const tour = useTour()
   const [stats, setStats] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
   const [trialInfo, setTrialInfo] = useState<any>(null);
@@ -420,7 +422,10 @@ function RecruiterDashboardContent() {
             Here's a high-level overview of your recruitment activity.
           </p>
         </div>
-        <DateRangePicker />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => tour.start()}>Start Tour</Button>
+          <DateRangePicker />
+        </div>
       </div>
 
       {/* Trial Banner */}

@@ -6,6 +6,7 @@ import { EmailService } from '@/lib/email-service'
 export async function HEAD(request: NextRequest) {
   try {
     const supabase = await createClient()
+    const supabaseAdmin = createAdminClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -30,6 +31,7 @@ export async function HEAD(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
+    const supabaseAdmin = createAdminClient()
     
     // Add debugging for authentication
     console.log('Team members API: Attempting to get user...')
@@ -95,22 +97,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch team members' }, { status: 500 })
     }
 
-    // Get public user details for all team members
+    // Get user details for all team members using admin API (bypasses RLS safely on server)
     if (teamMembers && teamMembers.length > 0) {
       const userIds = [...new Set([
         ...teamMembers.map(tm => tm.user_id),
         ...teamMembers.filter(tm => tm.invited_by).map(tm => tm.invited_by)
       ])]
-      let userMap = new Map()
+      const userMap = new Map<string, any>()
       if (userIds.length > 0) {
-        const { data: usersPublic, error: usersErr } = await supabase
-          .from('users')
-          .select('id, full_name, email, last_sign_in_at')
-          .in('id', userIds)
-
-        if (!usersErr && usersPublic) {
-          usersPublic.forEach((u: any) => userMap.set(u.id, u))
-        }
+        await Promise.all(userIds.map(async (uid: string) => {
+          try {
+            const { data } = await supabaseAdmin.auth.admin.getUserById(uid)
+            const u = data?.user
+            if (u) {
+              const meta: any = u.user_metadata || {}
+              const fullName = meta.full_name || meta.name || meta["full-name"] || null
+              const email = u.email || (Array.isArray(u.identities) && u.identities[0]?.identity_data?.email) || ''
+              userMap.set(u.id, {
+                id: u.id,
+                full_name: fullName,
+                email,
+                last_sign_in_at: (u as any).last_sign_in_at || u.updated_at,
+              })
+            }
+          } catch (e) {
+            // ignore individual failures
+          }
+        }))
       }
 
       // Enhance team members with user details
@@ -118,14 +131,14 @@ export async function GET(request: NextRequest) {
         ...member,
         user: userMap.get(member.user_id) ? {
           id: userMap.get(member.user_id)?.id,
+          full_name: userMap.get(member.user_id)?.full_name,
           email: userMap.get(member.user_id)?.email,
-          created_at: userMap.get(member.user_id)?.created_at,
           last_sign_in_at: userMap.get(member.user_id)?.last_sign_in_at,
         } : null,
         invited_by_user: member.invited_by && userMap.get(member.invited_by) ? {
           id: userMap.get(member.invited_by)?.id,
+          full_name: userMap.get(member.invited_by)?.full_name,
           email: userMap.get(member.invited_by)?.email,
-          created_at: userMap.get(member.invited_by)?.created_at,
           last_sign_in_at: userMap.get(member.invited_by)?.last_sign_in_at,
         } : null
       }))

@@ -38,6 +38,7 @@ import {
 import { slugify } from "@/lib/utils"
 import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useTour } from '@/components/tour/useTour'
 
 interface RecruiterProfile {
   id: string
@@ -97,6 +98,7 @@ export default function RecruiterSettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createClient()
+  const tour = useTour()
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -496,6 +498,9 @@ export default function RecruiterSettingsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
           <p className="text-gray-600 mt-2">Manage your recruiter account and preferences</p>
+          <div className="mt-4">
+            <Button variant="outline" onClick={() => { localStorage.removeItem('recruiter_tour_seen'); tour.start() }}>Restart Product Tour</Button>
+          </div>
         </div>
 
         <SettingsTabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />

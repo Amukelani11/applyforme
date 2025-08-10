@@ -25,6 +25,8 @@ import { useEffect, useState, useRef, Suspense } from "react"
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import FeedbackDialog from '@/components/feedback/FeedbackDialog'
+import { useFeedbackPrompt } from '@/components/feedback/useFeedbackPrompt'
 
 const navigation = [
   {
@@ -92,6 +94,7 @@ function RecruiterSidebarContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const supabase = createClient()
+  const { Dialog: SignOutFeedbackDialog, onLogout: triggerLogoutFeedback } = useFeedbackPrompt({ context: 'sign_out', recruiterId: recruiter?.id || null, role })
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [recruiter, setRecruiter] = useState<any>(null)
   const [role, setRole] = useState<'admin'|'recruiter'|'hiring_manager'|'interviewer'|'owner'|null>(null)
@@ -215,6 +218,8 @@ function RecruiterSidebarContent() {
   }, [recruiter?.id])
 
   const handleSignOut = async () => {
+    // prompt feedback first
+    triggerLogoutFeedback()
     await supabase.auth.signOut()
     router.push("/recruiter/login")
   }
@@ -340,6 +345,7 @@ function RecruiterSidebarContent() {
           <LogOut className="h-5 w-5 transition-all duration-200 text-gray-400 group-hover:text-red-500" />
           <span>Sign Out</span>
         </Button>
+        {SignOutFeedbackDialog}
       </div>
     </div>
   )

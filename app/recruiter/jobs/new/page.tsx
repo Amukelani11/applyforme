@@ -36,6 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
+import { useFeedbackPrompt } from '@/components/feedback/useFeedbackPrompt'
 
 type JobStatus = 'active' | 'draft';
 
@@ -69,6 +70,7 @@ export default function NewJobPage() {
   const router = useRouter()
   const supabase = createClient()
   const { toast } = useToast()
+  const { Dialog: FeedbackAfterPostDialog, onAction: feedbackAction } = useFeedbackPrompt({ context: 'post_job', trigger: 'count', actionKey: 'jobs_posted_count', actionThreshold: 3 })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -130,6 +132,7 @@ export default function NewJobPage() {
         title: "Success",
         description: `Job posting successfully ${status === 'draft' ? 'saved as draft' : 'created'}!`,
       })
+      feedbackAction()
 
       // Track job posted event only if it's not a draft
       if (status === 'active') {
@@ -157,6 +160,7 @@ export default function NewJobPage() {
       transition={{ duration: 0.5 }}
       className="max-w-4xl mx-auto py-8"
     >
+        {FeedbackAfterPostDialog}
         <div className="mb-8">
           <Link
             href="/recruiter/dashboard"
