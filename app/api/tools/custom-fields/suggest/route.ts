@@ -10,6 +10,11 @@ type SuggestedField = {
   field_options?: string[]
 }
 
+function isProhibitedField(field: SuggestedField): boolean {
+  const label = (field.field_label || '').toLowerCase()
+  return /(\b|\s)(cv|resume|cover\s*letter|motivation)(\b|\s)/i.test(label)
+}
+
 function suggestFieldsFromSpec(title: string, description: string, requirements: string): SuggestedField[] {
   const text = `${title}\n${description}\n${requirements}`.toLowerCase()
   const fields: SuggestedField[] = []
@@ -42,15 +47,7 @@ function suggestFieldsFromSpec(title: string, description: string, requirements:
     })
   }
 
-  // Cover letter
-  if (/cover letter|motivation/.test(text)) {
-    fields.push({
-      field_label: 'Motivation / Cover Letter',
-      field_type: 'textarea',
-      field_required: false,
-      field_placeholder: 'Share why you are a great fit for this role'
-    })
-  }
+  // Intentionally avoid suggesting cover letter/motivation fields here
 
   // Tech stack cues
   const stack: string[] = []
@@ -147,6 +144,7 @@ Guidelines:
 - If the spec hints at a tech stack, include a select with those options
 - Keep labels concise and clear
 - Only include options when appropriate
+ - Do not include fields that request CV/Resume uploads or Cover Letters/Motivation letters (these are collected elsewhere in our flow)
 
 Job Title: ${title || ''}
 Description: ${description || ''}
@@ -189,7 +187,10 @@ export async function POST(req: NextRequest) {
     // Try AI first
     const aiFields = await suggestFieldsWithAI(String(title), String(description), String(requirements))
     if (aiFields && aiFields.length > 0) {
-      return NextResponse.json({ fields: aiFields, provider: 'gemini' })
+      const filtered = aiFields.filter(f => !isProhibitedField(f))
+      if (filtered.length > 0) {
+        return NextResponse.json({ fields: filtered, provider: 'gemini' })
+      }
     }
 
     // Fallback heuristic

@@ -73,7 +73,7 @@ export function CandidateNotes({ applicationId, applicationType, recruiterId }: 
         .from('candidate_notes')
         .select(`
           *,
-          user:users(full_name, email)
+          user:users!candidate_notes_user_id_fkey(full_name, email)
         `)
         .eq('application_id', applicationId)
         .eq('application_type', applicationType)

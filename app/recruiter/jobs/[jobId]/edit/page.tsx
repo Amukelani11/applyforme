@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Save, Loader2, Share2, Copy, Trash2, Info, FileText, Settings, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Share2, Copy, Trash2, Info, FileText, Settings, AlertTriangle, Eye, MapPin, Briefcase, DollarSign, Calendar } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { Separator } from "@/components/ui/separator"
@@ -184,6 +185,28 @@ export default function EditJobPage() {
     setJob(prev => ({ ...prev, [field]: value }))
   }
 
+  const formatAsBullets = (text?: string) => {
+    if (!text) return null
+    const lines = text
+      .split("\n")
+      .map(l => l.trim())
+      .filter(Boolean)
+    return (
+      <div className="space-y-2">
+        {lines.map((line, idx) => {
+          const isBullet = line.startsWith("•") || line.startsWith("-") || line.startsWith("*")
+          const cleaned = isBullet ? line.slice(1).trim() : line
+          return (
+            <div key={idx} className="flex items-start gap-2">
+              <span className="mt-2 inline-block h-1.5 w-1.5 rounded-full bg-gray-600" />
+              <span className="text-gray-700">{cleaned}</span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -229,6 +252,60 @@ export default function EditJobPage() {
         <form onSubmit={handleSubmit}>
             <div className="space-y-12">
                 <div className="space-y-8">
+                    <SectionHeader icon={Eye} title="Live Preview" description="See how your job will look to candidates as you edit." />
+                    <div className="rounded-xl border border-gray-200 shadow-sm bg-white">
+                      <div className="p-6">
+                        <div className="mb-3">
+                          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{job.title || 'Job Title'}</h2>
+                          <p className="text-gray-600">{job.company || 'Company Name'}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mb-6">
+                          {job.location ? (
+                            <Badge variant="secondary" className="bg-gray-50 text-gray-700 border-gray-200"><MapPin className="h-4 w-4 mr-1" /> {job.location}</Badge>
+                          ) : null}
+                          {job.job_type ? (
+                            <Badge variant="secondary" className="bg-gray-50 text-gray-700 border-gray-200"><Briefcase className="h-4 w-4 mr-1" /> {job.job_type}</Badge>
+                          ) : null}
+                          {(job.contract_term && job.contract_term !== '') ? (
+                            <Badge variant="secondary" className="bg-gray-50 text-gray-700 border-gray-200"><Calendar className="h-4 w-4 mr-1" /> {job.contract_term}</Badge>
+                          ) : null}
+                          {(job.salary_range || job.salary_type) ? (
+                            <Badge variant="secondary" className="bg-gray-50 text-gray-700 border-gray-200"><DollarSign className="h-4 w-4 mr-1" /> {job.salary_range || '—'} {job.salary_type ? `(${job.salary_type})` : ''}</Badge>
+                          ) : null}
+                        </div>
+
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Job Description</h3>
+                            {job.description ? (
+                              formatAsBullets(job.description)
+                            ) : (
+                              <p className="text-gray-500">No description added yet</p>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Requirements</h3>
+                            {job.requirements ? (
+                              formatAsBullets(job.requirements)
+                            ) : (
+                              <p className="text-gray-500">No requirements added yet</p>
+                            )}
+                          </div>
+                          {job.benefits ? (
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 mb-2">Benefits & Perks</h3>
+                              {formatAsBullets(job.benefits)}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-100 p-4 flex items-center justify-between">
+                        <div className="text-sm text-gray-500">Status: <span className="font-medium capitalize text-gray-700">{job.status}</span></div>
+                        <Button type="button" variant="outline" className="border-[#c084fc] text-[#c084fc] hover:bg-[#c084fc] hover:text-white">Preview Apply Flow</Button>
+                      </div>
+                    </div>
+                </div>
+             <div className="space-y-8">
                     <SectionHeader icon={Info} title="Job Information" description="Update the basic information for this position." />
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">

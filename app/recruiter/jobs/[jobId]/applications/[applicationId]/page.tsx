@@ -1,4 +1,6 @@
 'use client'
+
+import React from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -157,6 +159,10 @@ const ApplicationReviewPage = () => {
   const [isMessageSheetOpen, setIsMessageSheetOpen] = useState(false);
   const [messageContent, setMessageContent] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState('');
+  const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const [askingAI, setAskingAI] = useState(false);
   const [isAddToPoolSheetOpen, setIsAddToPoolSheetOpen] = useState(false);
   const [pools, setPools] = useState<any[]>([]);
   const [selectedPoolId, setSelectedPoolId] = useState('');
@@ -369,6 +375,7 @@ const ApplicationReviewPage = () => {
         },
         body: JSON.stringify({
           applicationId: applicationId,
+          type,
           content: messageContent,
         }),
       });
@@ -564,7 +571,7 @@ const ApplicationReviewPage = () => {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, content: newNote })
+      body: JSON.stringify({ applicationId, type, content: newNote })
     });
     if (res.ok) {
       setNewNote('');
@@ -591,7 +598,7 @@ const ApplicationReviewPage = () => {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, content: replyContent, parentId })
+      body: JSON.stringify({ applicationId, type, content: replyContent, parentId })
     });
     if (res.ok) {
       setReplyContent('');
@@ -685,28 +692,13 @@ const ApplicationReviewPage = () => {
     return <X className="w-4 h-4 text-red-600" />;
   };
 
-  // Create motion wrapper that handles SSR
-  const MotionWrapper = isClient ? motion.div : 'div';
-  const MotionAside = isClient ? motion.aside : 'aside';
-  const MotionMain = isClient ? motion.main : 'main';
+  // Render static tags to avoid JSX parsing issues with dynamic motion wrappers
 
   return (
-    <MotionWrapper 
-      className="flex bg-white min-h-screen"
-      {...(isClient && {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        transition: { duration: 0.5 }
-      })}
-    >
+    <div className="flex bg-white min-h-screen">
       {/* Left Panel */}
-      <MotionAside 
+      <aside 
         className="w-80 bg-white border-r border-gray-100 flex flex-col p-6 space-y-6 overflow-y-auto flex-shrink-0"
-        {...(isClient && {
-          initial: { x: -50, opacity: 0 },
-          animate: { x: 0, opacity: 1 },
-          transition: { duration: 0.6, delay: 0.1 }
-        })}
       >
         {/* Candidate Info */}
         <div className="text-center space-y-4">
@@ -945,17 +937,10 @@ const ApplicationReviewPage = () => {
             </div>
           </div>
         </div>
-        </MotionAside>
+        </aside>
 
         {/* Main Content */}
-        <MotionMain 
-          className="flex-1 p-8 bg-white overflow-y-auto"
-          {...(isClient && {
-            initial: { x: 50, opacity: 0 },
-            animate: { x: 0, opacity: 1 },
-            transition: { duration: 0.6, delay: 0.2 }
-          })}
-        >
+        <main className="flex-1 p-8 bg-white overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -963,6 +948,15 @@ const ApplicationReviewPage = () => {
             <p className="text-gray-600">Application 1 of 1</p>
           </div>
           <div className="flex items-center space-x-4">
+            <Button
+              variant="default"
+              size="sm"
+              className="bg-[#c084fc] hover:bg-[#a855f7] text-white"
+              onClick={() => setShowAI(true)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Ask AI
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -983,6 +977,8 @@ const ApplicationReviewPage = () => {
         </div>
 
         <div className="space-y-12">
+          {!showAI ? (
+          <>
           {/* AI Insights Summary */}
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500" data-mcp-id="recruiter-app-review-ai-insights">
                         <div className="flex items-center justify-between mb-6">
@@ -1248,23 +1244,23 @@ const ApplicationReviewPage = () => {
               </Button>
             </div>
             
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
               <Textarea
                 placeholder="Add a note for your team about this candidate..."
                 value={newNote}
                 onChange={e => setNewNote(e.target.value)}
                 rows={3}
-                className="mb-3 border-blue-300 focus:border-blue-500"
+                className="mb-3 border-purple-300 focus:border-purple-500"
               />
               <div className="flex justify-between items-center">
-                <p className="text-sm text-blue-700">
+                <p className="text-sm text-purple-700">
                   💡 Share insights, questions, or observations with your team
                 </p>
                 <Button 
                   onClick={handleAddNote} 
                   disabled={!newNote.trim() || loadingMessages}
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-[#c084fc] hover:bg-[#a855f7]"
                 >
                   Add Note
                 </Button>
@@ -1296,7 +1292,7 @@ const ApplicationReviewPage = () => {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => setReplyTo(note.id)}
-                        className="text-blue-600 hover:text-blue-700"
+                        className="text-[#c084fc] hover:text-[#a855f7]"
                       >
                         Reply
                       </Button>
@@ -1330,19 +1326,19 @@ const ApplicationReviewPage = () => {
 
                     {/* Reply input */}
                     {replyTo === note.id && (
-                      <div className="ml-11 mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="ml-11 mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
                         <Input
                           placeholder="Write a reply..."
                           value={replyContent}
                           onChange={e => setReplyContent(e.target.value)}
-                          className="mb-2 border-blue-300 focus:border-blue-500"
+                          className="mb-2 border-purple-300 focus:border-purple-500"
                         />
                         <div className="flex gap-2">
                           <Button 
                             size="sm" 
                             onClick={() => handleAddReply(note.id)} 
                             disabled={!replyContent.trim()}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-[#c084fc] hover:bg-[#a855f7]"
                           >
                             Send Reply
                           </Button>
@@ -1366,7 +1362,7 @@ const ApplicationReviewPage = () => {
                     <p className="text-gray-500 mb-4">Be the first to share your thoughts about this candidate with your team!</p>
                     <Button 
                       onClick={() => document.querySelector('textarea')?.focus()}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-[#c084fc] hover:bg-[#a855f7]"
                     >
                       Add First Note
                     </Button>
@@ -1924,62 +1920,7 @@ const ApplicationReviewPage = () => {
             </div>
           </section>
 
-          {/* Notes & Review */}
-          <section>
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Notes & Review</h2>
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Comments</h3>
-                <Textarea
-                  placeholder="Add your thoughts about this candidate..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Tags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {['Interview Ready', 'Skills Gap', 'Culture Fit', 'Salary Negotiation', 'Follow-up'].map((tag) => (
-                    <span
-                      key={tag}
-                      className={cn(
-                        "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-all duration-200 hover:scale-105",
-                        selectedTags.includes(tag)
-                          ? "bg-purple-100 text-purple-800 border-purple-200 border"
-                          : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                      )}
-                      onClick={() => handleTagToggle(tag)}
-                    >
-                      {tag}
-                      {selectedTags.includes(tag) && (
-                        <span className="ml-1 animate-in zoom-in duration-200">
-                          <Check className="w-3 h-3" />
-                        </span>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={handleNotesUpdate}
-                disabled={updating}
-                className="w-full transition-all duration-200 hover:scale-105"
-              >
-                {updating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Notes'
-                )}
-              </Button>
-            </div>
-          </section>
+          {/* Removed Notes & Review section per request */}
 
           {/* Application Details */}
           <section>
@@ -2029,8 +1970,80 @@ const ApplicationReviewPage = () => {
 
           {/* Custom Fields */}
           <CustomFieldsViewer applicationId={applicationId} />
+          </>
         </div>
-      </MotionMain>
+          ) : (
+          <section className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm min-h-[600px]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#c084fc]" />
+                <h2 className="text-xl font-semibold text-gray-900">AI Assistant</h2>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowAI(false)}>
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Application
+              </Button>
+            </div>
+            <div className="grid grid-rows-[1fr_auto] gap-4 h-[calc(100%-2rem)]">
+              <div className="overflow-y-auto space-y-3 pr-1 border rounded-md p-3 bg-gray-50">
+                {aiMessages.length === 0 ? (
+                  <div className="text-sm text-gray-600">
+                    Ask about fit, risks, follow-up interview questions, salary alignment, or a concise summary.
+                  </div>
+                ) : (
+                  aiMessages.map((m, idx) => (
+                    <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start' }`}>
+                      <div className={`max-w-[85%] rounded-lg p-3 border text-sm ${m.role === 'user' ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'}`}>
+                        {m.content}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ai-question">Your question</Label>
+                <div className="flex gap-2">
+                  <Textarea
+                    id="ai-question"
+                    value={aiQuestion}
+                    onChange={(e) => setAiQuestion(e.target.value)}
+                    rows={2}
+                    placeholder="e.g., What interview questions should we ask based on their CV?"
+                  />
+                  <Button
+                    onClick={async () => {
+                      if (!aiQuestion.trim()) return;
+                      const q = aiQuestion.trim();
+                      setAiMessages(prev => [...prev, { role: 'user', content: q }]);
+                      setAiQuestion('');
+                      setAskingAI(true);
+                      try {
+                        const res = await fetch(`/api/recruiter/jobs/${jobId}/applications/${applicationId}/ask-ai?type=${type}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ question: q })
+                        });
+                        const data = await res.json();
+                        const answer = data.answer || data.improved || data.text || 'No response.';
+                        setAiMessages(prev => [...prev, { role: 'assistant', content: answer }]);
+                      } catch (err) {
+                        setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I could not process that right now.' }]);
+                      } finally {
+                        setAskingAI(false);
+                      }
+                    }}
+                    disabled={askingAI}
+                    className="self-end bg-[#c084fc] hover:bg-[#a855f7] text-white"
+                  >
+                    {askingAI ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Ask</>) : (<><Sparkles className="w-4 h-4 mr-2" /> Ask</>)}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
+          )}
+        </div>
+        </main>
 
       {/* Notes Sheet */}
       <Sheet open={isNoteSheetOpen} onOpenChange={setIsNoteSheetOpen}>
@@ -2252,6 +2265,8 @@ const ApplicationReviewPage = () => {
         </SheetContent>
       </Sheet>
 
+      {/* AI assistant is integrated inline; no side sheet */}
+
       {/* Create Pool Sheet */}
       <Sheet open={isCreatePoolSheetOpen} onOpenChange={setIsCreatePoolSheetOpen}>
         <SheetContent>
@@ -2354,7 +2369,7 @@ const ApplicationReviewPage = () => {
           </div>
         </SheetContent>
       </Sheet>
-    </MotionWrapper>
+    </div>
   );
 };
 

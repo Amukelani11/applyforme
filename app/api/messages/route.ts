@@ -5,11 +5,14 @@ import { createCookieHandler } from '@/lib/supabase/cookie-handler';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const applicationId = searchParams.get('applicationId');
+  const applicationIdRaw = searchParams.get('applicationId');
+  const applicationTypeParam = searchParams.get('type');
 
-  if (!applicationId) {
+  if (!applicationIdRaw) {
     return NextResponse.json({ error: 'Missing applicationId' }, { status: 400 });
   }
+  const isPublic = applicationIdRaw.startsWith('public-') || applicationTypeParam === 'public';
+  const applicationId = isPublic ? applicationIdRaw.replace(/^public-/, '') : applicationIdRaw;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,14 +29,46 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Find the conversation for this application
+    if (isPublic) {
+      // Use candidate_notes for public applications
+      const { data: notes, error: notesError } = await supabase
+        .from('candidate_notes')
+        .select(`
+          id,
+          note_text,
+          created_at,
+          user:users!candidate_notes_user_id_fkey(
+            id,
+            full_name,
+            email,
+            avatar_url
+          )
+        `)
+        .eq('application_id', applicationId)
+        .eq('application_type', 'public')
+        .order('created_at', { ascending: true })
+      if (notesError) {
+        console.error('Error fetching notes:', notesError)
+        return NextResponse.json({ error: 'Could not fetch notes' }, { status: 500 })
+      }
+      const mapped = (notes || []).map(n => ({
+        id: n.id,
+        content: n.note_text,
+        created_at: n.created_at,
+        parent_id: null,
+        sender: n.user || null
+      }))
+      return NextResponse.json({ messages: mapped })
+    }
+
+    // Candidate applications: use conversations/messages
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
       .select('id')
       .eq('application_id', applicationId)
-      .single();
+      .maybeSingle();
 
-    if (convError && convError.code !== 'PGRST116') {
+    if (convError) {
       console.error('Error finding conversation:', convError);
       return NextResponse.json({ error: 'Could not find conversation' }, { status: 500 });
     }
@@ -42,7 +77,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ messages: [] });
     }
 
-    // Fetch all messages for this conversation with sender information
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
       .select(`
@@ -71,11 +105,13 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { applicationId, content, parentId } = await request.json();
+  const { applicationId: applicationIdRaw, content, parentId, type, conversationId: selectedConversationId } = await request.json();
 
-  if (!applicationId || !content) {
+  if (!applicationIdRaw || !content) {
     return NextResponse.json({ error: 'Missing applicationId or content' }, { status: 400 });
   }
+  const isPublic = typeof type === 'string' ? type === 'public' : (typeof applicationIdRaw === 'string' && applicationIdRaw.startsWith('public-'));
+  const applicationId = isPublic ? String(applicationIdRaw).replace(/^public-/, '') : String(applicationIdRaw);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,36 +127,88 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 1. Find or create the conversation
-  const { data: conversation, error: convError } = await supabase
-    .from('conversations')
-    .select('id')
-    .eq('application_id', applicationId)
-    .single();
+  // Public applications: store note in candidate_notes instead of conversations
+  if (isPublic) {
+    try {
+      // Resolve recruiter_id for the sender
+      const { data: recruiter } = await supabase
+        .from('recruiters')
+        .select('id')
+        .eq('user_id', sender.id)
+        .maybeSingle()
+      const recruiterId = recruiter?.id || null
 
-  let conversationId = conversation?.id;
+      const { data: note, error: noteError } = await supabase
+        .from('candidate_notes')
+        .insert({
+          application_id: applicationId,
+          application_type: 'public',
+          user_id: sender.id,
+          recruiter_id: recruiterId,
+          note_text: content,
+          note_type: 'general',
+          is_private: false
+        })
+        .select('id, created_at')
+        .maybeSingle()
 
-  if (convError && convError.code !== 'PGRST116') { // PGRST116: 'exact one row not found'
-    console.error('Error finding conversation:', convError);
-    return NextResponse.json({ error: 'Could not find conversation' }, { status: 500 });
-  }
-  
-  if (!conversation) {
-    const { data: newConversation, error: newConvError } = await supabase
-      .from('conversations')
-      .insert({ application_id: applicationId })
-      .select('id')
-      .single();
-    
-    if (newConvError) {
-      console.error('Error creating conversation:', newConvError);
-      return NextResponse.json({ error: 'Could not create conversation' }, { status: 500 });
+      if (noteError) {
+        console.error('Error adding public note:', noteError)
+        return NextResponse.json({ error: 'Could not add note' }, { status: 500 })
+      }
+
+      // Optionally also mirror into a selected team conversation if provided
+      if (selectedConversationId) {
+        await supabase.from('team_messages').insert({
+          conversation_id: selectedConversationId,
+          sender_id: sender.id,
+          message_text: content,
+          message_type: 'text'
+        })
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: {
+          id: note?.id,
+          content,
+          created_at: note?.created_at,
+          sender: { id: sender.id, full_name: sender.user_metadata?.full_name || null, email: sender.email }
+        }
+      })
+    } catch (e) {
+      console.error('public note failure:', e)
+      return NextResponse.json({ error: 'Could not add note' }, { status: 500 })
     }
-    conversationId = newConversation.id;
   }
 
+  // Candidate applications: conversations/messages flow
+  // 1. Find or create the conversation
+  let conversationId = selectedConversationId || null
   if (!conversationId) {
-    return NextResponse.json({ error: 'Conversation ID not found' }, { status: 500 });
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('application_id', applicationId)
+      .maybeSingle();
+    if (convError) {
+      console.error('Error finding conversation:', convError);
+      return NextResponse.json({ error: 'Could not find conversation' }, { status: 500 });
+    }
+    if (!conversation) {
+      const { data: newConversation, error: newConvError } = await supabase
+        .from('conversations')
+        .insert({ application_id: applicationId })
+        .select('id')
+        .single();
+      if (newConvError) {
+        console.error('Error creating conversation:', newConvError);
+        return NextResponse.json({ error: 'Could not create conversation' }, { status: 500 });
+      }
+      conversationId = newConversation.id;
+    } else {
+      conversationId = conversation.id
+    }
   }
 
   // 2. Insert the message
@@ -130,10 +218,7 @@ export async function POST(request: Request) {
     content,
   };
 
-  // Add parent_id if this is a reply
-  if (parentId) {
-    messageData.parent_id = parentId;
-  }
+  if (parentId) messageData.parent_id = parentId;
 
   const { data: message, error: messageError } = await supabase
     .from('messages')
@@ -174,7 +259,7 @@ export async function POST(request: Request) {
 
     if (appError) {
       // Try public applications table
-      const { data: publicAppData, error: publicAppError } = await supabase
+       const { data: publicAppData, error: publicAppError } = await supabase
         .from('public_applications')
         .select(`
           *,

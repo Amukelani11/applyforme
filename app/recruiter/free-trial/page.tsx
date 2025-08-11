@@ -596,9 +596,9 @@ s.parentNode.insertBefore(b,s);
             <br />
             <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] bg-clip-text text-transparent font-medium">Free Trial</span>
           </h1>
-                     <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
-             Try ApplyForMe Professional for 30 days completely free. You'll enter your card details securely on PayFast.
-           </p>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
+            Try ApplyForMe Professional for 30 days completely free.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -683,12 +683,12 @@ s.parentNode.insertBefore(b,s);
               <h3 className="font-medium text-gray-900 mb-2">Secure & Safe</h3>
               <p className="text-sm text-gray-600">Your data is protected with bank-level security</p>
             </div>
-                         <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center">
                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                  <CreditCard className="w-6 h-6 text-blue-600" />
                </div>
                               <h3 className="font-medium text-gray-900 mb-2">Secure Payment</h3>
-                <p className="text-sm text-gray-600">Card details entered securely on PayFast</p>
+              <p className="text-sm text-gray-600">Card details are handled securely</p>
              </div>
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">

@@ -35,7 +35,7 @@ export async function GET(
     // Verify job ownership
     const { data: jobData } = await supabase
       .from('job_postings')
-      .select('id, title')
+      .select('id, title, company')
       .eq('id', jobId)
       .eq('recruiter_id', recruiterData.id)
       .single();
@@ -107,7 +107,8 @@ export async function GET(
       total: allApplications.length,
       candidate_count: candidateApps?.length || 0,
       public_count: publicApps?.length || 0,
-      applications_by_status: applicationsByStatus
+      applications_by_status: applicationsByStatus,
+      job: { id: jobData.id, title: jobData.title, company: (jobData as any).company || null }
     });
 
   } catch (error) {

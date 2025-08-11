@@ -63,81 +63,24 @@ function ApplicationsContent() {
     sendEmail: true
   });
 
-  // Mock data
-  const mockApplications = [
-    {
-      id: "1",
-      candidate_name: "Sarah Johnson",
-      candidate_email: "sarah.johnson@email.com",
-      candidate_avatar: null,
-      ai_score: 85,
-      status: "new",
-      created_at: "2024-03-15T10:30:00Z",
-      last_activity: "2 days ago",
-      source: "ApplyForMe Platform",
-      application_type: "candidate",
-      custom_fields: {},
-      is_public: false,
-      user: {
-        full_name: "Sarah Johnson",
-        email: "sarah.johnson@email.com"
-      }
-    },
-    {
-      id: "2",
-      candidate_name: "Michael Chen",
-      candidate_email: "michael.chen@email.com",
-      candidate_avatar: null,
-      ai_score: 92,
-      status: "shortlisted",
-      created_at: "2024-03-14T14:20:00Z",
-      last_activity: "1 day ago",
-      source: "Public Job Link",
-      application_type: "public",
-      custom_fields: {},
-      is_public: true,
-      user: {
-        full_name: "Michael Chen",
-        email: "michael.chen@email.com"
-      }
-    },
-    {
-      id: "3",
-      candidate_name: "Emily Rodriguez",
-      candidate_email: "emily.rodriguez@email.com",
-      candidate_avatar: null,
-      ai_score: 78,
-      status: "interview",
-      created_at: "2024-03-13T09:15:00Z",
-      last_activity: "3 days ago",
-      source: "ApplyForMe Platform",
-      application_type: "candidate",
-      custom_fields: {},
-      is_public: false,
-      user: {
-        full_name: "Emily Rodriguez",
-        email: "emily.rodriguez@email.com"
-      }
-    }
-  ];
-
-  const mockJobData = {
-    id: jobId,
-    title: "Senior Frontend Developer",
-    company: "TechCorp South Africa",
-    status: "active",
-    applications_count: 24,
-    created_at: "2024-03-01T00:00:00Z"
-  };
+  // Remove mock data; load from API instead
 
   useEffect(() => {
-    // Simulate loading data
-      setLoading(true);
-    setTimeout(() => {
-      setApplications(mockApplications);
-      setJobData(mockJobData);
-      setLoading(false);
-    }, 1000);
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/recruiter/jobs/${jobId}/applications`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`Failed to load applications (${res.status})`);
+        const data = await res.json();
+        setApplications(data.applications || []);
+        setJobData({ id: jobId, title: data.job?.title, company: data.job?.company, status: 'active', applications_count: data.total });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (jobId) load();
   }, [jobId]);
 
   const filteredApplications = applications.filter(application => {
@@ -169,36 +112,43 @@ function ApplicationsContent() {
   };
 
   const handleStatusUpdate = async (applicationId, newStatus) => {
+    try {
       setProcessing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-        setApplications(prev => prev.map(app => 
-      app.id === applicationId ? { ...app, status: newStatus } : app
-        ));
-    
-        toast({
-          title: "Status Updated",
-      description: `Application status updated to ${newStatus}`,
-    });
+      const res = await fetch(`/api/recruiter/jobs/${jobId}/applications/${applicationId}/status`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      setApplications(prev => prev.map(app => app.id === applicationId ? { ...app, status: newStatus } : app));
+      toast({ title: 'Status Updated', description: `Application status updated to ${newStatus}` });
+    } catch (e) {
+      toast({ title: 'Error', description: 'Could not update status', variant: 'destructive' });
+    } finally {
       setProcessing(false);
+    }
   };
 
   const handleBatchAction = async (action) => {
+    try {
       setProcessing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-        setApplications(prev => prev.map(app => 
-      selectedApplications.has(app.id) ? { ...app, status: action } : app
-        ));
-    
-        setSelectedApplications(new Set());
-        toast({
-          title: "Batch Action Completed",
-      description: `${selectedApplications.size} applications ${action}`,
-    });
+      const ids = Array.from(selectedApplications);
+      const res = await fetch(`/api/recruiter/jobs/${jobId}/applications/batch`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, action })
+      });
+      if (!res.ok) throw new Error('Batch action failed');
+      setApplications(prev => prev.map(app => ids.includes(app.id) ? { ...app, status: action } : app));
+      setSelectedApplications(new Set());
+      toast({ title: 'Batch Action Completed', description: `${ids.length} applications ${action}` });
+    } catch (e) {
+      toast({ title: 'Error', description: 'Batch action failed', variant: 'destructive' });
+    } finally {
       setProcessing(false);
+    }
   };
 
   const handleRejectApplication = (application) => {
@@ -213,20 +163,23 @@ function ApplicationsContent() {
   };
 
   const confirmRejection = async () => {
+    try {
       setProcessing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-        setApplications(prev => prev.map(app => 
-          app.id === rejectionData.applicationId ? { ...app, status: 'rejected' } : app
-        ));
-    
-        setShowRejectionDialog(false);
-        toast({
-          title: "Application Rejected",
-      description: "The application has been rejected and the candidate has been notified.",
-    });
+      const res = await fetch(`/api/recruiter/jobs/${jobId}/applications/${rejectionData.applicationId}/reject`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reasons: rejectionData.reasons, customMessage: rejectionData.customMessage, sendEmail: rejectionData.sendEmail })
+      });
+      if (!res.ok) throw new Error('Reject failed');
+      setApplications(prev => prev.map(app => app.id === rejectionData.applicationId ? { ...app, status: 'rejected' } : app));
+      setShowRejectionDialog(false);
+      toast({ title: 'Application Rejected', description: 'The application has been rejected and the candidate has been notified.' });
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to reject application', variant: 'destructive' });
+    } finally {
       setProcessing(false);
+    }
   };
 
   const getStatusBadge = (status) => {
