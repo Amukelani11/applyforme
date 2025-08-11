@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   if (request.nextUrl.searchParams.get('mcp-edit-mode') === 'true') {
     return NextResponse.next()
   }
