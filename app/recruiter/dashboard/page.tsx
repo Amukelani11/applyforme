@@ -188,7 +188,7 @@ function RecruiterDashboardContent() {
            if (!userError && userData) {
              console.log('User data:', userData);
              // Check if trial-related fields exist
-             if (userData.subscription_status === 'trial' && userData.trial_end_date) {
+              if (userData.subscription_status === 'trial' && userData.trial_end_date) {
                const trialEndDate = new Date(userData.trial_end_date);
                const now = new Date();
                const daysLeft = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));

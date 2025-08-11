@@ -22,7 +22,7 @@ const plans = [
     {
         id: 'premium',
         name: 'Premium',
-        price: 'R499',
+        price: 'R1,299',
         features: [
             'Unlimited Job Postings',
             'Advanced applicant filtering',
