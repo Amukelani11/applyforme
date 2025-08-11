@@ -22,9 +22,7 @@ export default function RootClientLayout({ children }: { children: React.ReactNo
   return (
     <>
       <ConditionalNavbar />
-      <TourProvider>
-        {children}
-      </TourProvider>
+      {children}
       <ConditionalFooter />
     </>
   )

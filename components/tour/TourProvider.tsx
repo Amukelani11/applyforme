@@ -30,8 +30,13 @@ export default function TourProvider({ children }: Props) {
   const [targetRect, setTargetRect] = useState<{ top: number, left: number, width: number, height: number } | null>(null)
 
   useEffect(() => {
+    // Only auto-open on recruiter dashboard routes; never on auth/login pages
     const seen = localStorage.getItem('recruiter_tour_seen')
-    if (!seen) setIsOpen(true)
+    const isRecruiterArea = pathname.startsWith('/recruiter')
+    const isAuthArea = pathname.startsWith('/login') || pathname.startsWith('/recruiter/login') || pathname.startsWith('/auth')
+    if (!seen && isRecruiterArea && !isAuthArea) {
+      setIsOpen(true)
+    }
   }, [])
 
   useEffect(() => {
