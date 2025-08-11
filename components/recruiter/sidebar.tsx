@@ -89,7 +89,7 @@ const bottomNavigation = [
   }
 ]
 
-function RecruiterSidebarContent() {
+function RecruiterSidebarContent({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -229,10 +229,44 @@ function RecruiterSidebarContent() {
     return email.split('@')[0].substring(0, 2).toUpperCase()
   }
 
+  // Close the sidebar automatically on route change (mobile only)
+  useEffect(() => {
+    if (open && onClose) {
+      onClose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
+  const sidebarClasses = cn(
+    "fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-100 shadow-sm",
+    "transform transition-transform duration-300 ease-in-out",
+    open ? "translate-x-0" : "-translate-x-full",
+    "lg:translate-x-0 lg:static lg:inset-auto lg:shadow-none"
+  )
+
   return (
-    <div className="fixed z-30 flex h-full w-72 flex-col bg-white border-r border-gray-100">
+    <>
+      {/* Overlay for mobile */}
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      <div className={sidebarClasses} role="dialog" aria-modal="true">
       {/* User Profile Section */}
-      <div className="p-6 border-b border-gray-50">
+        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+          {/* Close button (mobile) */}
+          <div className="lg:hidden">
+            <Button variant="ghost" size="icon" aria-label="Close menu" onClick={onClose}>
+              <span className="sr-only">Close</span>
+              ✕
+            </Button>
+          </div>
+        </div>
+        <div className="px-6 pb-6">
         <div className="flex items-center space-x-3">
           <Avatar className="w-10 h-10 ring-2 ring-gray-100">
             <AvatarImage src={undefined} alt={recruiter?.company_name} />
@@ -249,7 +283,7 @@ function RecruiterSidebarContent() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
 
       {/* Navigation */}
       <nav ref={navRef} className="flex-1 p-6 space-y-2 relative">
@@ -307,8 +341,8 @@ function RecruiterSidebarContent() {
         })}
       </nav>
 
-      {/* Bottom Navigation & Sign Out */}
-      <div className="p-6 border-t border-gray-50 space-y-2">
+        {/* Bottom Navigation & Sign Out */}
+        <div className="p-6 border-t border-gray-50 space-y-2">
         {bottomNavigation.filter(item => {
             if (!role || role === 'owner') return true
             if (role === 'admin') return true
@@ -346,15 +380,16 @@ function RecruiterSidebarContent() {
           <span>Sign Out</span>
         </Button>
         {SignOutFeedbackDialog}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
-export function RecruiterSidebar() {
+export function RecruiterSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   return (
     <Suspense fallback={
-      <div className="fixed z-30 flex h-full w-72 flex-col bg-white border-r border-gray-100">
+      <div className="fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-100">
         <div className="p-6 border-b border-gray-50">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
@@ -374,7 +409,7 @@ export function RecruiterSidebar() {
         </div>
       </div>
     }>
-      <RecruiterSidebarContent />
+      <RecruiterSidebarContent open={open} onClose={onClose} />
     </Suspense>
   )
 } 

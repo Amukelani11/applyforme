@@ -29,8 +29,20 @@ function getPayFastRedirectUrl(data: Record<string, any>): string {
 export async function createCheckoutSession(productId: string, amount?: number) {
     const supabase = await createClient();
     const headersList = await headers();
-    const origin = headersList.get('origin');
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
+    const origin = headersList.get('origin') || '';
+    const normalizeBaseUrl = (url?: string | null) => {
+        let base = (url || '').trim();
+        if (!base) return '';
+        if (!/^https?:\/\//i.test(base)) {
+            base = `https://${base}`;
+        }
+        return base.replace(/\/$/, '');
+    };
+    const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
+    const appUrl = normalizeBaseUrl(envUrl) || normalizeBaseUrl(origin);
+    if (!appUrl || !/^https:\/\//i.test(appUrl)) {
+        throw new Error('Invalid site URL configuration for PayFast. Ensure NEXT_PUBLIC_SITE_URL is an absolute https URL.');
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
