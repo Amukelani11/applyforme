@@ -173,7 +173,9 @@ export default function EditJobPage() {
     }
     
     const jobSlug = slugify(job.title)
-    const shareableLink = `${window.location.origin}/jobs/public/${job.company_slug || 'company'}/${jobSlug}-${job.id}`
+    const companySlug = job.company_slug || slugify(job.company || '') || 'company'
+    const idPart = job.id ?? jobId
+    const shareableLink = `${window.location.origin}/jobs/public/${companySlug}/${jobSlug}-${idPart}`
     navigator.clipboard.writeText(shareableLink)
     toast({
       title: "Copied to clipboard!",
@@ -422,7 +424,7 @@ export default function EditJobPage() {
                             <Label className="font-medium flex items-center"><Share2 className="h-4 w-4 mr-2" /> Shareable Link</Label>
                             <p className="text-sm text-gray-600">Total public applications: <span className="font-bold">{job.public_application_count || 0}</span></p>
                             <div className="flex items-center gap-2">
-                                <Input value={`${window.location.origin}/jobs/public/${job.company_slug || 'company'}/${slugify(job.title || '')}-${job.id}`} readOnly />
+                                <Input value={`${window.location.origin}/jobs/public/${job.company_slug || slugify(job.company || '') || 'company'}/${slugify(job.title || '')}-${job.id ?? jobId}`} readOnly />
                                 <Button type="button" variant="ghost" size="icon" onClick={handleCopyLink}><Copy className="h-4 w-4" /></Button>
                             </div>
                         </div>
