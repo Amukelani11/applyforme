@@ -90,8 +90,6 @@ export default function NewJobPage() {
     applicationDeadline: undefined,
     allowPublic: false,
   })
-  const [suggesting, setSuggesting] = useState(false)
-  const [suggestedCount, setSuggestedCount] = useState(0)
 
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({
