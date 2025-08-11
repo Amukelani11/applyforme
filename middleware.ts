@@ -58,7 +58,6 @@ export async function middleware(request: NextRequest) {
           },
           set(name: string, value: string, options: CookieOptions) {
             try {
-              // Ensure proper cookie options for production
               const cookieOptions = {
                 ...options,
                 secure: process.env.NODE_ENV === 'production',
@@ -66,27 +65,16 @@ export async function middleware(request: NextRequest) {
                 httpOnly: true,
                 path: '/'
               }
-              
-              request.cookies.set({ name, value, ...cookieOptions })
-              response = NextResponse.next({
-                request: {
-                  headers: request.headers,
-                },
-              })
+              // Only mutate the response cookies in middleware
               response.cookies.set({ name, value, ...cookieOptions })
             } catch (error) {
               console.error('Error setting cookie:', name, error)
             }
           },
-          remove(name: string, options: CookieOptions) {
+          remove(name: string, _options: CookieOptions) {
             try {
-              request.cookies.set({ name, value: '', ...options })
-              response = NextResponse.next({
-                request: {
-                  headers: request.headers,
-                },
-              })
-              response.cookies.set({ name, value: '', ...options })
+              // Only mutate the response cookies in middleware
+              response.cookies.delete(name)
             } catch (error) {
               console.error('Error removing cookie:', name, error)
             }
