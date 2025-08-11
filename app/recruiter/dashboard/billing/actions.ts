@@ -33,10 +33,12 @@ export async function createCheckoutSession(productId: string, amount?: number) 
     const normalizeBaseUrl = (url?: string | null) => {
         let base = (url || '').trim();
         if (!base) return '';
+        // Fix malformed schemes like 'https:domain', 'https//domain', 'https:/domain'
+        base = base.replace(/^https:\/*/i, 'https://').replace(/^http:\/*/i, 'http://');
         if (!/^https?:\/\//i.test(base)) {
             base = `https://${base}`;
         }
-        return base.replace(/\/$/, '');
+        return base.replace(/\/+$/, '');
     };
     const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
     const appUrl = normalizeBaseUrl(envUrl) || normalizeBaseUrl(origin);

@@ -12,10 +12,13 @@ export async function createFreeTrialSession() {
   const normalizeBaseUrl = (url: string | undefined | null) => {
     let base = (url || '').trim()
     if (!base) return ''
+    // Fix common malformed schemes like 'https:domain', 'https//domain', 'https:/domain'
+    base = base.replace(/^https:\/*/i, 'https://').replace(/^http:\/*/i, 'http://')
     if (!/^https?:\/\//i.test(base)) {
       base = `https://${base}`
     }
-    return base.replace(/\/$/, '')
+    // Remove trailing slashes
+    return base.replace(/\/+$/, '')
   }
 
   const { data: { user } } = await supabase.auth.getUser()
