@@ -1971,7 +1971,6 @@ const ApplicationReviewPage = () => {
           {/* Custom Fields */}
           <CustomFieldsViewer applicationId={applicationId} />
           </>
-        </div>
           ) : (
           <section className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm min-h-[600px]">
             <div className="flex items-center justify-between mb-4">
