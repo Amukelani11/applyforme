@@ -44,26 +44,43 @@ export default function TourProvider({ children }: Props) {
     const targetPath = steps[stepIndex]?.path
     if (targetPath && pathname !== targetPath) {
       router.push(targetPath)
-    } else {
-      // Try to resolve selector if present on this step
+      return
+    }
+
+    const measure = () => {
       const sel = steps[stepIndex]?.selector
-      if (sel) {
-        // Allow DOM to render before measuring
-        setTimeout(() => {
-          const el = document.querySelector(sel) as HTMLElement | null
-          if (el) {
-            try {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
-            } catch {}
-            const rect = el.getBoundingClientRect()
-            setTargetRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
-          } else {
-            setTargetRect(null)
-          }
-        }, 200)
+      if (!sel) {
+        setTargetRect(null)
+        return
+      }
+      const el = document.querySelector(sel) as HTMLElement | null
+      if (el) {
+        try {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+        } catch {}
+        const rect = el.getBoundingClientRect()
+        setTargetRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
       } else {
         setTargetRect(null)
       }
+    }
+
+    // Initial measure and a couple of delayed re-measures to handle late layout shifts
+    measure()
+    const t1 = setTimeout(measure, 200)
+    const t2 = setTimeout(measure, 600)
+
+    // Keep highlight in sync on scroll/resize
+    const onScroll = () => measure()
+    const onResize = () => measure()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onResize)
     }
   }, [isOpen, stepIndex, pathname])
 
