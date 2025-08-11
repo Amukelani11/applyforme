@@ -272,10 +272,16 @@ function FreeTrialContent() {
         }
       }
 
-      // Use server action to create PayFast session
+      // Use server action to create PayFast session (may trigger NEXT_REDIRECT)
       await createFreeTrialSession()
 
     } catch (error: any) {
+      // Ignore framework redirect signal so nothing surfaces in the UI
+      const message = typeof error?.message === 'string' ? error.message : ''
+      const digest = (error as any)?.digest
+      if (digest === 'NEXT_REDIRECT' || message.includes('NEXT_REDIRECT')) {
+        return
+      }
       console.error('Error:', error)
       toast({
         title: "Error",
