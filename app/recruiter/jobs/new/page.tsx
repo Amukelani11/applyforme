@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { trackJobPosted } from "@/lib/gtag"
 import { Separator } from "@/components/ui/separator"
+import { CustomFieldsManager } from "@/components/recruiter/custom-fields-manager"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
@@ -52,6 +53,7 @@ interface FormData {
   requirements: string
   benefits: string
   applicationDeadline: Date | undefined
+  allowPublic: boolean
 }
 
 const SectionHeader = ({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }) => (
@@ -72,6 +74,8 @@ export default function NewJobPage() {
   const { toast } = useToast()
   const { Dialog: FeedbackAfterPostDialog, onAction: feedbackAction } = useFeedbackPrompt({ context: 'post_job', trigger: 'count', actionKey: 'jobs_posted_count', actionThreshold: 3 })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestedCount, setSuggestedCount] = useState(0)
   const [formData, setFormData] = useState<FormData>({
     title: "",
     company: "",
@@ -84,7 +88,10 @@ export default function NewJobPage() {
     requirements: "",
     benefits: "",
     applicationDeadline: undefined,
+    allowPublic: false,
   })
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestedCount, setSuggestedCount] = useState(0)
 
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({
@@ -110,7 +117,7 @@ export default function NewJobPage() {
       if (recruiterError) throw recruiterError
 
       // Create job posting
-      const { error: jobError } = await supabase.from("job_postings").insert({
+      const { data: inserted, error: jobError } = await supabase.from("job_postings").insert({
         recruiter_id: recruiterData.id,
         status: status,
         title: formData.title,
@@ -124,7 +131,8 @@ export default function NewJobPage() {
         requirements: formData.requirements,
         benefits: formData.benefits,
         application_deadline: formData.applicationDeadline ? formData.applicationDeadline.toISOString() : null,
-      })
+        allow_public_applications: formData.allowPublic,
+      }).select('id').single()
 
       if (jobError) throw jobError
 
@@ -140,7 +148,7 @@ export default function NewJobPage() {
       }
 
       router.refresh()
-      router.push("/recruiter/jobs")
+      router.push(`/recruiter/jobs/${inserted?.id}/edit`)
     } catch (error: any) {
       console.error("Error creating job posting:", error)
       toast({
@@ -383,6 +391,23 @@ export default function NewJobPage() {
                 'Publish Job Post'
               )}
             </Button>
+          </div>
+
+          {/* Status & Visibility (basic) */}
+          <div className="space-y-4">
+            <SectionHeader icon={Target} title="Status & Visibility" description="Control who can see and apply to this job." />
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <Label className="font-medium">Allow public applications</Label>
+                <p className="text-sm text-gray-500">Enable a shareable link for anyone to apply.</p>
+              </div>
+              <input
+                type="checkbox"
+                className="h-5 w-5"
+                checked={formData.allowPublic}
+                onChange={(e) => setFormData(prev => ({ ...prev, allowPublic: e.target.checked }))}
+              />
+            </div>
           </div>
         </form>
     </motion.div>

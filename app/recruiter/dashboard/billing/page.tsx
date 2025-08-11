@@ -84,18 +84,21 @@ export default function BillingPage() {
           try {
             const { data: userData, error: userError } = await supabase
               .from('users')
-              .select('subscription_status, trial_end_date')
+              .select('subscription_status, trial_end_date, trial_end')
               .eq('id', user.id)
               .maybeSingle();
 
-            if (!userError && userData?.subscription_status === 'trial' && userData?.trial_end_date) {
-              const trialEnd = new Date(userData.trial_end_date as string);
-              const now = new Date();
-              const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-              setTrialInfo({ isActive: daysLeft > 0, trialEndDate: userData.trial_end_date, daysLeft: Math.max(0, daysLeft) });
-            } else {
-              setTrialInfo(null);
-            }
+            if (!userError && userData?.subscription_status === 'trial') {
+              const endRaw = (userData as any).trial_end_date || (userData as any).trial_end || null;
+              if (endRaw) {
+                const trialEnd = new Date(endRaw as string);
+                const now = new Date();
+                const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                setTrialInfo({ isActive: daysLeft > 0, trialEndDate: trialEnd.toISOString(), daysLeft: Math.max(0, daysLeft) });
+              } else {
+                setTrialInfo({ isActive: true, trialEndDate: null, daysLeft: null });
+              }
+            } else setTrialInfo(null);
           } catch (e) {
             // Non-critical; ignore
           }

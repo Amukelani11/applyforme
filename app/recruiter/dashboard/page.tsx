@@ -188,14 +188,16 @@ function RecruiterDashboardContent() {
            if (!userError && userData) {
              console.log('User data:', userData);
              // Check if trial-related fields exist
-              if (userData.subscription_status === 'trial' && userData.trial_end_date) {
-               const trialEndDate = new Date(userData.trial_end_date);
+              if (userData.subscription_status === 'trial') {
+                const endRaw = (userData as any).trial_end_date || (userData as any).trial_end || null;
+                if (!endRaw) return;
+                const trialEndDate = new Date(endRaw);
                const now = new Date();
                const daysLeft = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                
                trialInfo = {
                  daysLeft: Math.max(0, daysLeft),
-                 trialEndDate: userData.trial_end_date,
+                  trialEndDate: trialEndDate.toISOString(),
                  isActive: daysLeft > 0
                };
              }

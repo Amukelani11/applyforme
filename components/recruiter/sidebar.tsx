@@ -241,7 +241,8 @@ function RecruiterSidebarContent({ open = false, onClose }: { open?: boolean; on
     "fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-100 shadow-sm",
     "transform transition-transform duration-300 ease-in-out",
     open ? "translate-x-0" : "-translate-x-full",
-    "lg:translate-x-0 lg:static lg:inset-auto lg:shadow-none"
+    // On large screens keep it fixed and visible; main uses lg:pl-72 for offset
+    "lg:translate-x-0"
   )
 
   return (

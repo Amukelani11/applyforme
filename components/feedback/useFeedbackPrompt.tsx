@@ -18,13 +18,19 @@ interface UseFeedbackPromptOptions {
 export function useFeedbackPrompt({ context, recruiterId = null, role = null, trigger = 'immediate', actionKey, actionThreshold = 3 }: UseFeedbackPromptOptions) {
   const [open, setOpen] = useState(false)
   const shownRef = useRef(false)
+  const sessionThreshold = Number(process.env.NEXT_PUBLIC_FEEDBACK_SESSION_THRESHOLD || '3')
 
   useEffect(() => {
-    if (trigger === 'immediate' && !shownRef.current) {
-      shownRef.current = true
-      setOpen(true)
-    }
-  }, [trigger])
+    if (trigger !== 'immediate' || shownRef.current) return
+    // Only show after a minimum number of sessions/page views
+    const alreadyPrompted = localStorage.getItem(`feedback_prompted_${context}`) === '1'
+    if (alreadyPrompted) return
+    const sessions = Number(localStorage.getItem('app_session_count') || '0')
+    if (sessions < sessionThreshold) return
+    shownRef.current = true
+    localStorage.setItem(`feedback_prompted_${context}`, '1')
+    setOpen(true)
+  }, [trigger, context, sessionThreshold])
 
   const onAction = useCallback(() => {
     if (!actionKey) return
@@ -32,13 +38,15 @@ export function useFeedbackPrompt({ context, recruiterId = null, role = null, tr
     localStorage.setItem(actionKey, count.toString())
     if (count >= actionThreshold && !shownRef.current) {
       shownRef.current = true
+      localStorage.setItem(`feedback_prompted_${context}`, '1')
       setOpen(true)
     }
-  }, [actionKey, actionThreshold])
+  }, [actionKey, actionThreshold, context])
 
   const onLogout = useCallback(() => {
     if (!shownRef.current) {
       shownRef.current = true
+      localStorage.setItem(`feedback_prompted_${context}`, '1')
       setOpen(true)
     }
   }, [])
