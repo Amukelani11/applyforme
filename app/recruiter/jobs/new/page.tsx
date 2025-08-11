@@ -25,21 +25,19 @@ import {
   FileText,
   Users,
   Clock,
-  Target,
   Loader2
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { trackJobPosted } from "@/lib/gtag"
 import { Separator } from "@/components/ui/separator"
-import { CustomFieldsManager } from "@/components/recruiter/custom-fields-manager"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useFeedbackPrompt } from '@/components/feedback/useFeedbackPrompt'
 
-type JobStatus = 'active' | 'draft';
+type JobStatus = 'active' | 'draft' | 'closed';
 
 interface FormData {
   title: string
@@ -54,6 +52,7 @@ interface FormData {
   benefits: string
   applicationDeadline: Date | undefined
   allowPublic: boolean
+  status: JobStatus
 }
 
 const SectionHeader = ({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }) => (
@@ -74,8 +73,7 @@ export default function NewJobPage() {
   const { toast } = useToast()
   const { Dialog: FeedbackAfterPostDialog, onAction: feedbackAction } = useFeedbackPrompt({ context: 'post_job', trigger: 'count', actionKey: 'jobs_posted_count', actionThreshold: 3 })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [suggesting, setSuggesting] = useState(false)
-  const [suggestedCount, setSuggestedCount] = useState(0)
+  
   const [formData, setFormData] = useState<FormData>({
     title: "",
     company: "",
@@ -89,6 +87,7 @@ export default function NewJobPage() {
     benefits: "",
     applicationDeadline: undefined,
     allowPublic: false,
+    status: 'active',
   })
 
   const handleChange = (field: keyof FormData, value: string) => {
@@ -183,7 +182,7 @@ export default function NewJobPage() {
           </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); handleSave('active'); }} className="space-y-12">
+        <form onSubmit={(e) => { e.preventDefault() }} className="space-y-12">
           {/* Basic Job Information */}
           <div className="space-y-8">
             <SectionHeader icon={Briefcase} title="Job Details" description="Essential information about the position" />
@@ -325,7 +324,7 @@ export default function NewJobPage() {
 
           {/* Job Description */}
           <div className="space-y-8">
-             <SectionHeader icon={FileText} title="Job Description" description="Provide a detailed overview of the role" />
+              <SectionHeader icon={FileText} title="Job Description" description="Provide a detailed overview of the role" />
               <div className="space-y-2">
                 <Label htmlFor="description" className="font-medium">Detailed Description *</Label>
                 <Textarea
@@ -364,6 +363,10 @@ export default function NewJobPage() {
           
           <Separator />
 
+          
+
+          
+
           <div className="flex justify-end pt-4 gap-4">
             <Button
               type="button"
@@ -375,10 +378,11 @@ export default function NewJobPage() {
               Save as Draft
             </Button>
             <Button 
-              type="submit" 
+              type="button" 
               disabled={isSubmitting}
               size="lg"
               className="bg-[#c084fc] hover:bg-[#a855f7] text-white font-semibold shadow-lg shadow-purple-500/10 hover:shadow-xl hover:shadow-purple-500/20 transition-all transform hover:-translate-y-0.5"
+              onClick={() => handleSave('active')}
             >
               {isSubmitting ? (
                 <>
@@ -389,23 +393,6 @@ export default function NewJobPage() {
                 'Publish Job Post'
               )}
             </Button>
-          </div>
-
-          {/* Status & Visibility (basic) */}
-          <div className="space-y-4">
-            <SectionHeader icon={Target} title="Status & Visibility" description="Control who can see and apply to this job." />
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <Label className="font-medium">Allow public applications</Label>
-                <p className="text-sm text-gray-500">Enable a shareable link for anyone to apply.</p>
-              </div>
-              <input
-                type="checkbox"
-                className="h-5 w-5"
-                checked={formData.allowPublic}
-                onChange={(e) => setFormData(prev => ({ ...prev, allowPublic: e.target.checked }))}
-              />
-            </div>
           </div>
         </form>
     </motion.div>

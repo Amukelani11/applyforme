@@ -11,7 +11,8 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Trash2, GripVertical, Settings } from "lucide-react"
+import { Plus, Trash2, GripVertical, Settings, Wand2, Loader2 } from "lucide-react"
+import { slugify } from "@/lib/utils"
 import { motion, AnimatePresence, Reorder } from "framer-motion"
 
 interface CustomField {
@@ -49,6 +50,7 @@ export function CustomFieldsManager({ jobId, onFieldsChange }: CustomFieldsManag
   const [fields, setFields] = useState<CustomField[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -76,6 +78,75 @@ export function CustomFieldsManager({ jobId, onFieldsChange }: CustomFieldsManag
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const suggestWithAI = async () => {
+    try {
+      setSuggesting(true)
+      // Fetch current job spec to provide context
+      const { data: job } = await supabase
+        .from('job_postings')
+        .select('title, description, requirements')
+        .eq('id', jobId)
+        .single()
+
+      const res = await fetch('/api/tools/custom-fields/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: job?.title || '',
+          description: job?.description || '',
+          requirements: job?.requirements || ''
+        })
+      })
+      if (!res.ok) throw new Error('Failed to fetch AI suggestions')
+      const data = await res.json()
+      const suggestions = (data?.fields || []) as Array<{
+        field_label: string
+        field_type: CustomField['field_type']
+        field_required: boolean
+        field_placeholder?: string
+        field_help_text?: string
+        field_options?: string[]
+      }>
+
+      if (!Array.isArray(suggestions) || suggestions.length === 0) {
+        toast({ title: 'No suggestions', description: 'AI did not return any fields for this job.' })
+        return
+      }
+
+      const existingNames = new Set(fields.map(f => f.field_name))
+      const mapped: CustomField[] = suggestions.map((s, index) => {
+        let base = slugify(s.field_label || 'field')
+        if (!base) base = `field_${Date.now()}_${index}`
+        let unique = base
+        let counter = 1
+        while (existingNames.has(unique)) {
+          unique = `${base}_${counter++}`
+        }
+        existingNames.add(unique)
+
+        const needsOptions = s.field_type === 'select' || s.field_type === 'radio' || s.field_type === 'multiselect'
+        return {
+          field_name: unique,
+          field_label: (s.field_label || 'Custom Field').trim(),
+          field_type: s.field_type,
+          field_required: !!s.field_required,
+          field_options: needsOptions ? (s.field_options || []) : undefined,
+          field_order: fields.length + index,
+          field_placeholder: s.field_placeholder || '',
+          field_help_text: s.field_help_text || ''
+        }
+      })
+
+      setFields(prev => [...prev, ...mapped])
+      toast({ title: 'AI suggestions added', description: `${mapped.length} field(s) appended.` })
+    } catch (error: any) {
+      console.error('AI suggest error:', error)
+      toast({ title: 'Error', description: error.message || 'Failed to suggest fields', variant: 'destructive' })
+    } finally {
+      setSuggesting(false)
     }
   }
 
@@ -213,23 +284,35 @@ export function CustomFieldsManager({ jobId, onFieldsChange }: CustomFieldsManag
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-gray-600">
           Add custom fields to collect additional information from applicants
         </p>
-        <Button 
-          type="button"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            addField()
-          }} 
-          size="sm" 
-          className="bg-[#c084fc] hover:bg-[#a855f7] text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Field
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); suggestWithAI() }}
+            disabled={suggesting}
+          >
+            {suggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+            Suggest with AI
+          </Button>
+          <Button 
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              addField()
+            }} 
+            size="sm" 
+            className="bg-[#c084fc] hover:bg-[#a855f7] text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Field
+          </Button>
+        </div>
       </div>
 
         <AnimatePresence>

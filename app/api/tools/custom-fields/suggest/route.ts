@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 type SuggestedField = {
   field_label: string
@@ -118,11 +119,82 @@ function suggestFieldsFromSpec(title: string, description: string, requirements:
   return unique.slice(0, 10)
 }
 
+async function suggestFieldsWithAI(title: string, description: string, requirements: string): Promise<SuggestedField[] | null> {
+  try {
+    const apiKey = process.env.GOOGLE_API_KEY
+    if (!apiKey) return null
+
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+
+    const prompt = `
+You are an expert hiring assistant for South Africa. Based on the job spec, propose up to 10 custom application fields we should ask candidates.
+Return ONLY a valid JSON array with objects of this exact shape (no markdown fences, no commentary):
+[
+  {
+    "field_label": string,
+    "field_type": "text" | "textarea" | "number" | "email" | "phone" | "date" | "select" | "radio" | "multiselect" | "checkbox" | "file",
+    "field_required": boolean,
+    "field_placeholder"?: string,
+    "field_help_text"?: string,
+    "field_options"?: string[] // required for select/radio/multiselect
+  }
+]
+
+Guidelines:
+- Use inclusive, bias-free wording
+- Prefer measurable, role-relevant questions
+- If the spec hints at a tech stack, include a select with those options
+- Keep labels concise and clear
+- Only include options when appropriate
+
+Job Title: ${title || ''}
+Description: ${description || ''}
+Requirements: ${requirements || ''}
+`
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    let text = response.text().trim()
+    text = text.replace(/```json|```/g, '').trim()
+
+    // Try parse strict JSON
+    try {
+      const parsed = JSON.parse(text)
+      if (Array.isArray(parsed)) return parsed.slice(0, 10)
+    } catch {}
+
+    // Attempt to extract JSON array substring as fallback
+    const start = text.indexOf('[')
+    const end = text.lastIndexOf(']')
+    if (start !== -1 && end !== -1 && end > start) {
+      const jsonLike = text.slice(start, end + 1)
+      try {
+        const parsed = JSON.parse(jsonLike)
+        if (Array.isArray(parsed)) return parsed.slice(0, 10)
+      } catch {}
+    }
+
+    return null
+  } catch (err) {
+    console.error('AI custom-fields suggest error:', err)
+    return null
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { title = '', description = '', requirements = '' } = await req.json()
+
+    // Try AI first
+    const aiFields = await suggestFieldsWithAI(String(title), String(description), String(requirements))
+    if (aiFields && aiFields.length > 0) {
+      return NextResponse.json({ fields: aiFields, provider: 'gemini' })
+    }
+
+    // Fallback heuristic
     const fields = suggestFieldsFromSpec(String(title), String(description), String(requirements))
-    return NextResponse.json({ fields })
+    return NextResponse.json({ fields, provider: 'heuristic' })
   } catch (error) {
     console.error('custom-fields suggest error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
