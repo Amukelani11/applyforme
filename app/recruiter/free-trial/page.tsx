@@ -359,13 +359,13 @@ function FreeTrialContent() {
             </div>
           </div>
                      {user ? (
-               <Button
-                 onClick={handleStartFreeTrial}
-                 disabled={loading}
-                 className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
-               >
-                 {loading ? "Processing..." : "Start Free Trial"}
-               </Button>
+              <Button
+                onClick={handleStartFreeTrial}
+                disabled={loading}
+                className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+              >
+                {loading ? "Processing..." : "Start Free Trial"}
+              </Button>
              ) : (
                <Button
                  type="submit"
@@ -525,13 +525,13 @@ function FreeTrialContent() {
             />
           </div>
                      {user ? (
-             <Button
-               onClick={handleStartFreeTrial}
-               disabled={loading}
-               className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
-             >
-               {loading ? "Processing..." : "Start Free Trial"}
-             </Button>
+              <Button
+                onClick={handleStartFreeTrial}
+                disabled={loading}
+                className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+              >
+                {loading ? "Processing..." : "Start Free Trial"}
+              </Button>
            ) : (
              <Button
                type="submit"
@@ -627,14 +627,9 @@ s.parentNode.insertBefore(b,s);
                   ))}
                 </div>
                 
-                                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                   <div className="flex items-center space-x-2">
-                     <CheckCircle className="w-5 h-5 text-green-600" />
-                     <span className="text-green-800 font-medium">Secure card verification</span>
-                   </div>
-                   <p className="text-sm text-green-700 mt-1">
-                     Enter your card details securely on PayFast. No charges during trial.
-                   </p>
+                 <div className="rounded-lg p-4 border text-sm flex items-center gap-2 bg-gray-50 border-gray-200">
+                   <CheckCircle className="w-5 h-5 text-gray-400" />
+                   <span className="text-gray-700">Card verification is temporarily disabled. You can start your free trial without a card.</span>
                  </div>
               </CardContent>
             </Card>

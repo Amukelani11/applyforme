@@ -29,6 +29,49 @@ export async function createFreeTrialSession() {
   // Generate a unique identifier for the transaction
   const m_payment_id = `TRIAL-${Date.now()}`
 
+  // If card capture is disabled, grant trial immediately and redirect
+  if (process.env.NEXT_PUBLIC_DISABLE_PAYFAST === 'true' || process.env.PAYFAST_DISABLED === 'true') {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('You must be logged in to start a free trial.')
+
+    // Ensure user row exists, then set trial status
+    try {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+      if (!existingUser) {
+        await supabase.from('users').insert({
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || null,
+          subscription_status: 'trial',
+          subscription_plan: 'professional',
+          trial_start_date: new Date().toISOString(),
+          trial_end_date: trialEnd,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+      } else {
+        await supabase.from('users').update({
+          subscription_status: 'trial',
+          subscription_plan: 'professional',
+          trial_start_date: new Date().toISOString(),
+          trial_end_date: trialEnd,
+          updated_at: new Date().toISOString(),
+        }).eq('id', user.id)
+      }
+    } catch (e) {
+      console.error('Error enabling trial without payment:', e)
+    }
+
+    redirect('/recruiter/trial-success')
+  }
+
   // Resolve absolute HTTPS base URL for PayFast required fields
   const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL
   const siteBase = normalizeBaseUrl(envSiteUrl) || normalizeBaseUrl(origin)
