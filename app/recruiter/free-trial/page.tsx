@@ -126,7 +126,7 @@ function FreeTrialContent() {
         .from("users")
         .select("id")
         .eq("email", signupData.email)
-        .single()
+        .maybeSingle()
 
       if (existingUser) {
         toast({
@@ -257,7 +257,6 @@ function FreeTrialContent() {
             id: user.id,
             email: user.email,
             full_name: signupData.full_name || user.user_metadata?.full_name || '',
-            company_name: signupData.company_name || user.user_metadata?.company_name || '',
             phone: signupData.phone || user.user_metadata?.phone || '',
             is_recruiter: true
           })

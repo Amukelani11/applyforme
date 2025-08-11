@@ -11,7 +11,7 @@ interface Props {
 }
 
 const DEFAULT_STEPS: TourStep[] = [
-  { path: '/recruiter/dashboard', title: 'Dashboard', content: 'Your hiring overview: funnel, performance, and activity.', selector: '#date' },
+  { path: '/recruiter/dashboard', title: 'Dashboard', content: 'Your hiring overview: funnel, performance, and activity.', selector: 'nav a[href="/recruiter/dashboard"]' },
   { path: '/recruiter/jobs/new', title: 'Post a Job', content: 'Create and publish a new role to start receiving candidates.' },
   { path: '/recruiter/jobs', title: 'Manage Jobs', content: 'Track job status and open Applications for candidate review.' },
   { path: '/recruiter/messages', title: 'Messages', content: 'Chat with candidates and collaborate with your team in real time.' },
