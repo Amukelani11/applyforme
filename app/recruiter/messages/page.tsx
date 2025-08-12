@@ -94,6 +94,13 @@ export default function MessagesPage() {
   const teamTypingChRef = useRef<any>(null)
   const candidateTypingLastSentRef = useRef<number>(0)
   const teamTypingLastSentRef = useRef<number>(0)
+  // Attachments
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const docInputRef = useRef<HTMLInputElement | null>(null)
+  const [isPickingApplication, setIsPickingApplication] = useState(false)
+  const [isPickingJob, setIsPickingJob] = useState(false)
+  const [availableApps, setAvailableApps] = useState<any[]>([])
+  const [availableJobs, setAvailableJobs] = useState<any[]>([])
   const { Dialog: FeedbackAfterMessagesDialog, onAction: feedbackMessagesAction } = useFeedbackPrompt({ context: 'collaboration', role: 'team_member', trigger: 'count', actionKey: 'messages_sent_count', actionThreshold: 5 })
 
   const relativeTime = (dateLike?: string | null) => {
@@ -235,6 +242,187 @@ export default function MessagesPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const sanitizeFileName = (name: string) => name.replace(/[^a-zA-Z0-9_.-]/g, '_')
+  const uploadToStorage = async (file: File) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+    const fileExt = file.name.split('.').pop()
+    const safeName = `${Date.now()}-${sanitizeFileName(file.name)}`
+    const path = `chat-attachments/${user.id}/${safeName}`
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(path, file, { cacheControl: '3600', upsert: false })
+    if (uploadError) throw uploadError
+    const { data: pub } = supabase.storage.from('documents').getPublicUrl(path)
+    return { url: pub.publicUrl, path, name: file.name, size: file.size, ext: fileExt }
+  }
+
+  const sendCandidateAttachment = async (kind: 'image' | 'file', info: { url: string, name: string }) => {
+    if (!selectedConversation) return
+    const payload = kind === 'image' ? `[image|${info.name}|${info.url}]` : `[file|${info.name}|${info.url}]`
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: message, error } = await supabase
+        .from('messages')
+        .insert({ conversation_id: selectedConversation.id, sender_id: user.id, content: payload })
+        .select(`*, sender:users(id, full_name, avatar_url)`).single()
+      if (error) throw error
+      setSelectedConversation(prev => prev ? { ...prev, messages: [...prev.messages, message] } : prev)
+    } catch (err) {
+      console.error('candidate attachment send error', err)
+      toast({ title: 'Upload failed', description: 'Could not send attachment', variant: 'destructive' })
+    }
+  }
+
+  const sendTeamAttachment = async (info: { url: string, name: string, size: number }) => {
+    if (!selectedTeamConversation) return
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: inserted, error } = await supabase
+        .from('team_messages')
+        .insert({
+          conversation_id: selectedTeamConversation.id,
+          sender_id: user.id,
+          message_text: info.name,
+          message_type: 'file',
+          file_url: info.url,
+          file_name: info.name,
+          file_size: info.size,
+        })
+        .select('*')
+        .single()
+      if (error) throw error
+      const appended = { ...inserted, sender: { id: user.id, full_name: 'You' } }
+      setSelectedTeamConversation(prev => prev ? ({ ...prev, messages: [...(prev.messages || []), appended] }) : prev)
+    } catch (err) {
+      console.error('team attachment send error', err)
+      toast({ title: 'Upload failed', description: 'Could not send attachment', variant: 'destructive' })
+    }
+  }
+
+  const handlePickImage = () => imageInputRef.current?.click()
+  const handlePickDocument = () => docInputRef.current?.click()
+  const onImageSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const info = await uploadToStorage(file)
+      if (activeChatType === 'team') await sendTeamAttachment(info)
+      else await sendCandidateAttachment('image', info)
+    } finally {
+      if (imageInputRef.current) imageInputRef.current.value = ''
+    }
+  }
+  const onDocSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const info = await uploadToStorage(file)
+      if (activeChatType === 'team') await sendTeamAttachment(info)
+      else await sendCandidateAttachment('file', info)
+    } finally {
+      if (docInputRef.current) docInputRef.current.value = ''
+    }
+  }
+
+  const openApplicationPicker = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const recruiterId = await resolveRecruiterId(user.id)
+      if (!recruiterId) return
+      const { data, error } = await supabase
+        .from('candidate_applications')
+        .select('id, candidate_name, job_posting_id, job_postings(id, title, company)')
+        .in('job_posting_id', (
+          (await supabase.from('job_postings').select('id').eq('recruiter_id', recruiterId)).data?.map(j => j.id) || []
+        ))
+        .limit(20)
+      if (error) throw error
+      setAvailableApps(data || [])
+      setIsPickingApplication(true)
+    } catch (err) {
+      console.error('load application picker error', err)
+      toast({ title: 'Could not load applications', variant: 'destructive' })
+    }
+  }
+  const openJobPicker = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const recruiterId = await resolveRecruiterId(user.id)
+      if (!recruiterId) return
+      const { data, error } = await supabase
+        .from('job_postings')
+        .select('id, title, company')
+        .eq('recruiter_id', recruiterId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      if (error) throw error
+      setAvailableJobs(data || [])
+      setIsPickingJob(true)
+    } catch (err) {
+      console.error('load job picker error', err)
+      toast({ title: 'Could not load job postings', variant: 'destructive' })
+    }
+  }
+
+  const sendAttachmentLinkMessage = async (payload: string) => {
+    if (activeChatType === 'team') {
+      await sendTeamMessageText(payload)
+    } else {
+      await sendCandidateMessageText(payload)
+    }
+  }
+  const sendTeamMessageText = async (text: string) => {
+    if (!selectedTeamConversation) return
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: inserted, error } = await supabase
+        .from('team_messages')
+        .insert({ conversation_id: selectedTeamConversation.id, sender_id: user.id, message_text: text })
+        .select('*')
+        .single()
+      if (error) throw error
+      const appended = { ...inserted, sender: { id: user.id, full_name: 'You' } }
+      setSelectedTeamConversation(prev => prev ? ({ ...prev, messages: [...(prev.messages || []), appended] }) : prev)
+    } catch (err) {
+      console.error('team text send error', err)
+    }
+  }
+  const sendCandidateMessageText = async (text: string) => {
+    if (!selectedConversation) return
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: message, error } = await supabase
+        .from('messages')
+        .insert({ conversation_id: selectedConversation.id, sender_id: user.id, content: text })
+        .select(`*, sender:users(id, full_name, avatar_url)`).single()
+      if (error) throw error
+      setSelectedConversation(prev => prev ? { ...prev, messages: [...prev.messages, message] } : prev)
+    } catch (err) {
+      console.error('candidate text send error', err)
+    }
+  }
+
+  const attachApplication = async (app: any) => {
+    setIsPickingApplication(false)
+    const jobId = app.job_postings?.id || app.job_posting_id
+    const candidateName = app.candidate_name || 'Candidate'
+    const jobTitle = app.job_postings?.title || 'Job'
+    const payload = `[application|${app.id}|${jobId}|${candidateName}|${jobTitle}]`
+    await sendAttachmentLinkMessage(payload)
+  }
+  const attachJob = async (job: any) => {
+    setIsPickingJob(false)
+    const payload = `[job|${job.id}|${job.title}|${job.company || ''}]`
+    await sendAttachmentLinkMessage(payload)
   }
 
   // Realtime: subscribe to team_conversations inserts/updates for this team
@@ -849,7 +1037,7 @@ export default function MessagesPage() {
                     </p>
                   </div>
                 </div>
-                <Button size="sm" variant="ghost">
+                <Button size="sm" variant="ghost" onClick={() => { /* placeholder for menu */ }}>
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </div>
@@ -866,15 +1054,44 @@ export default function MessagesPage() {
               ) : (
                 selectedConversation.messages.map((message) => {
                   const isMine = message.sender?.id && currentUserId ? message.sender.id === currentUserId : false
+                  const attachment = typeof message.content === 'string' ? parseAttachmentPayload(message.content) : null
                   return (
                     <div key={message.id} className={cn('flex', isMine ? 'justify-end' : 'justify-start')}>
                       <div className={cn('max-w-md', isMine ? 'text-right' : 'text-left')}>
                         <div className="text-xs text-gray-500 mb-1">
                           {isMine ? 'You' : (message.sender?.full_name || 'Member')}
                         </div>
-                        <div className={cn('rounded-lg p-3', isMine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-900')}>
-                          <p className="text-sm">{message.content}</p>
-                        </div>
+                        {attachment ? (
+                          <div className={cn('rounded-lg p-3 space-y-2', isMine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-900')}>
+                            {attachment.type === 'image' && (
+                              <a href={attachment.url} target="_blank" rel="noreferrer">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={attachment.url} alt={attachment.name} className="rounded max-h-64 object-contain" />
+                              </a>
+                            )}
+                            {attachment.type === 'file' && (
+                              <a href={attachment.url} target="_blank" rel="noreferrer" className="underline">
+                                {attachment.name}
+                              </a>
+                            )}
+                            {attachment.type === 'application' && (
+                              <a href={`/recruiter/jobs/${attachment.jobId}/applications/${attachment.appId}`} className="block p-3 rounded border border-gray-200 bg-white text-left">
+                                <div className="text-sm font-medium text-gray-900">Application: {attachment.candidateName}</div>
+                                <div className="text-xs text-gray-500">{attachment.jobTitle}</div>
+                              </a>
+                            )}
+                            {attachment.type === 'job' && (
+                              <a href={`/recruiter/jobs/${attachment.jobId}`} className="block p-3 rounded border border-gray-200 bg-white text-left">
+                                <div className="text-sm font-medium text-gray-900">Job: {attachment.title}</div>
+                                {attachment.company && <div className="text-xs text-gray-500">{attachment.company}</div>}
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <div className={cn('rounded-lg p-3', isMine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-900')}>
+                            <p className="text-sm">{message.content}</p>
+                          </div>
+                        )}
                         {relativeTime(message.created_at) && (
                           <p className={cn('text-xs text-gray-400 mt-1', isMine ? 'text-right' : 'text-left')}>{relativeTime(message.created_at) as string}</p>
                         )}
@@ -890,16 +1107,21 @@ export default function MessagesPage() {
               {renderTypingLine(candidateTyping)}
               <div className="flex items-center space-x-2">
                 {/* Attach menu */}
-                <div className="relative group">
-                  <Button type="button" variant="outline" className="px-3">+
+                <div className="relative">
+                  <Button type="button" variant="outline" className="px-3" onClick={(e) => {
+                    const menu = (e.currentTarget.nextSibling as HTMLElement)
+                    if (menu) menu.classList.toggle('hidden')
+                  }}>+
                   </Button>
-                  <div className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-white border border-gray-200 rounded shadow-md z-10">
-                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => alert('Upload image coming soon')}>Attach Image</button>
-                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => alert('Upload document coming soon')}>Attach Document</button>
-                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => alert('Attach existing application coming soon')}>Attach Existing Application</button>
-                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => alert('Attach job posting coming soon')}>Attach Job Posting</button>
+                  <div className="absolute bottom-full mb-2 left-0 hidden bg-white border border-gray-200 rounded shadow-md z-10" onMouseLeave={(e) => { (e.currentTarget as HTMLElement).classList.add('hidden') }}>
+                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={handlePickImage}>Attach Image</button>
+                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={handlePickDocument}>Attach Document</button>
+                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={openApplicationPicker}>Attach Existing Application</button>
+                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={openJobPicker}>Attach Job Posting</button>
                   </div>
                 </div>
+                <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={onImageSelected} />
+                <input ref={docInputRef} type="file" className="hidden" onChange={onDocSelected} />
                 <Input
                   placeholder="Type your message..."
                   value={newMessage}
@@ -930,7 +1152,7 @@ export default function MessagesPage() {
                     <p className="text-sm text-gray-500">Internal team chat</p>
                   </div>
                 </div>
-                <Button size="sm" variant="ghost">
+                <Button size="sm" variant="ghost" onClick={() => { /* placeholder */ }}>
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </div>
@@ -953,9 +1175,24 @@ export default function MessagesPage() {
                         <div className="text-xs text-gray-500 mb-1">
                           {isMine ? 'You' : (message.sender?.full_name || 'Member')}
                         </div>
-                        <div className={cn('rounded-lg p-3', isMine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-900')}>
-                          <p className="text-sm">{message.message_text}</p>
-                        </div>
+                        {message.message_type === 'file' ? (
+                          <div className={cn('rounded-lg p-3 space-y-2', isMine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-900')}>
+                            {message.file_url?.match(/\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i) ? (
+                              <a href={message.file_url} target="_blank" rel="noreferrer">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={message.file_url} alt={message.file_name || 'attachment'} className="rounded max-h-64 object-contain" />
+                              </a>
+                            ) : (
+                              <a href={message.file_url} target="_blank" rel="noreferrer" className="underline">
+                                {message.file_name || 'Attachment'}
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <div className={cn('rounded-lg p-3', isMine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-900')}>
+                            <p className="text-sm">{message.message_text}</p>
+                          </div>
+                        )}
                         {relativeTime(message.created_at) && (
                           <p className={cn('text-xs text-gray-400 mt-1', isMine ? 'text-right' : 'text-left')}>{relativeTime(message.created_at) as string}</p>
                         )}
