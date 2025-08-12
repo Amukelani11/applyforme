@@ -239,6 +239,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Could not send message' }, { status: 500 });
   }
 
+  // Mark other users' messages in this conversation as read when recruiter posts
+  try {
+    await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('conversation_id', conversationId)
+      .neq('sender_id', sender.id)
+  } catch (markErr) {
+    console.warn('Failed to mark messages read:', markErr)
+  }
+
   // 3. Send email notification to team members (if this is a team message)
   try {
     // Get the application and job details

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -86,6 +86,14 @@ export default function MessagesPage() {
   const [newTeamMessage, setNewTeamMessage] = useState("")
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [teamRecruiterId, setTeamRecruiterId] = useState<string | null>(null)
+  const [currentUserName, setCurrentUserName] = useState<string>("")
+  // Typing indicators
+  const [candidateTyping, setCandidateTyping] = useState<Record<string, { name: string; until: number }>>({})
+  const [teamTyping, setTeamTyping] = useState<Record<string, { name: string; until: number }>>({})
+  const candidateTypingChRef = useRef<any>(null)
+  const teamTypingChRef = useRef<any>(null)
+  const candidateTypingLastSentRef = useRef<number>(0)
+  const teamTypingLastSentRef = useRef<number>(0)
   const { Dialog: FeedbackAfterMessagesDialog, onAction: feedbackMessagesAction } = useFeedbackPrompt({ context: 'collaboration', role: 'team_member', trigger: 'count', actionKey: 'messages_sent_count', actionThreshold: 5 })
 
   const relativeTime = (dateLike?: string | null) => {
@@ -99,12 +107,110 @@ export default function MessagesPage() {
     fetchData()
   }, [])
 
+  // Typing channel for candidate conversation
+  useEffect(() => {
+    if (activeChatType !== 'candidate' || !selectedConversation?.id) return
+    const convId = selectedConversation.id
+    const ch = supabase.channel(`typing-candidate-${convId}`, { config: { broadcast: { self: true } } })
+    ch.on('broadcast', { event: 'typing' }, (payload: any) => {
+      const { userId, name } = payload?.payload || {}
+      if (!userId || userId === currentUserId) return
+      setCandidateTyping(prev => ({ ...prev, [userId]: { name: name || 'Member', until: Date.now() + 3000 } }))
+    })
+    ch.on('broadcast', { event: 'stop_typing' }, (payload: any) => {
+      const { userId } = payload?.payload || {}
+      if (!userId) return
+      setCandidateTyping(prev => { const next = { ...prev } as any; delete next[userId]; return next })
+    })
+    ch.subscribe()
+    candidateTypingChRef.current = ch
+    return () => {
+      supabase.removeChannel(ch)
+      candidateTypingChRef.current = null
+      setCandidateTyping({})
+    }
+  }, [activeChatType, selectedConversation?.id, currentUserId])
+
+  // Typing channel for team conversation
+  useEffect(() => {
+    if (activeChatType !== 'team' || !selectedTeamConversation?.id) return
+    const convId = selectedTeamConversation.id
+    const ch = supabase.channel(`typing-team-${convId}`, { config: { broadcast: { self: true } } })
+    ch.on('broadcast', { event: 'typing' }, (payload: any) => {
+      const { userId, name } = payload?.payload || {}
+      if (!userId || userId === currentUserId) return
+      setTeamTyping(prev => ({ ...prev, [userId]: { name: name || 'Member', until: Date.now() + 3000 } }))
+    })
+    ch.on('broadcast', { event: 'stop_typing' }, (payload: any) => {
+      const { userId } = payload?.payload || {}
+      if (!userId) return
+      setTeamTyping(prev => { const next = { ...prev } as any; delete next[userId]; return next })
+    })
+    ch.subscribe()
+    teamTypingChRef.current = ch
+    return () => {
+      supabase.removeChannel(ch)
+      teamTypingChRef.current = null
+      setTeamTyping({})
+    }
+  }, [activeChatType, selectedTeamConversation?.id, currentUserId])
+
+  // Prune expired typing indicators
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now()
+      setCandidateTyping(prev => {
+        const next: typeof prev = {}
+        Object.entries(prev).forEach(([k, v]) => { if (v.until > now) next[k] = v })
+        return next
+      })
+      setTeamTyping(prev => {
+        const next: typeof prev = {}
+        Object.entries(prev).forEach(([k, v]) => { if (v.until > now) next[k] = v })
+        return next
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const notifyTypingCandidate = () => {
+    if (!candidateTypingChRef.current || !currentUserId) return
+    const now = Date.now()
+    if (now - (candidateTypingLastSentRef.current || 0) < 1200) return
+    candidateTypingLastSentRef.current = now
+    candidateTypingChRef.current.send({ type: 'broadcast', event: 'typing', payload: { userId: currentUserId, name: currentUserName } })
+  }
+  const notifyStopTypingCandidate = () => {
+    if (!candidateTypingChRef.current || !currentUserId) return
+    candidateTypingChRef.current.send({ type: 'broadcast', event: 'stop_typing', payload: { userId: currentUserId } })
+  }
+  const notifyTypingTeam = () => {
+    if (!teamTypingChRef.current || !currentUserId) return
+    const now = Date.now()
+    if (now - (teamTypingLastSentRef.current || 0) < 1200) return
+    teamTypingLastSentRef.current = now
+    teamTypingChRef.current.send({ type: 'broadcast', event: 'typing', payload: { userId: currentUserId, name: currentUserName } })
+  }
+  const notifyStopTypingTeam = () => {
+    if (!teamTypingChRef.current || !currentUserId) return
+    teamTypingChRef.current.send({ type: 'broadcast', event: 'stop_typing', payload: { userId: currentUserId } })
+  }
+
+  const renderTypingLine = (record: Record<string, { name: string; until: number }>) => {
+    const names = Object.values(record).map(v => v.name)
+    if (names.length === 0) return null
+    const text = names.length === 1 ? `${names[0]} is typing…` : names.length === 2 ? `${names[0]} and ${names[1]} are typing…` : `${names[0]}, ${names[1]} and ${names.length - 2} others are typing…`
+    return <p className="text-xs text-gray-500 px-1 py-1">{text}</p>
+  }
+
   const fetchData = async () => {
     setIsLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setCurrentUserId(user.id)
+      const fallbackName = user.email ? user.email.split('@')[0] : 'You'
+      setCurrentUserName((user.user_metadata?.full_name as string) || fallbackName)
 
       // Fetch conversations (candidate/public applications)
       await fetchConversations(user.id)
@@ -781,12 +887,25 @@ export default function MessagesPage() {
 
             {/* Message Input */}
             <div className="bg-white border-t border-gray-200 p-4">
-              <div className="flex space-x-3">
+              {renderTypingLine(candidateTyping)}
+              <div className="flex items-center space-x-2">
+                {/* Attach menu */}
+                <div className="relative group">
+                  <Button type="button" variant="outline" className="px-3">+
+                  </Button>
+                  <div className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-white border border-gray-200 rounded shadow-md z-10">
+                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => alert('Upload image coming soon')}>Attach Image</button>
+                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => alert('Upload document coming soon')}>Attach Document</button>
+                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => alert('Attach existing application coming soon')}>Attach Existing Application</button>
+                    <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => alert('Attach job posting coming soon')}>Attach Job Posting</button>
+                  </div>
+                </div>
                 <Input
                   placeholder="Type your message..."
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  onChange={(e) => { setNewMessage(e.target.value); notifyTypingCandidate() }}
+                  onKeyPress={(e) => { if (e.key === 'Enter') { sendMessage(); notifyStopTypingCandidate() } }}
+                  onBlur={notifyStopTypingCandidate}
                   className="flex-1"
                 />
                 <Button onClick={sendMessage} disabled={!newMessage.trim()}>
@@ -849,12 +968,14 @@ export default function MessagesPage() {
 
             {/* Team Message Input */}
             <div className="bg-white border-t border-gray-200 p-4">
+              {renderTypingLine(teamTyping)}
               <div className="flex space-x-3">
                 <Input
                   placeholder="Type your message..."
                   value={newTeamMessage}
-                  onChange={(e) => setNewTeamMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendTeamMessage()}
+                  onChange={(e) => { setNewTeamMessage(e.target.value); notifyTypingTeam() }}
+                  onKeyPress={(e) => { if (e.key === 'Enter') { sendTeamMessage(); notifyStopTypingTeam() } }}
+                  onBlur={notifyStopTypingTeam}
                   className="flex-1"
                 />
                 <Button onClick={sendTeamMessage} disabled={!newTeamMessage.trim()}>

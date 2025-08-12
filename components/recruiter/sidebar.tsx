@@ -100,6 +100,7 @@ function RecruiterSidebarContent({ open = false, onClose }: { open?: boolean; on
   const { Dialog: SignOutFeedbackDialog, onLogout: triggerLogoutFeedback } = useFeedbackPrompt({ context: 'sign_out', recruiterId: recruiter?.id || null, role: role || undefined })
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0)
   
   const navRef = useRef<HTMLElement>(null)
   const [activeIndicatorStyle, setActiveIndicatorStyle] = useState({})
@@ -188,6 +189,45 @@ function RecruiterSidebarContent({ open = false, onClose }: { open?: boolean; on
       
       const totalUnread = (candidateCount || 0) + (publicCount || 0)
       setUnreadCount(totalUnread)
+
+      // Unread conversation messages for this recruiter's applications (exclude current user's own messages)
+      // 1) Resolve current user id
+      const { data: { user } } = await supabase.auth.getUser()
+      const currentUserId = user?.id || ''
+
+      // 2) Get candidate application IDs
+      const { data: apps2 } = await supabase
+        .from('candidate_applications')
+        .select('id')
+        .in('job_posting_id', jobIds)
+
+      const appIds2 = (apps2 || []).map((a: any) => a.id)
+      if (appIds2.length === 0) {
+        setUnreadMsgCount(0)
+        return
+      }
+
+      // 3) Get conversation IDs for those applications
+      const { data: convs } = await supabase
+        .from('conversations')
+        .select('id, application_id')
+        .in('application_id', appIds2)
+
+      const convIds = (convs || []).map((c: any) => c.id)
+      if (convIds.length === 0) {
+        setUnreadMsgCount(0)
+        return
+      }
+
+      // 4) Count unread messages where sender is not the current user
+      const { count: unreadMsgs } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .in('conversation_id', convIds)
+        .eq('is_read', false)
+        .neq('sender_id', currentUserId)
+
+      setUnreadMsgCount(unreadMsgs || 0)
     } catch (error) {
       console.error('Error fetching unread count:', error)
     }
@@ -332,6 +372,11 @@ function RecruiterSidebarContent({ open = false, onClose }: { open?: boolean; on
                 isActive ? "text-theme-600" : "text-gray-400 group-hover:text-gray-600"
               )} />
               <span className="transition-all duration-200">{item.name}</span>
+              {item.name === "Messages" && unreadMsgCount > 0 && (
+                <Badge variant="destructive" className="ml-auto text-xs">
+                  {unreadMsgCount}
+                </Badge>
+              )}
               {item.name === "Applications" && unreadCount > 0 && (
                 <Badge variant="destructive" className="ml-auto text-xs">
                   {unreadCount}
