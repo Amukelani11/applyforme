@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { EmailService } from '@/lib/email-service'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    // Use service role client so anonymous users can submit even with RLS enabled
+    const supabase = createAdminClient()
     const body = await request.json()
 
     const {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert into database
-    const { data, error } = await (await supabase)
+    const { data, error } = await supabase
       .from('enterprise_contacts')
       .insert([
         {
