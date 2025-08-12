@@ -141,7 +141,7 @@ export default async function middleware(request: NextRequest) {
       
       if (isRecruiterPath && !publicRecruiterPaths.includes(pathname)) {
         // Only redirect to sign-in for protected recruiter pages
-        return NextResponse.redirect(new URL('/signin', request.url))
+        return NextResponse.redirect(new URL('/recruiter/login', request.url))
       }
       
       // Add other non-recruiter protected paths here if needed, redirecting to /login

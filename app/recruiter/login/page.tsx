@@ -75,7 +75,8 @@ export default function RecruiterLoginPage() {
         description: "Logged in successfully!",
       })
 
-      router.refresh()
+      // Navigate to recruiter dashboard explicitly after login
+      router.push('/recruiter/dashboard')
     } catch (error: any) {
       console.error("Error signing in:", error)
       let errorMessage = error.message

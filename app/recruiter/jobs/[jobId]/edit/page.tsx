@@ -90,7 +90,7 @@ export default function EditJobPage() {
       
       const { data, error } = await supabase
         .from('job_postings')
-        .select('*')
+        .select('*, recruiter:recruiters( company_slug )')
         .eq('id', jobId)
         .single()
 
@@ -173,7 +173,7 @@ export default function EditJobPage() {
     }
     
     const jobSlug = slugify(job.title)
-    const companySlug = job.company_slug || slugify(job.company || '') || 'company'
+    const companySlug = (job as any)?.recruiter?.company_slug || job.company_slug || slugify(job.company || '') || 'company'
     const idPart = job.id ?? jobId
     const shareableLink = `${window.location.origin}/jobs/public/${companySlug}/${jobSlug}-${idPart}`
     navigator.clipboard.writeText(shareableLink)

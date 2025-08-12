@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { slugify } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
@@ -31,10 +32,10 @@ export async function GET(
       return NextResponse.json({ error: 'Recruiter not found' }, { status: 404 });
     }
 
-    // Get job data
+    // Get job data (including recruiter company_slug for public link generation)
     const { data: job, error: jobError } = await supabase
       .from('job_postings')
-      .select('*')
+      .select('*, recruiter:recruiters ( company_slug )')
       .eq('id', jobId)
       .eq('recruiter_id', recruiter.id)
       .single();
@@ -53,10 +54,13 @@ export async function GET(
       .eq('job_id', jobId)
       .single();
 
-    // Generate public link if not exists
-    let publicLink = job.public_link;
+    // Generate public link if not exists (use recruiter.company_slug and computed job slug)
+    let publicLink = (job as any).public_link as string | undefined;
     if (!publicLink && job.allow_public_applications) {
-      publicLink = `${process.env.NEXT_PUBLIC_APP_URL}/jobs/public/${job.company_slug}/${job.slug_with_id}`;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+      const companySlug = (job as any)?.recruiter?.company_slug || slugify((job as any).company || '') || 'company';
+      const jobSlugWithId = `${slugify((job as any).title || '')}-${job.id}`;
+      publicLink = `${baseUrl}/jobs/public/${companySlug}/${jobSlugWithId}`;
     }
 
     return NextResponse.json({

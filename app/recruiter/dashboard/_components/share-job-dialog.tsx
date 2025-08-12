@@ -61,12 +61,13 @@ export function ShareJobDialog({ job, isOpen, onOpenChange, onUpdate, currentPla
   };
   
   const handleCopyLink = () => {
-    if (!job.recruiter?.company_slug) {
-        toast({ title: 'Error', description: 'Company slug not found.', variant: 'destructive' });
-        return;
+    const companySlug = job.recruiter?.company_slug || slugify('');
+    if (!companySlug) {
+      toast({ title: 'Error', description: 'Company not configured yet.', variant: 'destructive' });
+      return;
     }
     const jobSlug = slugify(job.title);
-    const shareableLink = `${window.location.origin}/jobs/public/${job.recruiter.company_slug}/${jobSlug}-${job.id}`;
+    const shareableLink = `${window.location.origin}/jobs/public/${companySlug}/${jobSlug}-${job.id}`;
     navigator.clipboard.writeText(shareableLink);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000); 
@@ -74,9 +75,10 @@ export function ShareJobDialog({ job, isOpen, onOpenChange, onUpdate, currentPla
   };
   
   const getShareableLink = () => {
-      if (!job.recruiter?.company_slug) return "Could not generate link.";
-      const jobSlug = slugify(job.title);
-      return `${window.location.origin}/jobs/public/${job.recruiter.company_slug}/${jobSlug}-${job.id}`;
+    const companySlug = job.recruiter?.company_slug || slugify('');
+    if (!companySlug) return "Set company profile to generate link.";
+    const jobSlug = slugify(job.title);
+    return `${window.location.origin}/jobs/public/${companySlug}/${jobSlug}-${job.id}`;
   }
 
   return (
