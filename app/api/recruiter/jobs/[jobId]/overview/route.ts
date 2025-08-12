@@ -35,7 +35,7 @@ export async function GET(
     // Get job data (including recruiter company_slug for public link generation)
     const { data: job, error: jobError } = await supabase
       .from('job_postings')
-      .select('*, view_count, recruiter:recruiters ( company_slug )')
+      .select('*')
       .eq('id', jobId)
       .eq('recruiter_id', recruiter.id)
       .single();
@@ -68,7 +68,18 @@ export async function GET(
     let publicLink = (job as any).public_link as string | undefined;
     if (!publicLink && job.allow_public_applications) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-      const companySlug = (job as any)?.recruiter?.company_slug || slugify((job as any).company || '') || 'company';
+      // Fetch company slug via separate query to avoid join issues
+      let companySlug = slugify((job as any).company || '') || 'company';
+      try {
+        if ((job as any).recruiter_id) {
+          const { data: rec } = await supabase
+            .from('recruiters')
+            .select('company_slug')
+            .eq('id', (job as any).recruiter_id)
+            .maybeSingle();
+          companySlug = rec?.company_slug || companySlug;
+        }
+      } catch {}
       const jobSlugWithId = `${slugify((job as any).title || '')}-${job.id}`;
       publicLink = `${baseUrl}/jobs/public/${companySlug}/${jobSlugWithId}`;
     }

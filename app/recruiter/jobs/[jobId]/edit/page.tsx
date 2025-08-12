@@ -90,7 +90,7 @@ export default function EditJobPage() {
       
       const { data, error } = await supabase
         .from('job_postings')
-        .select('*, recruiter:recruiters( company_slug )')
+        .select('*')
         .eq('id', jobId)
         .single()
 
@@ -103,8 +103,17 @@ export default function EditJobPage() {
         })
         return
       }
-
-      setJob(data)
+      // Fetch recruiter slug separately to avoid join issues, then merge into state as company_slug
+      let merged = data as any
+      if (data?.recruiter_id) {
+        const { data: recruiter } = await supabase
+          .from('recruiters')
+          .select('company_slug')
+          .eq('id', data.recruiter_id)
+          .maybeSingle()
+        merged = { ...data, company_slug: recruiter?.company_slug || (data as any)?.company_slug }
+      }
+      setJob(merged)
     } catch (error) {
       console.error('Error:', error)
       toast({
@@ -132,13 +141,39 @@ export default function EditJobPage() {
     try {
       setSaving(true)
       
+      // Only send valid updatable columns; exclude relational fields like `recruiter`
+      const {
+        // exclude non-updatable or relational fields
+        recruiter: _recruiter,
+        id: _id,
+        created_at: _createdAt,
+        updated_at: _updatedAt,
+        public_application_count: _publicCount,
+        public_share_id: _publicShareId,
+        // collect the rest
+        ...rest
+      } = (job as any) || {}
+
+      const updatePayload = {
+        title: rest.title ?? '',
+        company: rest.company ?? '',
+        location: rest.location ?? '',
+        job_type: rest.job_type ?? 'full-time',
+        salary_range: rest.salary_range ?? '',
+        salary_type: rest.salary_type ?? 'annual',
+        contract_term: rest.contract_term || null,
+        description: rest.description ?? '',
+        requirements: rest.requirements ?? '',
+        benefits: rest.benefits || null,
+        status: rest.status ?? 'draft',
+        allow_public_applications: !!rest.allow_public_applications,
+        updated_at: new Date().toISOString(),
+      }
+
       const { error } = await supabase
         .from('job_postings')
-        .update({
-          ...job,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', jobId)
+        .update(updatePayload)
+        .eq('id', Number(jobId))
 
       if (error) {
         throw error
