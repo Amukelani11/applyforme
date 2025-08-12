@@ -55,6 +55,11 @@ export const metadata: Metadata = {
       },
     ],
   },
+  icons: {
+    icon: "/applyformelogo.svg",
+    shortcut: "/applyformelogo.svg",
+    apple: "/applyformelogo.svg",
+  },
   twitter: {
     card: "summary_large_image",
     title: "ApplyForMe - Automated Job Applications Made Easy",
