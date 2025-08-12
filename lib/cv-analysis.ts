@@ -85,8 +85,11 @@ export class CVAnalysisService {
         }
       }
 
-      // Use Google AI API endpoint
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${accessToken}`, {
+      // Use a faster model and enforce a timeout to avoid 504s in serverless
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      const model = 'gemini-1.5-flash' // faster for latency-sensitive requests
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${accessToken}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +100,8 @@ export class CVAnalysisService {
               text: prompt
             }]
           }]
-        })
+        }),
+        signal: controller.signal as any
       })
 
       if (!response.ok) {
@@ -1275,8 +1279,11 @@ IMPORTANT:
         }
       }
 
-      // Use Google AI API endpoint for vision model
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${accessToken}`, {
+      // Use Google AI API endpoint for vision model (faster model) with timeout
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 10000)
+      const model = 'gemini-1.5-flash'
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${accessToken}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1295,7 +1302,8 @@ IMPORTANT:
               }
             ]
           }]
-        })
+        }),
+        signal: controller.signal as any
       })
 
       console.log('Google AI API response status:', response.status)

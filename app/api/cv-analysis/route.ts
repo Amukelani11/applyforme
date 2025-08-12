@@ -36,13 +36,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch job custom fields' }, { status: 500 })
     }
 
-    // Analyze CV
+    // Analyze CV (with timeout guard to avoid 504s)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 12000)
     const analysis = await CVAnalysisService.analyzeCV(
       fileUrl, 
       jobTitle || 'Job Position', 
       customFields || [], 
       supabase
     )
+    clearTimeout(timeout)
 
     return NextResponse.json({ analysis })
 
