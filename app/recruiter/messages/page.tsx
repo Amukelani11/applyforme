@@ -801,6 +801,36 @@ export default function MessagesPage() {
     }
   }
 
+  // Parse attachment payloads embedded in message.content
+  const parseAttachmentPayload = (
+    content: string
+  ):
+    | { type: 'image' | 'file'; name: string; url: string }
+    | { type: 'application'; appId: string; jobId: string; candidateName: string; jobTitle: string }
+    | { type: 'job'; jobId: string; title: string; company: string }
+    | null => {
+    if (!content || content[0] !== '[' || content[content.length - 1] !== ']') return null
+    const inner = content.slice(1, -1)
+    const parts = inner.split('|')
+    const kind = parts[0]
+    if (kind === 'image' || kind === 'file') {
+      const [, name, url] = parts
+      if (!name || !url) return null
+      return { type: kind, name, url }
+    }
+    if (kind === 'application') {
+      const [, appId, jobId, candidateName, jobTitle] = parts
+      if (!appId || !jobId) return null
+      return { type: 'application', appId, jobId, candidateName: candidateName || 'Candidate', jobTitle: jobTitle || 'Job' }
+    }
+    if (kind === 'job') {
+      const [, jobId, title, company] = parts
+      if (!jobId) return null
+      return { type: 'job', jobId, title: title || 'Job', company: company || '' }
+    }
+    return null
+  }
+
   const filteredConversations = conversations.filter(conv => 
     conv.application?.candidate_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.application?.job_title?.toLowerCase().includes(searchTerm.toLowerCase())
