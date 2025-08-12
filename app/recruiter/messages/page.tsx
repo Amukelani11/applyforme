@@ -102,6 +102,7 @@ export default function MessagesPage() {
   const [availableApps, setAvailableApps] = useState<any[]>([])
   const [availableJobs, setAvailableJobs] = useState<any[]>([])
   const { Dialog: FeedbackAfterMessagesDialog, onAction: feedbackMessagesAction } = useFeedbackPrompt({ context: 'collaboration', role: 'team_member', trigger: 'count', actionKey: 'messages_sent_count', actionThreshold: 5 })
+  const [isHydrated, setIsHydrated] = useState(false)
 
   const relativeTime = (dateLike?: string | null) => {
     if (!dateLike) return null
@@ -112,6 +113,7 @@ export default function MessagesPage() {
 
   useEffect(() => {
     fetchData()
+    setIsHydrated(true)
   }, [])
 
   // Typing channel for candidate conversation
@@ -939,11 +941,9 @@ export default function MessagesPage() {
                       <p className="text-xs text-gray-500 truncate">
                         {conversation.application?.job_title || 'Application'}
                       </p>
-                      {conversation.messages.length > 0 && relativeTime(conversation.messages[conversation.messages.length - 1].created_at) && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          {relativeTime(conversation.messages[conversation.messages.length - 1].created_at) as string}
-                        </p>
-                      )}
+                      <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>
+                        {isHydrated && conversation.messages.length > 0 && relativeTime(conversation.messages[conversation.messages.length - 1].created_at) as (string | null)}
+                      </p>
                     </div>
                     {conversation.messages.length > 0 && (
                       <Badge variant="secondary" className="text-xs">
@@ -997,11 +997,9 @@ export default function MessagesPage() {
                             <p className="text-sm font-medium text-gray-900 truncate">
                               {tc.conversation_name || 'Team Conversation'}
                             </p>
-                            {relativeTime(tc.updated_at) && (
-                              <p className="text-xs text-gray-400 mt-1">
-                                {relativeTime(tc.updated_at) as string}
-                              </p>
-                            )}
+                            <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>
+                              {isHydrated && relativeTime(tc.updated_at) as (string | null)}
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -1026,11 +1024,9 @@ export default function MessagesPage() {
                         <p className="text-xs text-gray-500 truncate">
                           {member.email}
                         </p>
-                        {relativeTime(member.last_active) && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Last active {relativeTime(member.last_active) as string}
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>
+                          {isHydrated && `Last active ${relativeTime(member.last_active) as (string | null)}`}
+                        </p>
                       </div>
                       <Button size="sm" variant="ghost" onClick={() => openDirectChat(member)}>
                         <MessageSquare className="w-4 h-4" />
@@ -1122,9 +1118,9 @@ export default function MessagesPage() {
                             <p className="text-sm">{message.content}</p>
                           </div>
                         )}
-                        {relativeTime(message.created_at) && (
-                          <p className={cn('text-xs text-gray-400 mt-1', isMine ? 'text-right' : 'text-left')}>{relativeTime(message.created_at) as string}</p>
-                        )}
+                        <p className={cn('text-xs text-gray-400 mt-1', isMine ? 'text-right' : 'text-left')} suppressHydrationWarning>
+                          {isHydrated && (relativeTime(message.created_at) as (string | null))}
+                        </p>
                       </div>
                     </div>
                   )
@@ -1223,9 +1219,9 @@ export default function MessagesPage() {
                             <p className="text-sm">{message.message_text}</p>
                           </div>
                         )}
-                        {relativeTime(message.created_at) && (
-                          <p className={cn('text-xs text-gray-400 mt-1', isMine ? 'text-right' : 'text-left')}>{relativeTime(message.created_at) as string}</p>
-                        )}
+                        <p className={cn('text-xs text-gray-400 mt-1', isMine ? 'text-right' : 'text-left')} suppressHydrationWarning>
+                          {isHydrated && (relativeTime(message.created_at) as (string | null))}
+                        </p>
                       </div>
                     </div>
                   )
