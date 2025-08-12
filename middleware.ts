@@ -192,10 +192,18 @@ export default async function middleware(request: NextRequest) {
       const onboardingCompleted = userData?.onboarding_completed ?? false
       const subscriptionStatus = userData?.subscription_status
 
-      // If a regular user tries to access a recruiter path, send them to their dashboard
-      if (isRecruiterPath && pathname !== '/recruiter') {
+      // Allow recruiter public/auth pages even for logged-in non-recruiters
+      const recruiterPublicPathsForLoggedIn = [
+        '/recruiter',
+        '/recruiter/login',
+        '/recruiter/register',
+        '/recruiter/free-trial',
+        '/recruiter/trial-success',
+      ]
+      // If a regular user tries to access other recruiter paths, send them to their own dashboard
+      if (isRecruiterPath && !recruiterPublicPathsForLoggedIn.includes(pathname)) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+      }
 
       // If a logged-in user is on the main login/signup, send to their dashboard
       if (pathname === '/login' || pathname === '/signup' || pathname === '/signin') {

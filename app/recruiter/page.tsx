@@ -136,22 +136,15 @@ export default function RecruiterLandingPage() {
                 Start hiring today
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-theme-600 text-theme-600 hover:bg-theme-50 text-lg px-8 py-3"
-              onClick={() => {
-                if (hasRecruiterAccess) {
-                  window.location.href = '/recruiter/dashboard'
-                } else if (isLoggedIn) {
-                  window.location.href = '/dashboard'
-                } else {
-                  window.location.href = '/recruiter/login'
-                }
-              }}
-            >
-              {(hasRecruiterAccess || isLoggedIn) ? 'Dashboard' : 'Recruiter Login'}
-            </Button>
+            <Link href="/recruiter/login">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-theme-600 text-theme-600 hover:bg-theme-50 text-lg px-8 py-3"
+              >
+                Recruiter Login
+              </Button>
+            </Link>
           </div>
           
           {/* Stats */}
