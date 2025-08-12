@@ -35,7 +35,7 @@ export async function GET(
     // Get job data (including recruiter company_slug for public link generation)
     const { data: job, error: jobError } = await supabase
       .from('job_postings')
-      .select('*, recruiter:recruiters ( company_slug )')
+      .select('*, view_count, recruiter:recruiters ( company_slug )')
       .eq('id', jobId)
       .eq('recruiter_id', recruiter.id)
       .single();
@@ -45,7 +45,17 @@ export async function GET(
     }
 
     // Get analytics data
-    const analytics = await getJobAnalytics(supabase, jobId);
+    const baseAnalytics = await getJobAnalytics(supabase, jobId);
+
+    // Use actual view_count from the job record for total views and compute conversion
+    const actualViews = (job as any)?.view_count ?? 0;
+    const totalApplications = baseAnalytics.total_applications || 0;
+    const computedConversion = actualViews > 0 ? (totalApplications / actualViews) * 100 : 0;
+    const analytics = {
+      ...baseAnalytics,
+      total_views: actualViews,
+      conversion_rate: computedConversion,
+    };
 
     // Get automation settings
     const { data: automationSettings } = await supabase

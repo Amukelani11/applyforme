@@ -402,33 +402,37 @@ export default function JobOverviewPage() {
               className="transition-all duration-300"
             >
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BarChart3 className="w-5 h-5 mr-2 text-purple-600" />
-                  Performance At-a-Glance
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <BarChart3 className="w-5 h-5 mr-2 text-purple-600" />
+                    Performance At-a-Glance
+                  </span>
+                  <span className="text-xs text-gray-500">auto-updates</span>
                 </CardTitle>
+                <CardDescription>Real traffic and application metrics for this posting</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-gray-900 mb-2">
+                  <div className="text-center p-4 rounded-lg bg-gray-50">
+                    <div className="text-3xl font-bold text-gray-900 mb-1">
                       {analytics?.total_applications || 0}
                     </div>
-                    <p className="text-sm text-gray-600">Total Applicants</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Total Applicants</p>
                   </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-gray-900 mb-2">
+                  <div className="text-center p-4 rounded-lg bg-gray-50">
+                    <div className="text-3xl font-bold text-gray-900 mb-1">
                       {analytics?.total_views || 0}
                     </div>
-                    <p className="text-sm text-gray-600">Total Views</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Public Views</p>
                   </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 mb-2 flex items-center justify-center">
+                  <div className="text-center p-4 rounded-lg bg-gray-50">
+                    <div className="text-3xl font-bold text-green-600 mb-1 flex items-center justify-center">
                       {analytics?.conversion_rate ? `${analytics.conversion_rate.toFixed(1)}%` : '0%'}
                       {analytics?.conversion_rate && analytics.conversion_rate > 10 && (
                         <TrendingUp className="w-4 h-4 ml-1 text-green-500" />
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">Conversion Rate</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Apply Conversion</p>
                   </div>
                 </div>
 
