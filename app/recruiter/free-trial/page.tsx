@@ -92,8 +92,8 @@ function FreeTrialContent() {
              setUser(data.user)
 
       toast({
-        title: "Success",
-        description: "Logged in successfully! Please enter your card details to continue.",
+          title: "Success",
+          description: "Logged in successfully! You can start your free trial now.",
       })
 
     } catch (error: any) {
@@ -635,7 +635,7 @@ s.parentNode.insertBefore(b,s);
                 
                  <div className="rounded-lg p-4 border text-sm flex items-center gap-2 bg-gray-50 border-gray-200">
                    <CheckCircle className="w-5 h-5 text-gray-400" />
-                   <span className="text-gray-700">Card verification is temporarily disabled. You can start your free trial without a card.</span>
+                   <span className="text-gray-700">Card verification is temporarily disabled. Start your free trial without a card.</span>
                  </div>
               </CardContent>
             </Card>
@@ -687,8 +687,8 @@ s.parentNode.insertBefore(b,s);
                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                  <CreditCard className="w-6 h-6 text-blue-600" />
                </div>
-                              <h3 className="font-medium text-gray-900 mb-2">Secure Payment</h3>
-              <p className="text-sm text-gray-600">Card details are handled securely</p>
+              <h3 className="font-medium text-gray-900 mb-2">No Card Required</h3>
+              <p className="text-sm text-gray-600">Free trial starts instantly</p>
              </div>
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">

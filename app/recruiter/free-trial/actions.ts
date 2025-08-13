@@ -29,8 +29,9 @@ export async function createFreeTrialSession() {
   // Generate a unique identifier for the transaction
   const m_payment_id = `TRIAL-${Date.now()}`
 
-  // If card capture is disabled, grant trial immediately and redirect
-  if (process.env.NEXT_PUBLIC_DISABLE_PAYFAST === 'true' || process.env.PAYFAST_DISABLED === 'true') {
+  // Default: Skip PayFast and grant trial unless explicitly enabled via env
+  const payfastEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYFAST === 'true' || process.env.PAYFAST_ENABLED === 'true'
+  if (!payfastEnabled) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('You must be logged in to start a free trial.')
 
@@ -72,7 +73,7 @@ export async function createFreeTrialSession() {
     redirect('/recruiter/trial-success')
   }
 
-  // Resolve absolute HTTPS base URL for PayFast required fields
+  // Resolve absolute HTTPS base URL for PayFast required fields (kept for when enabling in future)
   const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL
   const siteBase = normalizeBaseUrl(envSiteUrl) || normalizeBaseUrl(origin)
   if (!siteBase || !/^https:\/\//i.test(siteBase)) {
