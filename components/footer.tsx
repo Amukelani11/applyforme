@@ -9,7 +9,7 @@ export function Footer() {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center mb-4">
               <Image
-                src="/talio-white.svg"
+                src="/talionew-white.svg"
                 alt="Talio"
                 width={32}
                 height={32}
