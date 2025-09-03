@@ -26,7 +26,7 @@ export const event = ({ action, category, label, value }: {
   }
 }
 
-// Custom events for ApplyForMe
+// Custom events for Talio
 export const trackJobPosted = (jobTitle: string, company: string) => {
   event({
     action: 'job_posted',

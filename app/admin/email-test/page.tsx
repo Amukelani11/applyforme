@@ -113,7 +113,7 @@ export default function EmailTestPage() {
               </ul>
             </div>
             <div class="footer">
-              <p>Best regards,<br>The ApplyForMe Team</p>
+              <p>Best regards,<br>The Talio Team</p>
               <p>Need help? Contact us at support@applyforme.com</p>
             </div>
           </div>
@@ -146,7 +146,7 @@ Next Steps:
 - Update job status as needed
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
       `
     },
     {
@@ -202,7 +202,7 @@ The ApplyForMe Team
               </ul>
             </div>
             <div class="footer">
-              <p>Best regards,<br>The ApplyForMe Team</p>
+              <p>Best regards,<br>The Talio Team</p>
               <p>Need help? Contact us at support@applyforme.com</p>
             </div>
           </div>
@@ -234,7 +234,7 @@ Quick Actions:
 - Contact the candidate if interested
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
       `
     },
     {
@@ -269,7 +269,7 @@ The ApplyForMe Team
             </div>
             <div class="content">
               <p>Hi John Doe,</p>
-              <p>Here's your weekly performance summary for your job postings on ApplyForMe.</p>
+              <p>Here's your weekly performance summary for your job postings on Talio.</p>
               
               <div class="stats-grid">
                 <div class="stat-card">
@@ -310,7 +310,7 @@ The ApplyForMe Team
               <a href="#" class="button">View Dashboard</a>
             </div>
             <div class="footer">
-              <p>Best regards,<br>The ApplyForMe Team</p>
+              <p>Best regards,<br>The Talio Team</p>
               <p>Need help? Contact us at support@applyforme.com</p>
             </div>
           </div>
@@ -322,7 +322,7 @@ Weekly Report: 15 applications received
 
 Hi John Doe,
 
-Here's your weekly performance summary for your job postings on ApplyForMe.
+Here's your weekly performance summary for your job postings on Talio.
 
 📊 Performance Summary (Week of ${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString()} - ${new Date().toLocaleDateString()}):
 - Total Applications: 15
@@ -344,7 +344,7 @@ Recommendations:
 View Dashboard: https://applyforme.com/recruiter/dashboard
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
       `
     }
   ]

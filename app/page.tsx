@@ -68,12 +68,12 @@ export default function HomePage() {
       <section className="py-20 relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-6 lg:px-8 text-center relative">
           {/* Floating background elements */}
-          <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-br from-[#c084fc] to-[#a855f7] rounded-full opacity-10 blur-xl"></div>
-          <div className="absolute top-40 right-20 w-32 h-32 bg-gradient-to-br from-[#a855f7] to-[#9333ea] rounded-full opacity-10 blur-xl"></div>
-          <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-gradient-to-br from-[#c084fc] to-[#a855f7] rounded-full opacity-10 blur-xl"></div>
+          <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-br from-[#2e6417] to-[#6fa03a] rounded-full opacity-10 blur-xl"></div>
+          <div className="absolute top-40 right-20 w-32 h-32 bg-gradient-to-br from-[#6fa03a] to-[#2e6417] rounded-full opacity-10 blur-xl"></div>
+          <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-gradient-to-br from-[#2e6417] to-[#6fa03a] rounded-full opacity-10 blur-xl"></div>
 
           <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-12 border border-gray-100">
-            <div className="inline-flex items-center bg-gradient-to-r from-[#c084fc] to-[#a855f7] text-white rounded-full px-6 py-3 mb-8 shadow-lg">
+            <div className="inline-flex items-center bg-gradient-to-r from-[#2e6417] to-[#6fa03a] text-white rounded-full px-6 py-3 mb-8 shadow-lg">
               <div className="w-2 h-2 bg-white rounded-full mr-3 animate-pulse"></div>
               <span className="text-sm font-medium">Trusted by 10,000+ people</span>
             </div>
@@ -81,7 +81,7 @@ export default function HomePage() {
             <h1 className="text-5xl lg:text-7xl font-light text-gray-900 mb-8 leading-tight tracking-tight">
               Find your next job,
               <br />
-              <span className="font-medium bg-gradient-to-r from-[#c084fc] to-[#a855f7] bg-clip-text text-transparent">made easier</span>
+              <span className="font-medium bg-gradient-to-r from-[#2e6417] to-[#6fa03a] bg-clip-text text-transparent">made easier</span>
             </h1>
 
             <p className="text-xl lg:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto font-light leading-relaxed">
@@ -91,7 +91,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
               <Button
                 size="lg"
-                className="text-base px-8 py-4 bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+                className="text-base px-8 py-4 bg-gradient-to-r from-[#2e6417] to-[#6fa03a] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
                 onClick={handleGetStarted}
                 disabled={isLoading}
               >
@@ -134,7 +134,7 @@ export default function HomePage() {
             <h2 className="text-4xl lg:text-5xl font-light text-gray-900 mb-6 tracking-tight">
               The traditional approach
               <br />
-              <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] bg-clip-text text-transparent font-medium">isn't working</span>
+              <span className="bg-gradient-to-r from-[#2e6417] to-[#6fa03a] bg-clip-text text-transparent font-medium">isn't working</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
               So many people spend hours filling out job applications and hear nothing back.
@@ -182,7 +182,7 @@ export default function HomePage() {
             <h2 className="text-4xl lg:text-5xl font-light text-gray-900 mb-6 tracking-tight">
               Your helping hand
               <br />
-              <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] bg-clip-text text-transparent font-medium">for job hunting</span>
+              <span className="bg-gradient-to-r from-[#2e6417] to-[#6fa03a] bg-clip-text text-transparent font-medium">for job hunting</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
               We make it simple to apply for jobs, keep track of your progress, and get support along the way.
@@ -191,7 +191,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#c084fc] to-[#a855f7] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#2e6417] to-[#6fa03a] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
                 <SparklesIcon className="h-10 w-10 text-white" />
               </div>
               <h3 className="text-xl font-medium text-gray-900 mb-4">Stand out easily</h3>
@@ -229,7 +229,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-light text-gray-900 mb-6 tracking-tight">
               Simple,
-              <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] bg-clip-text text-transparent font-medium"> transparent pricing</span>
+              <span className="bg-gradient-to-r from-[#2e6417] to-[#6fa03a] bg-clip-text text-transparent font-medium"> transparent pricing</span>
             </h2>
             <p className="text-xl text-gray-600 font-light">Choose the plan that fits your needs</p>
           </div>
@@ -250,23 +250,23 @@ export default function HomePage() {
 
               <ul className="space-y-4 mb-8">
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">20 job applications per month</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Application tips and reminders</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Friendly support</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Progress tracking dashboard</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Basic resume templates</span>
                 </li>
               </ul>
@@ -283,9 +283,9 @@ export default function HomePage() {
             </div>
 
             {/* Plus Plan */}
-            <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-xl border-2 border-[#c084fc] relative flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-xl border-2 border-[#2e6417] relative flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] text-white px-6 py-2 rounded-full text-sm font-medium shadow-lg">Most Popular</span>
+                <span className="bg-gradient-to-r from-[#2e6417] to-[#6fa03a] text-white px-6 py-2 rounded-full text-sm font-medium shadow-lg">Most Popular</span>
               </div>
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-medium text-gray-900 mb-2">Plus</h3>
@@ -301,46 +301,46 @@ export default function HomePage() {
 
               <ul className="space-y-4 mb-8">
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Unlimited job applications</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">AI-powered resume optimization</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Personalized cover letter generator</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Priority 24/7 support</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Advanced interview preparation</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Salary negotiation guidance</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Detailed application analytics</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Premium resume templates</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckmarkIcon className="h-5 w-5 text-[#c084fc] mr-3 flex-shrink-0" />
+                  <CheckmarkIcon className="h-5 w-5 text-[#2e6417] mr-3 flex-shrink-0" />
                   <span className="text-gray-700">Job matching recommendations</span>
                 </li>
               </ul>
 
               <div className="space-y-3 mt-auto">
                 <Button
-                  className="w-full bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] rounded-full"
+                  className="w-full bg-gradient-to-r from-[#2e6417] to-[#6fa03a] hover:from-[#a855f7] hover:to-[#9333ea] rounded-full"
                   onClick={() => handlePlanAction("plus")}
                   disabled={isLoading}
                 >
@@ -370,11 +370,11 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-gray-700 mb-6 leading-relaxed">
-                "After 6 months of unsuccessful applications in Cape Town, ApplyForMe secured four interview
+                "After 6 months of unsuccessful applications in Cape Town, Talio secured four interview
                 opportunities within two weeks. Their understanding of the South African market is exceptional."
               </p>
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-lg">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#2e6417] to-[#6fa03a] rounded-full flex items-center justify-center text-white font-medium text-sm shadow-lg">
                   T
                 </div>
                 <div className="ml-3">
@@ -410,11 +410,11 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-gray-700 mb-6 leading-relaxed">
-                "From Durban to remote work opportunities globally - ApplyForMe opened doors I didn't even know existed.
+                "From Durban to remote work opportunities globally - Talio opened doors I didn't even know existed.
                 Their service is worth every rand."
               </p>
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-lg">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#6fa03a] to-[#d3ff99] rounded-full flex items-center justify-center text-white font-medium text-sm shadow-lg">
                   L
                 </div>
                 <div className="ml-3">
@@ -432,7 +432,7 @@ export default function HomePage() {
           <h2 className="text-4xl lg:text-5xl font-light text-white mb-6 tracking-tight">
             Ready to find your next job?
             <br />
-            <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] bg-clip-text text-transparent font-medium">Let us help you!</span>
+            <span className="bg-gradient-to-r from-[#2e6417] to-[#6fa03a] bg-clip-text text-transparent font-medium">Let us help you!</span>
           </h2>
           <p className="text-xl text-gray-300 mb-12 font-light leading-relaxed">
             Join thousands of people who made job searching easier with us.
@@ -440,7 +440,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              className="text-base px-8 py-4 bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+              className="text-base px-8 py-4 bg-gradient-to-r from-[#2e6417] to-[#6fa03a] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
               onClick={handleGetStarted}
               disabled={isLoading}
             >

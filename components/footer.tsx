@@ -9,8 +9,8 @@ export function Footer() {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center mb-4">
               <Image
-                src="/applyformewhite.svg"
-                alt="ApplyForMe"
+                src="/talio-white.svg"
+                alt="Talio"
                 width={32}
                 height={32}
                 className="h-8"
@@ -87,7 +87,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 ApplyForMe. All rights reserved.</p>
+          <p>&copy; 2024 Talio. All rights reserved.</p>
         </div>
       </div>
     </footer>

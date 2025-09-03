@@ -55,7 +55,7 @@ serve(async (req) => {
       const chargeUrl = `${PAYFAST_API_URL}${sub.payfast_token}/charge`;
       const chargePayload = {
         amount: 49900, // Amount in cents (e.g., R499.00)
-        item_name: 'ApplyForMe Premium Subscription Renewal',
+        item_name: 'Talio Premium Subscription Renewal',
       };
       
       const chargeResponse = await fetch(chargeUrl, {

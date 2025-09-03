@@ -478,7 +478,7 @@ export default function RecruiterSettingsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c084fc]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2e6417]"></div>
       </div>
     )
   }
@@ -700,7 +700,7 @@ export default function RecruiterSettingsPage() {
                  <div className="flex items-center justify-between">
                    <div>
                     <Label htmlFor="marketing_emails">Marketing Emails</Label>
-                    <p className="text-xs text-gray-500">Receive news, feature updates, and offers from ApplyForMe.</p>
+                    <p className="text-xs text-gray-500">Receive news, feature updates, and offers from Talio.</p>
                   </div>
                   <Switch id="marketing_emails" checked={notifications.marketing_emails} onCheckedChange={(checked) => setNotifications({...notifications, marketing_emails: checked})} />
                 </div>

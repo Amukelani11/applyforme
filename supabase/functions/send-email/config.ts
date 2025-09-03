@@ -1,7 +1,7 @@
 // Resend configuration for the send-email Edge Function
 export const RESEND_CONFIG = {
   // Default sender email - update this to your verified domain
-  DEFAULT_FROM: "ApplyForMe <noreply@applyforme.com>",
+  DEFAULT_FROM: "Talio <noreply@applyforme.com>",
   
   // Reply-to email for customer support
   REPLY_TO: "support@applyforme.com",

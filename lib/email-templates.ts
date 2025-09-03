@@ -83,10 +83,10 @@ export function getJobPostedTemplate(jobData: JobPostingData, recruiterName: str
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .header { background: linear-gradient(135deg, #2e6417 0%, #6fa03a 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
           .job-card { background: white; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; margin: 20px 0; }
-          .button { display: inline-block; background: #c084fc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+          .button { display: inline-block; background: #2e6417; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
           .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
         </style>
       </head>
@@ -122,8 +122,8 @@ export function getJobPostedTemplate(jobData: JobPostingData, recruiterName: str
             </ul>
           </div>
           <div class="footer">
-            <p>Best regards,<br>The ApplyForMe Team</p>
-            <p>Need help? Contact us at support@applyforme.com</p>
+            <p>Best regards,<br>The Talio Team</p>
+            <p>Need help? Contact us at support@talio.com</p>
           </div>
         </div>
       </body>
@@ -155,7 +155,7 @@ Next Steps:
 - Update job status as needed
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
     `
   }
 }
@@ -213,8 +213,8 @@ export function getApplicationAlertTemplate(applicationData: ApplicationData, re
             </ul>
           </div>
           <div class="footer">
-            <p>Best regards,<br>The ApplyForMe Team</p>
-            <p>Need help? Contact us at support@applyforme.com</p>
+            <p>Best regards,<br>The Talio Team</p>
+            <p>Need help? Contact us at support@talio.com</p>
           </div>
         </div>
       </body>
@@ -245,7 +245,7 @@ Quick Actions:
 - Contact the candidate if interested
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
     `
   }
 }
@@ -304,8 +304,8 @@ export function getJobExpiryReminderTemplate(jobData: JobPostingData, recruiterN
             <a href="${process.env.NEXT_PUBLIC_APP_URL}/recruiter/jobs/${jobData.id}" class="button">Manage Job Posting</a>
           </div>
           <div class="footer">
-            <p>Best regards,<br>The ApplyForMe Team</p>
-            <p>Need help? Contact us at support@applyforme.com</p>
+            <p>Best regards,<br>The Talio Team</p>
+            <p>Need help? Contact us at support@talio.com</p>
           </div>
         </div>
       </body>
@@ -335,7 +335,7 @@ Your Options:
 Manage Job Posting: ${process.env.NEXT_PUBLIC_APP_URL}/recruiter/jobs/${jobData.id}
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
     `
   }
 }
@@ -394,8 +394,8 @@ export function getJobExpiredTemplate(jobData: JobPostingData, recruiterName: st
             <a href="${process.env.NEXT_PUBLIC_APP_URL}/recruiter/jobs/new" class="button">Post New Job</a>
           </div>
           <div class="footer">
-            <p>Best regards,<br>The ApplyForMe Team</p>
-            <p>Need help? Contact us at support@applyforme.com</p>
+            <p>Best regards,<br>The Talio Team</p>
+            <p>Need help? Contact us at support@talio.com</p>
           </div>
         </div>
       </body>
@@ -425,7 +425,7 @@ What you can do:
 Post New Job: ${process.env.NEXT_PUBLIC_APP_URL}/recruiter/jobs/new
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
     `
   }
 }
@@ -466,7 +466,7 @@ export function getWeeklyReportTemplate(reportData: WeeklyReportData, recruiterN
           </div>
           <div class="content">
             <p>Hi ${recruiterName},</p>
-            <p>Here's your weekly performance summary for your job postings on ApplyForMe.</p>
+            <p>Here's your weekly performance summary for your job postings on Talio.</p>
             
             <div class="stats-grid">
               <div class="stat-card">
@@ -505,8 +505,8 @@ export function getWeeklyReportTemplate(reportData: WeeklyReportData, recruiterN
             <a href="${process.env.NEXT_PUBLIC_APP_URL}/recruiter/dashboard" class="button">View Dashboard</a>
           </div>
           <div class="footer">
-            <p>Best regards,<br>The ApplyForMe Team</p>
-            <p>Need help? Contact us at support@applyforme.com</p>
+            <p>Best regards,<br>The Talio Team</p>
+            <p>Need help? Contact us at support@talio.com</p>
           </div>
         </div>
       </body>
@@ -517,7 +517,7 @@ Weekly Report: ${reportData.total_applications} applications received
 
 Hi ${recruiterName},
 
-Here's your weekly performance summary for your job postings on ApplyForMe.
+Here's your weekly performance summary for your job postings on Talio.
 
 📊 Performance Summary (${reportData.date_range}):
 - Total Applications: ${reportData.total_applications}
@@ -537,7 +537,7 @@ Recommendations:
 View Dashboard: ${process.env.NEXT_PUBLIC_APP_URL}/recruiter/dashboard
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
     `
   }
 }
@@ -611,8 +611,8 @@ export function getCVImprovementTemplate(
             <p>We're confident that your enhanced CV will help you make a stronger impression on potential employers.</p>
           </div>
           <div class="footer">
-            <p>Best regards,<br>The ApplyForMe Team</p>
-            <p>Need help? Contact us at support@applyforme.com</p>
+            <p>Best regards,<br>The Talio Team</p>
+            <p>Need help? Contact us at support@talio.com</p>
           </div>
         </div>
       </body>
@@ -648,7 +648,7 @@ Next Steps:
 We're confident that your enhanced CV will help you make a stronger impression on potential employers.
 
 Best regards,
-The ApplyForMe Team
+The Talio Team
     `
   }
 }
@@ -676,7 +676,7 @@ export function getSubscriptionConfirmationTemplate(
         </ul>
         <p>Your next billing date is <strong>${new Date(nextBillingDate).toLocaleDateString()}</strong>.</p>
         <p>You can manage your subscription from your dashboard at any time.</p>
-        <p>Thanks,<br>The ApplyForMe Team</p>
+        <p>Thanks,<br>The Talio Team</p>
       </div>
     `,
     text: `
@@ -690,7 +690,7 @@ export function getSubscriptionConfirmationTemplate(
       - Date: ${new Date().toLocaleDateString()}\n\n
       Your next billing date is ${new Date(nextBillingDate).toLocaleDateString()}.\n\n
       You can manage your subscription from your dashboard at any time.\n\n
-      Thanks,\nThe ApplyForMe Team
+      Thanks,\nThe Talio Team
     `
   }
 }
@@ -718,7 +718,7 @@ export function getSubscriptionRenewalTemplate(
         </ul>
         <p>Your subscription will continue to be active, and your next billing date is now <strong>${new Date(nextBillingDate).toLocaleDateString()}</strong>.</p>
         <p>Thank you for your continued support!</p>
-        <p>Thanks,<br>The ApplyForMe Team</p>
+        <p>Thanks,<br>The Talio Team</p>
       </div>
     `,
     text: `
@@ -732,7 +732,7 @@ export function getSubscriptionRenewalTemplate(
       - Date: ${new Date().toLocaleDateString()}\n\n
       Your subscription will continue to be active, and your next billing date is now ${new Date(nextBillingDate).toLocaleDateString()}.\n\n
       Thank you for your continued support!\n\n
-      Thanks,\nThe ApplyForMe Team
+      Thanks,\nThe Talio Team
     `
   }
 } 
@@ -772,7 +772,7 @@ export function getNewMessageTemplate(
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
           }
           .header { 
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); 
+            background: linear-gradient(135deg, #2e6417 0%, #6fa03a 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
@@ -799,7 +799,7 @@ export function getNewMessageTemplate(
             border-radius: 12px; 
             padding: 24px; 
             margin: 24px 0; 
-            border-left: 4px solid #8b5cf6;
+            border-left: 4px solid #2e6417;
           }
           .message-card p { 
             margin: 0; 
@@ -809,7 +809,7 @@ export function getNewMessageTemplate(
           }
           .button { 
             display: inline-block; 
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); 
+            background: linear-gradient(135deg, #2e6417 0%, #6fa03a 100%); 
             color: white; 
             padding: 16px 32px; 
             text-decoration: none; 
@@ -840,7 +840,7 @@ export function getNewMessageTemplate(
             border: 1px solid #e5e7eb;
           }
           .sender-info strong {
-            color: #8b5cf6;
+            color: #2e6417;
             font-weight: 600;
           }
           .job-title {
@@ -886,12 +886,12 @@ export function getNewMessageTemplate(
             </div>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
-              This message was sent from your ApplyForMe account. You can manage your notification preferences in your dashboard settings.
+              This message was sent from your Talio account. You can manage your notification preferences in your dashboard settings.
             </p>
           </div>
           <div class="footer">
-            <p style="margin: 0 0 8px 0;"><strong>Best regards,</strong><br>The ApplyForMe Team</p>
-            <p style="margin: 0; font-size: 13px;">Need help? Contact us at <a href="mailto:support@applyforme.com" style="color: #8b5cf6; text-decoration: none;">support@applyforme.com</a></p>
+            <p style="margin: 0 0 8px 0;"><strong>Best regards,</strong><br>The Talio Team</p>
+            <p style="margin: 0; font-size: 13px;">Need help? Contact us at <a href="mailto:support@talio.com" style="color: #2e6417; text-decoration: none;">support@talio.com</a></p>
           </div>
         </div>
       </body>
@@ -1003,7 +1003,7 @@ export function getTeamInvitationTemplate(invitationData: TeamInvitationData): E
   })
 
   return {
-    subject: `You're invited to join ${invitationData.companyName} on ApplyForMe`,
+    subject: `You're invited to join ${invitationData.companyName} on Talio`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -1014,11 +1014,11 @@ export function getTeamInvitationTemplate(invitationData: TeamInvitationData): E
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .header { background: linear-gradient(135deg, #2e6417 0%, #6fa03a 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .invitation-card { background: white; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #c084fc; }
-          .button { display: inline-block; background: #c084fc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; font-weight: bold; }
-          .button:hover { background: #a855f7; }
+          .invitation-card { background: white; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #2e6417; }
+          .button { display: inline-block; background: #2e6417; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; font-weight: bold; }
+          .button:hover { background: #6fa03a; }
           .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
           .role-badge { display: inline-block; background: #f0f9ff; color: #0369a1; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 500; }
           .expiry-notice { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 15px; margin: 20px 0; }
@@ -1029,11 +1029,11 @@ export function getTeamInvitationTemplate(invitationData: TeamInvitationData): E
         <div class="container">
           <div class="header">
             <h1>🎉 You're Invited!</h1>
-            <p>Join ${invitationData.companyName} on ApplyForMe</p>
+            <p>Join ${invitationData.companyName} on Talio</p>
           </div>
           <div class="content">
             <p>Hi ${invitationData.inviteeName},</p>
-            <p><strong>${invitationData.inviterName}</strong> has invited you to join their recruitment team on ApplyForMe.</p>
+            <p><strong>${invitationData.inviterName}</strong> has invited you to join their recruitment team on Talio.</p>
             
             <div class="company-info">
               <h3>🏢 ${invitationData.companyName}</h3>
@@ -1069,7 +1069,7 @@ export function getTeamInvitationTemplate(invitationData: TeamInvitationData): E
             <p>If you have any questions, please contact ${invitationData.inviterName} or reply to this email.</p>
             
             <div class="footer">
-              <p>This invitation was sent from ApplyForMe - Your recruitment platform</p>
+              <p>This invitation was sent from Talio - Your recruitment platform</p>
               <p>If you didn't expect this invitation, you can safely ignore this email.</p>
             </div>
           </div>
@@ -1078,11 +1078,11 @@ export function getTeamInvitationTemplate(invitationData: TeamInvitationData): E
       </html>
     `,
     text: `
-You're Invited to Join ${invitationData.companyName} on ApplyForMe
+You're Invited to Join ${invitationData.companyName} on Talio
 
 Hi ${invitationData.inviteeName},
 
-${invitationData.inviterName} has invited you to join their recruitment team on ApplyForMe.
+${invitationData.inviterName} has invited you to join their recruitment team on Talio.
 
 Company: ${invitationData.companyName}
 Role: ${invitationData.role}
@@ -1104,7 +1104,7 @@ What happens next?
 
 If you have any questions, please contact ${invitationData.inviterName}.
 
-This invitation was sent from ApplyForMe - Your recruitment platform
+This invitation was sent from Talio - Your recruitment platform
 If you didn't expect this invitation, you can safely ignore this email.
     `
   }

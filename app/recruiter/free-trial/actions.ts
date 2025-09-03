@@ -92,7 +92,7 @@ export async function createFreeTrialSession() {
     email_address: user.email,
     m_payment_id: m_payment_id,
     amount: "0.00", // R0 - no charge, just capture card details
-    item_name: "ApplyForMe Professional - Free Trial",
+    item_name: "Talio Professional - Free Trial",
     item_description: "30-day free trial - card details captured for future billing",
     custom_str1: user.id, // User ID for webhook
     custom_str2: 'free_trial',

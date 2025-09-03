@@ -1,6 +1,6 @@
 # Resend Email Setup Guide
 
-This guide will help you set up Resend for sending email notifications in your ApplyForMe platform.
+This guide will help you set up Resend for sending email notifications in your Talio platform.
 
 ## 1. Sign Up for Resend
 
@@ -13,7 +13,7 @@ This guide will help you set up Resend for sending email notifications in your A
 1. Log into your Resend dashboard
 2. Go to **API Keys** in the sidebar
 3. Click **Create API Key**
-4. Give it a name like "ApplyForMe Email Service"
+4. Give it a name like "Talio Email Service"
 5. Copy the API key (starts with `re_`)
 
 ## 3. Verify Your Domain (Recommended)

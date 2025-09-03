@@ -86,7 +86,7 @@ const PublicHeader = ({ userProfile }: { userProfile: UserProfile }) => {
           <Link href="/" className="flex items-center">
             <Image
               src="/applyforme.svg"
-              alt="ApplyForMe"
+              alt="Talio"
               width={40}
               height={40}
               className="h-10 w-auto"
@@ -559,11 +559,11 @@ export function PublicJobView({ job, userProfile, companySlug }: PublicJobViewPr
                   transition={{ duration: 0.5, delay: 0.8 }}
                 >
                   <p className="text-sm text-gray-500 mb-4">
-                    Powered by <span className="font-semibold text-[#c084fc]">ApplyForMe</span>
+                    Powered by <span className="font-semibold text-[#c084fc]">Talio</span>
                   </p>
                   <Link href="/signup">
                     <Button variant="ghost" size="sm" className="text-[#c084fc] hover:text-[#a855f7] hover:bg-[#c084fc] hover:bg-opacity-10">
-                      Join ApplyForMe →
+                      Join Talio →
                     </Button>
                   </Link>
                 </motion.div>

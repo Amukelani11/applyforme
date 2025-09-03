@@ -376,7 +376,7 @@ function FreeTrialContent() {
                <Button
                  type="submit"
                  disabled={loading}
-                 className="w-full py-3 bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+                 className="w-full py-3 bg-gradient-to-r from-[#2e6417] to-[#6fa03a] hover:from-[#6fa03a] hover:to-[#2e6417] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
                >
                  {loading ? "Signing in..." : "Sign In"}
                </Button>
@@ -387,7 +387,7 @@ function FreeTrialContent() {
             Don't have an account?{" "}
             <button
               onClick={() => setActiveTab('signup')}
-              className="text-[#c084fc] hover:underline"
+              className="text-[#2e6417] hover:underline"
             >
               Sign up here
             </button>
@@ -542,7 +542,7 @@ function FreeTrialContent() {
              <Button
                type="submit"
                disabled={loading}
-               className="w-full py-3 bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+               className="w-full py-3 bg-gradient-to-r from-[#2e6417] to-[#6fa03a] hover:from-[#6fa03a] hover:to-[#2e6417] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
              >
                {loading ? "Creating Account..." : "Create Account"}
              </Button>
@@ -553,7 +553,7 @@ function FreeTrialContent() {
             Already have an account?{" "}
             <button
               onClick={() => setActiveTab('login')}
-              className="text-[#c084fc] hover:underline"
+              className="text-[#2e6417] hover:underline"
             >
               Sign in here
             </button>
@@ -594,19 +594,19 @@ s.parentNode.insertBefore(b,s);
           <h1 className="text-4xl lg:text-5xl font-light text-gray-900 mb-6 tracking-tight">
             Start Your
             <br />
-            <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] bg-clip-text text-transparent font-medium">Free Trial</span>
+            <span className="bg-gradient-to-r from-[#2e6417] to-[#6fa03a] bg-clip-text text-transparent font-medium">Free Trial</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
-            Try ApplyForMe Professional for 30 days completely free.
+            Try Talio Professional for 30 days completely free.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Pricing Card */}
           <div className="lg:order-2">
-            <Card className="relative border-2 border-[#c084fc] shadow-2xl">
+            <Card className="relative border-2 border-[#2e6417] shadow-2xl">
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] text-white border-0 px-6 py-2 text-lg">
+                <Badge className="bg-gradient-to-r from-[#2e6417] to-[#6fa03a] text-white border-0 px-6 py-2 text-lg">
                   Free Trial
                 </Badge>
               </div>
@@ -622,7 +622,7 @@ s.parentNode.insertBefore(b,s);
                 <div className="space-y-4">
                   {features.map((feature, index) => (
                     <div key={index} className="flex items-start space-x-3">
-                      <div className="w-6 h-6 bg-gradient-to-br from-[#c084fc] to-[#a855f7] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-gradient-to-br from-[#2e6417] to-[#6fa03a] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         {feature.icon}
                       </div>
                       <div>
@@ -649,7 +649,7 @@ s.parentNode.insertBefore(b,s);
                  onClick={() => setActiveTab('login')}
                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                    activeTab === 'login'
-                     ? 'bg-white text-[#c084fc] shadow-sm'
+                     ? 'bg-white text-[#2e6417] shadow-sm'
                      : 'text-gray-600 hover:text-gray-900'
                  }`}
                >
@@ -659,7 +659,7 @@ s.parentNode.insertBefore(b,s);
                  onClick={() => setActiveTab('signup')}
                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                    activeTab === 'signup'
-                     ? 'bg-white text-[#c084fc] shadow-sm'
+                     ? 'bg-white text-[#2e6417] shadow-sm'
                      : 'text-gray-600 hover:text-gray-900'
                  }`}
                >
@@ -692,7 +692,7 @@ s.parentNode.insertBefore(b,s);
              </div>
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6 text-purple-600" />
+                <Zap className="w-6 h-6 text-[#2e6417]" />
               </div>
               <h3 className="font-medium text-gray-900 mb-2">Cancel Anytime</h3>
               <p className="text-sm text-gray-600">Cancel your subscription at any time, no questions asked</p>
@@ -709,7 +709,7 @@ export default function FreeTrialPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c084fc] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2e6417] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>

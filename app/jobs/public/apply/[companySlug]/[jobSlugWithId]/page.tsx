@@ -18,7 +18,7 @@ const PublicHeader = () => {
           <Link href="/" className="flex items-center">
             <Image
               src="/applyforme.svg"
-              alt="ApplyForMe"
+              alt="Talio"
               width={40}
               height={40}
               className="h-10 w-auto"

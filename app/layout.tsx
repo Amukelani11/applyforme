@@ -22,50 +22,50 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    default: "ApplyForMe - Automated Job Applications Made Easy",
-    template: "%s | ApplyForMe"
+    default: "Talio - Automated Job Applications Made Easy",
+    template: "%s | Talio"
   },
   description: "We apply for jobs so you don't have to. Automate your job search with AI-powered applications, CV improvements, and personalized job matching. Start your career journey today.",
   keywords: ["job applications", "automated job search", "AI job matching", "career platform", "job hunting", "CV improvement", "job opportunities", "career development"],
-  authors: [{ name: "ApplyForMe Team" }],
-  creator: "ApplyForMe",
-  publisher: "ApplyForMe",
+  authors: [{ name: "Talio Team" }],
+  creator: "Talio",
+  publisher: "Talio",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://applyforme.com"),
+  metadataBase: new URL("https://talio.com"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://applyforme.com",
-    siteName: "ApplyForMe",
-    title: "ApplyForMe - Automated Job Applications Made Easy",
+    url: "https://talio.com",
+    siteName: "Talio",
+    title: "Talio - Automated Job Applications Made Easy",
     description: "We apply for jobs so you don't have to. Automate your job search with AI-powered applications, CV improvements, and personalized job matching.",
     images: [
       {
         url: "/placeholder-logo.png",
         width: 1200,
         height: 630,
-        alt: "ApplyForMe - Job Application Platform",
+        alt: "Talio - Job Application Platform",
       },
     ],
   },
   icons: {
-    icon: "/applyformelogo.svg",
-    shortcut: "/applyformelogo.svg",
-    apple: "/applyformelogo.svg",
+    icon: "/talio-logo.svg",
+    shortcut: "/talio-logo.svg",
+    apple: "/talio-logo.svg",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ApplyForMe - Automated Job Applications Made Easy",
+    title: "Talio - Automated Job Applications Made Easy",
     description: "We apply for jobs so you don't have to. Automate your job search with AI-powered applications, CV improvements, and personalized job matching.",
     images: ["/placeholder-logo.png"],
-    creator: "@applyforme",
+    creator: "@talio",
   },
   robots: {
     index: true,

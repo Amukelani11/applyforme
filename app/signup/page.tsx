@@ -93,10 +93,10 @@ function SignUpForm() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#c084fc] to-[#a855f7] rounded-full mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#2e6417] to-[#6fa03a] rounded-full mb-4 shadow-lg">
             <SparklesIcon className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join ApplyForMe</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Talio</h1>
           <p className="text-lg text-gray-600">Start your job search journey today</p>
         </div>
 
@@ -199,7 +199,7 @@ function SignUpForm() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white font-semibold py-3"
+                className="w-full bg-gradient-to-r from-[#2e6417] to-[#6fa03a] hover:from-[#6fa03a] hover:to-[#2e6417] text-white font-semibold py-3"
                 disabled={loading}
               >
                 {loading ? "Creating Account..." : "Create Account"}
@@ -209,17 +209,17 @@ function SignUpForm() {
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm text-gray-600">
               Already have an account?{" "}
-              <Link href="/login" className="text-[#a855f7] hover:text-[#9333ea] font-medium">
+              <Link href="/login" className="text-[#2e6417] hover:text-[#6fa03a] font-medium">
                 Sign in
               </Link>
             </div>
             <div className="text-center text-xs text-gray-500">
               By creating an account, you agree to our{" "}
-              <Link href="/terms" className="text-[#a855f7] hover:text-[#9333ea]">
+              <Link href="/terms" className="text-[#2e6417] hover:text-[#6fa03a]">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="text-[#a855f7] hover:text-[#9333ea]">
+              <Link href="/privacy" className="text-[#2e6417] hover:text-[#6fa03a]">
                 Privacy Policy
               </Link>
             </div>

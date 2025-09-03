@@ -19,7 +19,7 @@ export function Sidebar() {
     <div className="flex h-screen w-64 flex-col border-r bg-white">
       <div className="flex h-14 items-center border-b px-4">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-          <span className="text-lg">ApplyForMe</span>
+          <span className="text-lg">Talio</span>
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-4">

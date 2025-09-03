@@ -598,7 +598,7 @@ export default function RecruiterLandingPage() {
               Loved by <span className="text-theme-600">recruiters worldwide</span>
             </h2>
             <p className="text-lg text-gray-600">
-              See what our customers have to say about their experience with ApplyForMe.
+              See what our customers have to say about their experience with Talio.
             </p>
           </div>
           
@@ -610,7 +610,7 @@ export default function RecruiterLandingPage() {
                 ))}
               </div>
               <p className="text-gray-600 mb-4">
-                "ApplyForMe has transformed our hiring process. We've reduced our time-to-hire by 60% and improved candidate quality significantly."
+                "Talio has transformed our hiring process. We've reduced our time-to-hire by 60% and improved candidate quality significantly."
               </p>
               <div>
                 <p className="font-semibold">Nokuthula Mokoena</p>
@@ -980,7 +980,7 @@ export default function RecruiterLandingPage() {
             Ready to transform your hiring?
           </h2>
           <p className="text-xl text-theme-100 mb-8">
-            Join thousands of companies that are already hiring smarter with ApplyForMe.
+            Join thousands of companies that are already hiring smarter with Talio.
           </p>
           <Link href="/recruiter/free-trial">
             <Button size="lg" className="bg-white text-theme-600 hover:bg-gray-100 text-lg px-8 py-3">

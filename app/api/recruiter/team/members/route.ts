@@ -308,11 +308,11 @@ export async function POST(request: NextRequest) {
               <p><strong>${inviterProfile?.full_name || 'Team Admin'}</strong> has added you to the recruitment team at <strong>${recruiterInfo?.company_name || 'Your Company'}</strong>.</p>
               <p>Your role: <strong>${role}</strong></p>
               <p>You can now access the team dashboard and start collaborating with your team members.</p>
-              <p><a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://applyforme.co.za'}/recruiter/dashboard" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Access Dashboard</a></p>
-              <p>Best regards,<br>The ApplyForMe Team</p>
+              <p><a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://talio.com'}/recruiter/dashboard" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Access Dashboard</a></p>
+              <p>Best regards,<br>The Talio Team</p>
             </div>
           `,
-          `Welcome to the team at ${recruiterInfo?.company_name || 'Your Company'}!\n\nHi ${full_name},\n\n${inviterProfile?.full_name || 'Team Admin'} has added you to the recruitment team at ${recruiterInfo?.company_name || 'Your Company'}.\n\nYour role: ${role}\n\nYou can now access the team dashboard and start collaborating with your team members.\n\nAccess Dashboard: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://applyforme.co.za'}/recruiter/dashboard\n\nBest regards,\nThe ApplyForMe Team`
+          `Welcome to the team at ${recruiterInfo?.company_name || 'Your Company'}!\n\nHi ${full_name},\n\n${inviterProfile?.full_name || 'Team Admin'} has added you to the recruitment team at ${recruiterInfo?.company_name || 'Your Company'}.\n\nYour role: ${role}\n\nYou can now access the team dashboard and start collaborating with your team members.\n\nAccess Dashboard: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://talio.com'}/recruiter/dashboard\n\nBest regards,\nThe Talio Team`
         )
         
         console.log('📧 EmailService.sendCustomEmail returned:', emailSent)
@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
       console.log('🔍 About to enter try-catch block for invitation email...')
       try {
         console.log('🔍 NEXT_PUBLIC_SITE_URL value:', process.env.NEXT_PUBLIC_SITE_URL)
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://applyforme.co.za'
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://talio.com'
         const invitationUrl = new URL(`/team/invite/${token}`, siteUrl).toString()
         console.log('Preparing to send invitation email to:', email)
         console.log('Invitation URL:', invitationUrl)

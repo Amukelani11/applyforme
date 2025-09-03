@@ -64,7 +64,7 @@ function TrialSuccessContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c084fc] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2e6417] mx-auto mb-4"></div>
           <p className="text-gray-600">Setting up your account...</p>
         </div>
       </div>
@@ -101,7 +101,7 @@ s.parentNode.insertBefore(b,s);
           <h1 className="text-4xl lg:text-5xl font-light text-gray-900 mb-6 tracking-tight">
             Welcome to
             <br />
-            <span className="bg-gradient-to-r from-[#c084fc] to-[#a855f7] bg-clip-text text-transparent font-medium">ApplyForMe!</span>
+            <span className="bg-gradient-to-r from-[#2e6417] to-[#6fa03a] bg-clip-text text-transparent font-medium">Talio!</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
             Your 30-day free trial has been activated successfully. Start exploring all the features available to you.
@@ -145,7 +145,7 @@ s.parentNode.insertBefore(b,s);
               <Card key={index} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-start space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#c084fc] to-[#a855f7] rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#2e6417] to-[#6fa03a] rounded-full flex items-center justify-center flex-shrink-0">
                       {feature.icon}
                     </div>
                     <div>
@@ -163,7 +163,7 @@ s.parentNode.insertBefore(b,s);
         <div className="text-center space-y-4">
           <Button
             onClick={() => router.push('/recruiter/dashboard')}
-            className="px-8 py-4 bg-gradient-to-r from-[#c084fc] to-[#a855f7] hover:from-[#a855f7] hover:to-[#9333ea] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium text-lg"
+            className="px-8 py-4 bg-gradient-to-r from-[#2e6417] to-[#6fa03a] hover:from-[#6fa03a] hover:to-[#2e6417] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium text-lg"
           >
             Go to Dashboard
             <ArrowRight className="ml-2 h-5 w-5" />
@@ -224,7 +224,7 @@ export default function TrialSuccessPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c084fc] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2e6417] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>

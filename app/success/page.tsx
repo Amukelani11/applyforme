@@ -16,7 +16,7 @@ export default function SuccessPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-gray-600">
-            Thank you for using ApplyForMe. Your request has been processed and you should receive a confirmation email
+            Thank you for using Talio. Your request has been processed and you should receive a confirmation email
             shortly.
           </p>
           <div className="space-y-2">

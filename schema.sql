@@ -1,4 +1,4 @@
--- ApplyForMe Platform Complete Schema
+-- Talio Platform Complete Schema
 
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";

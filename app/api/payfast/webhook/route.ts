@@ -160,9 +160,9 @@ export async function POST(req: NextRequest) {
         const emailService = new EmailService();
         await emailService.sendEmail({
           to: String(body.email_address || ''),
-          subject: 'Welcome to Your ApplyForMe Free Trial!',
+          subject: 'Welcome to Your Talio Free Trial!',
           html: `
-            <h2>Welcome to ApplyForMe!</h2>
+            <h2>Welcome to Talio!</h2>
             <p>Your 30-day free trial has been activated successfully.</p>
             <p><strong>What's included in your trial:</strong></p>
             <ul>
@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
             </ul>
             <p>Your trial ends on ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}.</p>
             <p>You can cancel anytime before the trial ends to avoid charges.</p>
-            <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/recruiter/dashboard">Start using ApplyForMe now</a></p>
+            <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/recruiter/dashboard">Start using Talio now</a></p>
           `
         });
       } catch (emailError) {

@@ -3,16 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Read our terms of service to understand the rules and guidelines for using ApplyForMe's job application automation platform.",
+  description: "Read our terms of service to understand the rules and guidelines for using Talio's job application automation platform.",
   keywords: ["terms of service", "legal", "user agreement", "platform terms", "service agreement"],
   openGraph: {
-    title: "Terms of Service - ApplyForMe",
-    description: "Read our terms of service to understand the rules and guidelines for using ApplyForMe's job application automation platform.",
+    title: "Terms of Service - Talio",
+    description: "Read our terms of service to understand the rules and guidelines for using Talio's job application automation platform.",
     url: "https://applyforme.com/terms",
   },
   twitter: {
-    title: "Terms of Service - ApplyForMe",
-    description: "Read our terms of service to understand the rules and guidelines for using ApplyForMe's job application automation platform.",
+    title: "Terms of Service - Talio",
+    description: "Read our terms of service to understand the rules and guidelines for using Talio's job application automation platform.",
   },
 }
 
@@ -27,12 +27,12 @@ export default function TermsPage() {
           <CardContent className="prose prose-sm max-w-none">
             <h2>1. Acceptance of Terms</h2>
             <p>
-              By accessing and using ApplyForMe, you agree to be bound by these Terms of Service.
+              By accessing and using Talio, you agree to be bound by these Terms of Service.
             </p>
 
             <h2>2. Description of Service</h2>
             <p>
-              ApplyForMe is a job application automation platform that helps users apply for jobs,
+              Talio is a job application automation platform that helps users apply for jobs,
               track applications, and manage career documents.
             </p>
 

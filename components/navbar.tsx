@@ -69,8 +69,8 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
           <div className="flex items-start">
             <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-start pl-2 pt-2">
               <Image
-                src="/applyforme.svg"
-                alt="ApplyForMe"
+                src="/talio-logo.svg"
+                alt="Talio"
                 width={48}
                 height={48}
                 className="h-12 w-auto"
@@ -112,7 +112,7 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
                   </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button size="sm" className="bg-[#c084fc] hover:bg-[#a855f7] text-white">
+                  <Button size="sm" className="bg-[#2e6417] hover:bg-[#6fa03a] text-white">
                     Get started
                   </Button>
                 </Link>
@@ -171,7 +171,7 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
                     </Button>
                   </Link>
                   <Link href="/signup">
-                    <Button size="sm" className="w-full bg-[#c084fc] hover:bg-[#a855f7] text-white">
+                    <Button size="sm" className="w-full bg-[#2e6417] hover:bg-[#6fa03a] text-white">
                       Get started
                     </Button>
                   </Link>

@@ -3,16 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Learn how ApplyForMe protects your personal information and maintains your privacy while providing job application automation services.",
+  description: "Learn how Talio protects your personal information and maintains your privacy while providing job application automation services.",
   keywords: ["privacy policy", "data protection", "personal information", "privacy", "data security", "user privacy"],
   openGraph: {
-    title: "Privacy Policy - ApplyForMe",
-    description: "Learn how ApplyForMe protects your personal information and maintains your privacy while providing job application automation services.",
+    title: "Privacy Policy - Talio",
+    description: "Learn how Talio protects your personal information and maintains your privacy while providing job application automation services.",
     url: "https://applyforme.com/privacy",
   },
   twitter: {
-    title: "Privacy Policy - ApplyForMe",
-    description: "Learn how ApplyForMe protects your personal information and maintains your privacy while providing job application automation services.",
+    title: "Privacy Policy - Talio",
+    description: "Learn how Talio protects your personal information and maintains your privacy while providing job application automation services.",
   },
 }
 
