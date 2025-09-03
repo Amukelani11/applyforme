@@ -123,7 +123,7 @@ export function getJobPostedTemplate(jobData: JobPostingData, recruiterName: str
           </div>
           <div class="footer">
             <p>Best regards,<br>The Talio Team</p>
-            <p>Need help? Contact us at support@talio.com</p>
+            <p>Need help? Contact us at support@talio.co.za</p>
           </div>
         </div>
       </body>
@@ -214,7 +214,7 @@ export function getApplicationAlertTemplate(applicationData: ApplicationData, re
           </div>
           <div class="footer">
             <p>Best regards,<br>The Talio Team</p>
-            <p>Need help? Contact us at support@talio.com</p>
+            <p>Need help? Contact us at support@talio.co.za</p>
           </div>
         </div>
       </body>
@@ -305,7 +305,7 @@ export function getJobExpiryReminderTemplate(jobData: JobPostingData, recruiterN
           </div>
           <div class="footer">
             <p>Best regards,<br>The Talio Team</p>
-            <p>Need help? Contact us at support@talio.com</p>
+            <p>Need help? Contact us at support@talio.co.za</p>
           </div>
         </div>
       </body>
@@ -395,7 +395,7 @@ export function getJobExpiredTemplate(jobData: JobPostingData, recruiterName: st
           </div>
           <div class="footer">
             <p>Best regards,<br>The Talio Team</p>
-            <p>Need help? Contact us at support@talio.com</p>
+            <p>Need help? Contact us at support@talio.co.za</p>
           </div>
         </div>
       </body>
@@ -506,7 +506,7 @@ export function getWeeklyReportTemplate(reportData: WeeklyReportData, recruiterN
           </div>
           <div class="footer">
             <p>Best regards,<br>The Talio Team</p>
-            <p>Need help? Contact us at support@talio.com</p>
+            <p>Need help? Contact us at support@talio.co.za</p>
           </div>
         </div>
       </body>
@@ -612,7 +612,7 @@ export function getCVImprovementTemplate(
           </div>
           <div class="footer">
             <p>Best regards,<br>The Talio Team</p>
-            <p>Need help? Contact us at support@talio.com</p>
+            <p>Need help? Contact us at support@talio.co.za</p>
           </div>
         </div>
       </body>
@@ -891,7 +891,7 @@ export function getNewMessageTemplate(
           </div>
           <div class="footer">
             <p style="margin: 0 0 8px 0;"><strong>Best regards,</strong><br>The Talio Team</p>
-            <p style="margin: 0; font-size: 13px;">Need help? Contact us at <a href="mailto:support@talio.com" style="color: #2e6417; text-decoration: none;">support@talio.com</a></p>
+            <p style="margin: 0; font-size: 13px;">Need help? Contact us at <a href="mailto:support@talio.co.za" style="color: #2e6417; text-decoration: none;">support@talio.co.za</a></p>
           </div>
         </div>
       </body>

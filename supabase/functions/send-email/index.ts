@@ -37,7 +37,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: from || "Talio <noreply@applyforme.co.za>",
+        from: from || "Talio <noreply@talio.co.za>",
         to: [to],
         subject: subject,
         html: html,

@@ -35,14 +35,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://talio.com"),
+  metadataBase: new URL("https://talio.co.za"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://talio.com",
+    url: "https://talio.co.za",
     siteName: "Talio",
     title: "Talio - Automated Job Applications Made Easy",
     description: "We apply for jobs so you don't have to. Automate your job search with AI-powered applications, CV improvements, and personalized job matching.",

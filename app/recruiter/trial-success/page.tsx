@@ -198,7 +198,7 @@ s.parentNode.insertBefore(b,s);
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
                   variant="outline"
-                  onClick={() => window.open('mailto:support@applyforme.co.za?subject=Free Trial Support')}
+                  onClick={() => window.open('mailto:support@talio.co.za?subject=Free Trial Support')}
                   className="border-blue-300 text-blue-700 hover:bg-blue-100"
                 >
                   Contact Support

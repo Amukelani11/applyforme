@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Send email notification to admin
     try {
       await EmailService.sendCustomEmail(
-        { email: 'admin@applyforme.co.za', name: 'Admin' },
+        { email: 'admin@talio.co.za', name: 'Admin' },
         'New Enterprise Contact Request',
         `
           <h2>New Enterprise Contact Request</h2>

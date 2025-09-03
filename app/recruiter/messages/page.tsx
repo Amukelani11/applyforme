@@ -576,7 +576,7 @@ export default function MessagesPage() {
           id: m.id,
           user_id: userId,
           full_name: fullName.trim().length > 0 ? fullName : (email ? email.split('@')[0] : 'Team member'),
-          email: email || 'unknown@applyforme.co.za',
+          email: email || 'unknown@talio.co.za',
           avatar_url: undefined,
           role: m.role,
           last_active: m.user?.last_sign_in_at || undefined,
