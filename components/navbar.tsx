@@ -69,7 +69,7 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
           <div className="flex items-start">
             <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-start pl-2 pt-2">
               <Image
-                src="/talio-logo.svg"
+                src="/talio.svg"
                 alt="Talio"
                 width={48}
                 height={48}

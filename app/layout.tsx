@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     description: "We apply for jobs so you don't have to. Automate your job search with AI-powered applications, CV improvements, and personalized job matching.",
     images: [
       {
-        url: "/placeholder-logo.png",
+        url: "/talio.svg",
         width: 1200,
         height: 630,
         alt: "Talio - Job Application Platform",
@@ -56,15 +56,15 @@ export const metadata: Metadata = {
     ],
   },
   icons: {
-    icon: "/talio-logo.svg",
-    shortcut: "/talio-logo.svg",
-    apple: "/talio-logo.svg",
+    icon: "/talio.svg",
+    shortcut: "/talio.svg",
+    apple: "/talio.svg",
   },
   twitter: {
     card: "summary_large_image",
     title: "Talio - Automated Job Applications Made Easy",
     description: "We apply for jobs so you don't have to. Automate your job search with AI-powered applications, CV improvements, and personalized job matching.",
-    images: ["/placeholder-logo.png"],
+    images: ["/talio.svg"],
     creator: "@talio",
   },
   robots: {
